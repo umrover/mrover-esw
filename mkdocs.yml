@@ -1,0 +1,29 @@
+site_name: MRover ESW
+
+docs_dir: ./docs
+
+repo_url: https://github.com/umrover/mrover-esw
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Introduction: getting-started/intro.md
+    - STM32CubeIDE: getting-started/stm32cubeide/index.md
+    - Starter Projects:
+      - LED: getting-started/starter/led/index.md
+      - Servo:
+        - Part 1 - PWM: getting-started/starter/servo/part1-pwm.md
+        - Part 2 - CAN: getting-started/starter/servo/part2-can.md
+  - Useful Information:
+    - Nucleos: info/nucleos.md
+    - Timers: info/timers.md
+    - Communication Protocols: info/communication-protocols.md
+    - Brushless Motors: info/brushless.md
+    - Brushed Motors: info/brushed.md
+    - Science: info/science.md
+  - Headers:
+    - hardware.hpp: headers/hardware.md
+

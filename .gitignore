@@ -1,0 +1,15 @@
+site/
+
+# Cube Projects
+Build/
+Debug/
+Release/
+.metadata/
+.settings/
+RemoteSystemsTempFiles/
+
+*.chm
+*.settings.xml
+
+*.xml
+*.launch
