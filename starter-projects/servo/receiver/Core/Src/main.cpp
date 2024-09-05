@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "servo.hpp"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,6 +46,7 @@ CAN_HandleTypeDef hcan;
 TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
+
 CAN_RxHeaderTypeDef rx_header;
 uint8_t rx_buf[8];
 
@@ -57,7 +59,7 @@ static void MX_GPIO_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-void CAN_FilterConfig();
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -97,7 +99,9 @@ int main(void)
   MX_CAN_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  CAN_FilterConfig();
+  servo.start_servo();
+  HAL_CAN_Start(&hcan);
+
   if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
 	  Error_Handler();
   }
@@ -192,7 +196,25 @@ static void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
+	CAN_FilterTypeDef  sFilterConfig;
 
+	uint32_t filter_id = 0x2024;
+	uint32_t filter_mask = 0xFFFF;
+
+	sFilterConfig.FilterBank = 0;
+	sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	sFilterConfig.FilterIdHigh = (((filter_id << 3) & 0xFFFF0000) >> 16);
+	sFilterConfig.FilterIdLow = (filter_id << 3) & 0xFFFF;
+	sFilterConfig.FilterMaskIdHigh = (((filter_mask << 3) & 0xFFFF0000) >> 16);
+	sFilterConfig.FilterMaskIdLow = (filter_mask << 3) & 0xFFFF;
+	sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
+	sFilterConfig.SlaveStartFilterBank = 14;
+
+	if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK) {
+		Error_Handler();
+	}
   /* USER CODE END CAN_Init 2 */
 
 }
@@ -313,30 +335,16 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void CAN_FilterConfig() {
-	CAN_FilterTypeDef  sFilterConfig;
-
-	sFilterConfig.FilterBank = 0;
-	sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	sFilterConfig.FilterIdHigh = 0x0000;
-	sFilterConfig.FilterIdLow = 0x2024;
-	sFilterConfig.FilterMaskIdHigh = 0x0000;
-	sFilterConfig.FilterMaskIdLow = 0xFFFF;
-	sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
-	sFilterConfig.SlaveStartFilterBank = 14;
-
-	if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK) {
-		Error_Handler();
-	}
-}
-
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 	if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_buf) != HAL_OK) {
 		Error_Handler();
 	}
 	servo.set_angle(rx_buf[0]);
+	if (HAL_CAN_ActivateNotification(hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
+		Error_Handler();
+	}
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 }
 /* USER CODE END 4 */
 

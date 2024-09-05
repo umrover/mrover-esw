@@ -1,12 +1,13 @@
 #pragma once
 
-#include "main.h"
+#include "stm32f3xx_hal.h"
 
 class Servo {
 public:
 	Servo(TIM_HandleTypeDef* tim_handle, uint32_t channel, uint32_t max_deg, uint32_t zero_deg_ccr, uint32_t max_deg_ccr);
 
-	void set_angle(uint32_t angle);
+	auto start_servo() const -> void;
+	auto set_angle(double angle) -> void;
 
 private:
 	TIM_HandleTypeDef* m_tim_handle;
