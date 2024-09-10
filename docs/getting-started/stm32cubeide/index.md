@@ -19,8 +19,7 @@ we will be using the <em>Debian</em> Linux installer.
 3. Click on Accept for the License Agreement pop up.
 
 4. You will then be prompted to log in, create an account, or continue as a guest. You will need a
-MyST account in the future, so it is best to create one now. You do not have you use your school
-email address.
+MyST account in the future, so it is best to create one now. You may use any email address.
 
 5. After logging in and being brought back to the download page, scroll back down to "Get Software".
 It may take a while for the "Get Software" section to load.
@@ -31,13 +30,13 @@ Linux installer.
 ### Install
 1\. Open a new terminal ([guide](https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/)).
 
-2\. Navigate to the folder with the downloaded installer zip file. It should be in your `Downloads`
-folder that you can navigate to by entering the following in your terminal:
+2\. The downloaded installer zip file should be in your `Downloads` folder. You can navigate to this
+folder by entering the following command in your terminal:
 ```sh
 cd ~/Downloads
 ```
 
-3\. You should now be able to see the installer `.zip` file if you run the following:
+3\. You should now be able to see the installer `.zip` file, if you run the following command:
 
 ```sh
 ls
@@ -81,10 +80,10 @@ Then, click `y` and then the `Enter` key.
 STM32CubeIDE installed successfully
 ```
 
-11\. You should now be able to launch STM32CubeIDE from the Ubuntu Applications menu.
+11\. You should now be able to launch STM32CubeIDE from the Ubuntu Applications menu ([guide](https://help.ubuntu.com/stable/ubuntu-help/shell-apps-open.html.en)).
 
 ## Creating a New Project
-This quick guide will teach you how to make a new project for your STM32F303RE Nucleo board that you
+This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
 will be developing on.
 
 ### Prerequisites
@@ -104,10 +103,10 @@ You may experience some lag after the previous step. Eventually, you will be pro
 ![image](https://user-images.githubusercontent.com/71603173/186999915-d8197e0a-cf00-43e0-a8ce-7c13c3039615.png)
 
 At the top, select the `Board Selector` option.
-Then on the left, in the text box next to `Commercial Part Number`, type `F303RE`.
+Then on the left, in the text box next to `Commercial Part Number`, type `G431RB`.
 There should only be one option in the `Boards List` Section, click that and press `Next`:
 
-![image](https://user-images.githubusercontent.com/71603173/187000029-9d2cd4f3-c0ed-4dbe-8636-5dea1a1c1054.png)
+![board selector window with g431rb selected](board-select.webp)
 
 Now you will be prompted with the following window:
 
@@ -115,9 +114,10 @@ Now you will be prompted with the following window:
 
 Here you can name your project whatever you want, but we can just call it "tutorial".  Leave everything else as default and click Finish.
 
-You will then be prompted with this dialogue asking if you want to initialize all peripherals with their default mode, select `No`.
+You will then be prompted with this window to configure this board. Make sure to uncheck all the
+boxes by clicking `Unselect All`. Then select `OK`.
 
-![image](https://user-images.githubusercontent.com/71603173/187000203-c4e3f20e-6fae-453d-84a0-6355ba955674.png)
+![board configuration window to select software components](board-config.webp)
 
 It may also ask about changing perspective. Here, it comes down to preference, but you can just click `Yes`.
 
@@ -128,7 +128,7 @@ Notice the graphical interface of the chip on the right (which we may call the `
 files on the left that fall under the tutorial project (most importantly, `Src/main.c` and
 `tutorial.ioc`). Cool things to know is the graphical interface is used to make changes to the chip
 settings. If changes are made, then once the project is saved, code will be auto-generated for the
-user. The `main.c` file is where you will want to write your code. 
+user. The `main.c` file is where you will want to write your code.
 
 ![image](https://user-images.githubusercontent.com/71603173/187000579-18856eed-e151-4cc7-a5d3-f419b2eff41e.png)
 
