@@ -1,9 +1,8 @@
 # LED Starter Project
 
 ## About
-
-This tutorial is intended to get you more familiar with a Nucleo 
-(with STM32F303RE MCU) and the Cube IDE. 
+This tutorial is intended to get you more familiar with a Nucleo
+(with STM32G431RB MCU) and the Cube IDE.
 You will be asked to develop code such that the LED on the Nucleo
 will light up whenever the Nucleo’s button is pressed down.
 
@@ -12,7 +11,7 @@ of the ESW leads or members. This project isn't meant to be high-stakes,
 so please reach out if you ever get stuck!
 
 ## Instructions
-As mentioned earlier, the goal is to make sure that the button is able to activate the LED. 
+As mentioned earlier, the goal is to make sure that the button is able to activate the LED.
 
 As you walk through the guide, keep the following questions in mind:
 
@@ -25,7 +24,7 @@ As you walk through the guide, keep the following questions in mind:
 ## Prerequisites
 
 * STM32CubeIDE [installed](#installing)
-* STM32F303RE Nucleo (pictured below)
+* STM32G431RB Nucleo (pictured below)
 
 ![stm32f303re nucleo](f303re-nucleo.webp)
 
@@ -33,15 +32,17 @@ As you walk through the guide, keep the following questions in mind:
 
 Open up Cube IDE and create a new project called tutorial by following the steps in the [Cube IDE New Project Guide](https://github.com/umrover/embedded-testbench/wiki/Cube-IDE-New-Project-Guide).
 
-When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit [this](https://os.mbed.com/platforms/ST-Nucleo-F303RE/) page.
+When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit [this](https://os.mbed.com/platforms/ST-Nucleo-G474RE/) page.
 
 On this page, you will find some pinouts. Based on the pinouts, you should be able to tell that the button is connected to pin PC13 and that the LED is connected to PA5.
 
-![image](https://user-images.githubusercontent.com/71603173/187024871-c22edfd3-2b5b-474c-9d74-c258e3fecd1c.png)
+![g4 pinout showing button connected to pc13](g4-button-pin.webp)
 
-![image](https://user-images.githubusercontent.com/71603173/187024884-c9c6705a-4810-4b48-ba08-541d343f9c95.png)
+![g4 pinout showing led connected to pa5](g4-led-pin.webp)
 
 Head back to the Cube IDE and if the .ioc file is not open already, open it from the Project Explorer located on the left. You should be able to see a graphical interface with the chip on it.
+
+> **Some images may include STM32F303RETx instead of STM32G431RBTx**: Please ignore the differences!
 
 ![image](https://user-images.githubusercontent.com/71603173/187025002-c1fa3c55-ab5c-4f1e-8c72-e129c777fb35.png)
 
@@ -69,11 +70,11 @@ You may also see a window asking about opening the associated perspective. Click
 
 We have now successfully configured our pins and generated the code for it. Now it is time to write the logic to link the button and the LED together.
 
-Begin by opening up the Src/main.c file.
+Begin by opening up the `src/main.c` file.
 
 ![image](https://user-images.githubusercontent.com/71603173/187025970-833b8ae5-90ef-4ddc-ba08-8142c90febae.png)
 
-When writing code, you will only want to write in specific sections. A good rule of thumb is to only put your code in between where it says 
+When writing code, you will only want to write in specific sections. A good rule of thumb is to only put your code in between where it says
 `USER CODE BEGIN` and `USER CODE END`. This is necessary because otherwise, the automatic code generation from the Cube IDE
 will overwrite and delete your code.
 
@@ -87,17 +88,17 @@ See below for a demo on how we can access data in our case.
 
 ![image](https://user-images.githubusercontent.com/71603173/187026399-f7aaea9b-1071-4b00-bc8c-94914f84419c.png)
 
-When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high. Active low means that when the button is pushed down (i.e. when it is active), then the value returned is a logical 0 (i.e. the value is low). In our case, the button is active low.
+When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high. In our case, the button is active low. This means that when the button is pushed down, the value returned is a 0.
 
 Based on this information, you should now be able to implement logic on how to link the button to the LED. If you need additional resources, you may choose to refer to [this](https://medium.com/vicara-hardware-university/stm32-guide-gpio-and-buttons-8303e6c8cb44) guide on how to GPIO pins and buttons. Also, you are always welcome to ask another member for help!
 
 After writing your code, you will most certainly want to build and run your program on actual hardware.
 
-Connect an Nucleo board with an STM32F303RE to your computer via USB. Ask an experienced member or an ESW lead if you need assistance in obtaining such hardware.
+Connect an STM32G431RB Nucleo board to your computer via USB. Ask an experienced member or an ESW lead if you need assistance in obtaining such hardware.
 
-Before building your program, ensure that all relevant files have been saved to ensure that code generation has been done. 
+Before building your program, ensure that all relevant files have been saved to ensure that code generation has been done.
 
-Then, build your project by either using the keyboard shortcut `Ctrl + B` or by clicking `Project` &#8594; `Build All` (or `Project` &#8594; `Build Project`). 
+Then, build your project by clicking `Project`&rarr;`Build All` (or `Project`&rarr;`Build Project`) or using the keyboard shortcut `Ctrl + B`.
 
 ![image](https://user-images.githubusercontent.com/71603173/187026630-70fd8f18-5e86-4dc6-8172-4ef7284ed50e.png)
 
@@ -105,7 +106,7 @@ After building your project, you will see the console which will tell you whethe
 
 ![image](https://user-images.githubusercontent.com/71603173/187026679-b2c141a5-bc19-42bc-bbeb-b328746ddd26.png)
 
-Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Click on Run -> Run. Make sure that your Nucleo device is connected to your computer via USB or else this will not work.
+Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Click on `Run`&rarr;`Run`. Make sure that your Nucleo device is connected to your computer via USB or else this will not work.
 
 ![image](https://user-images.githubusercontent.com/71603173/187026727-ed899673-5d2f-4e45-a1f8-ba794714ba96.png)
 
@@ -118,7 +119,7 @@ If you need help debugging, feel free to ask any of the subteam leads or any of 
 ## Useful Resources
 You may or may not need all of these links in the future.
 
-1. [Board Reference Manual](https://usermanual.wiki/Pdf/stm32f303referencemanualdatasheetenDM00043574.861577074/view)
-2. [Chip Datasheet](https://www.st.com/resource/en/datasheet/stm32f303re.pdf)
+1. [Board Reference Manual](https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
+2. [Chip Datasheet](https://www.st.com/resource/en/datasheet/stm32g431c6.pdf)
 3. [HAL-Driver](https://www.st.com/resource/en/user_manual/dm00122016-description-of-stm32f3-hal-and-low-layer-drivers-stmicroelectronics.pdf)
-4. [Pinout](https://os.mbed.com/platforms/ST-Nucleo-F303RE/)
+4. [Pinout](https://os.mbed.com/platforms/ST-Nucleo-G474RE/)
