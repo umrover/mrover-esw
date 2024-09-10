@@ -14,7 +14,7 @@ so please reach out if you ever get stuck!
 * STM32CubeIDE [installed](../../stm32cubeide/index.md)
 * LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
 * Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
-* STM32F303RE Nucleo
+* STM32G431RB Nucleo
 * Servo
 
 ## Intro
@@ -34,7 +34,7 @@ Since you already have practice creating a project, you will only need to clone 
 premade STM32 project for this starter project.
 
 Go to [this repository](https://github.com/umrover/mrover-esw), click the "Code" tab, and copy the SSH URL.
-![opened "Code" tab with boxes showing how to copy the SSH URL]()
+![opened "Code" tab with boxes showing how to copy the SSH URL](copy-git-repo.webp)
 
 You now have the URL you need to clone the project.
 
@@ -59,36 +59,18 @@ know how to do so.
 
 ### 2. PWM timer configuration
 
+![timer 1 configuration in stm32cubeide](servo-timer-config.webp)
+
 Once the .ioc is open, configure the pins for PWM.
 
 1. Select the PC0 pin and change it to TIM1_CH1.
-2. On the left side of the .ioc file, under Timers, select Tim1.
-3. Changed Channel1 from “Disable” to “PWM Generation CH1”.
+2. On the left side of the .ioc file, under Timers, select TIM1.
+3. Change Channel1 from "Disable" to "PWM Generation CH1".
 
-![timer 1 configuration in stm32cubeide](servo-timer-config-1.webp)
-
-Under Config (right below Mode), you can edit the prescaler and counter period, which are used to specify the PWM signal parameters. 
-
-**I do not recommend copying the PSC and CCR shown in the picture, it'll make your math really hard later on**
-
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/Servo_Timer_Config2.png)
-
-
-## PWM Overview
-
-A timer is used for counting, which works well for producing PWM signals. PWM signal is a digital signal that is set to high and low for a set amount of time. Devices that are controlled by PWM use the fraction that the signal is high for to set something (eg. velocity, position, brightness).
-
-There are 2 parameters that control what type of pulses the output pin can produce, the prescaler (PSC) and the auto-reload register (ARR):
-* PSC: changes the frequency of the clock by dividing it, which adjusts how fast or slow the cycles are. For example, if a clock has a frequency of 8MHz, a PSC of 7 would make the frequency 1 MHz ( Clk/(PSC+1) ).
-* ARR: defines the number of ticks in one cycle, which adjusts how fine the PWM signal can be. For example, if the same clock as the previous example, with the same PSC (so 1MHz) is used with an ARR of 49, then each tick would be 20ns long ( 1ms/(ARR+1) ) and the width of each pulse can increment by 20ns.
-
-If you are still confused, here's a helpful [slide deck](https://docs.google.com/presentation/d/1eK4ROr9wMi3IOqEUcBABVkFSWsVM56jEgm_zoR2-wio/edit?usp=drive_link) that goes more in depth. 
-
-
-Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) for the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.
-
-
-Once you have determined and edited the timer config, save the file and generate code. Note: you can always come back to the .ioc to make changes.
+You will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
+correctly set up this PWM timer. These values are located in the "Parameter Settings" and must be
+calculated. Refer to the timer [reference guide](../../../info/timers.md) for information on
+calculating these values.
 
 ## Creating the header file
 Having a Servo object will make it easier to adjust the number servos or where the servos are in the future, so for good practice, we will create a servo object and function prototypes in a header file. 
