@@ -87,7 +87,7 @@ This quick guide will teach you how to make a new project for your STM32G431RB N
 will be developing on.
 
 ### Prerequisites
-* STM32CubeIDE [installed](#installing)
+* STM32CubeIDE [installed](../stm32cubeide/index.md)
 
 ### Guide
 Open STM32CubeIDE, select the desired workspace, and click `Launch` (the default is fine for now).
@@ -138,7 +138,7 @@ user. The `main.c` file is where you will want to write your code.
 This quick guide will teach you how to open an existing STM32 project in your STM32CubeIDE workspace.
 
 ### Prerequisites
-* STM32CubeIDE [installed](#installing)
+* STM32CubeIDE [installed](#install)
 * Any existing STM32 project downloaded
 
 ### Guide

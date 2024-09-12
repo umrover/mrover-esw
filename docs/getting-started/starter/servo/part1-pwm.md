@@ -3,7 +3,7 @@
 This starter project is made up of two parts: PWM and CAN. This is Part 1 - PWM.
 
 By the end of this part, you should have an understanding of timers and PWM (pulse width modulation)
-signals. 
+signals.
 
 Just as a reminder, if you have any questions, feel free to reach out to any
 of the ESW leads or members. This project isn't meant to be high-stakes,
@@ -54,18 +54,18 @@ git checkout -b <starter/your-name>
 ```
 
 Open STM32CubeIDE and open the Servo ***Part 1*** starter project (the directory named `p1-pwm`). Follow the following
-[guide](../../stm32cubeide#opening-an-existing-project) to open an existing project if you do not
+[guide](../../stm32cubeide/index.md#opening-an-existing-project) to open an existing project if you do not
 know how to do so.
 
 ### 2. PWM timer configuration
 
-![timer 1 configuration in stm32cubeide](servo-timer-config.webp)
-
 Once the .ioc is open, configure the pins for PWM.
 
-1. Select the PC0 pin and change it to TIM1_CH1.
-2. On the left side of the .ioc file, under Timers, select TIM1.
-3. Change Channel1 from "Disable" to "PWM Generation CH1".
+1. Select the PC0 pin on the chip in the .ioc and change it to TIM1_CH1.
+2. On the left side of the .ioc file, under Timers, select TIM1 (shown below).
+3. Change Channel1 from "Disable" to "PWM Generation CH1" (shown below).
+
+![timer 1 configuration in stm32cubeide](servo-timer-config.webp)
 
 You will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
 correctly set up this PWM timer. These values are located in the "Parameter Settings" and must be
@@ -73,7 +73,7 @@ calculated. Refer to the timer [reference guide](../../../info/timers.md) for in
 calculating these values.
 
 ## Creating the header file
-Having a Servo object will make it easier to adjust the number servos or where the servos are in the future, so for good practice, we will create a servo object and function prototypes in a header file. 
+Having a Servo object will make it easier to adjust the number servos or where the servos are in the future, so for good practice, we will create a servo object and function prototypes in a header file.
 
 On the menu to the left, in Core > Inc, create a new header file named servo.h
 
@@ -111,7 +111,7 @@ Create the function prototypes for the 3 functions that are needed to create and
 Try to fill out the header on your own, but here are some hints if you get stuck:
 * `new_servo` should take in parameters and return a Servo*
 * `initialize_servo` should initialize an existing Servo* to have a certain starting angle, it should also start the timer
-* `set_servo_angle` should convert an angle to the number of ticks for the CCR 
+* `set_servo_angle` should convert an angle to the number of ticks for the CCR
 
 
 ## Implementing Servo functions
@@ -124,7 +124,7 @@ On the menu to the left, in Core > Src, create a new .c file named servo.c
 
 Don't forget to #include your header file.
 
-Here is an example of what a function that creates a new object should look like in C: 
+Here is an example of what a function that creates a new object should look like in C:
 
 ![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/new_thermistor.png)
 
@@ -151,7 +151,7 @@ When you are satisfied with your code, make sure it builds and then get a Nucleo
 # Logic Analyzer
 The simplest method for debugging a digital signal is often to use a logic analyzer. Please install [Logic](https://www.saleae.com/downloads/) on your laptop.
 
-To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing. 
+To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
 Play around with Logic:
 * Zoom in and out
 * Pause the display
