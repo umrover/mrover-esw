@@ -72,7 +72,8 @@ correctly set up this PWM timer. These values are located in the "Parameter Sett
 calculated. Refer to the timer [reference guide](../../../info/timers.md) for information on
 calculating these values.
 
-## Creating the header file
+### 3. Creating the header file
+
 Having a Servo object will make it easier to adjust the number servos or where the servos are
 in the future, so for good practice, we will create a servo object and function prototypes in a
 header file.
@@ -117,8 +118,7 @@ Try to fill out the header on your own, but here are some hints if you get stuck
 * `initialize_servo` should initialize an existing Servo* to have a certain starting angle, it should also start the timer
 * `set_servo_angle` should convert an angle to the number of ticks for the CCR
 
-
-## Implementing Servo functions
+### 4. Implementing Servo functions
 
 Now that you have a Servo struct and function prototypes, it's time to implement the functions.
 
@@ -138,7 +138,7 @@ To initialize a servo object, you must initialize the timer used to generate the
 When implementing set_servo_angle, keep in mind what PWM signal corresponds to what angle. Check back on the [servo datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) to determine this.
 
 
-## Testing your servo functions
+### 5. Testing your servo functions
 
 Now that you have the functions to create a servo object and change the angles, it's time to test them out in main.c.
 
@@ -152,7 +152,7 @@ Once you have the servo created, add in the `initialize_servo` function to initi
 
 When you are satisfied with your code, make sure it builds and then get a Nucleo, a logic analyzer, and some jumper cables to check your PWM signals. If you think the PWM signals are correct based on the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf), you can test your code on a servo. If you are unsure, just ask for help!
 
-# Logic Analyzer
+#### Logic Analyzer
 The simplest method for debugging a digital signal is often to use a logic analyzer. Please install [Logic](https://www.saleae.com/downloads/) on your laptop.
 
 To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
@@ -164,7 +164,7 @@ Play around with Logic:
 * Try to understand what all the different numbers mean
 
 
-# Wiring the Servo
+#### Wiring the Servo
 In order to properly wire the servo, first consult the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf).
 
 * How much voltage does the servo need?
