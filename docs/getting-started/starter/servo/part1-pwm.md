@@ -73,24 +73,28 @@ calculated. Refer to the timer [reference guide](../../../info/timers.md) for in
 calculating these values.
 
 ## Creating the header file
-Having a Servo object will make it easier to adjust the number servos or where the servos are in the future, so for good practice, we will create a servo object and function prototypes in a header file.
+Having a Servo object will make it easier to adjust the number servos or where the servos are
+in the future, so for good practice, we will create a servo object and function prototypes in a
+header file.
 
-On the menu to the left, in Core > Inc, create a new header file named servo.h
+On the menu to the left, in `Core`&rarr;`Inc`, create a new header file named `servo.h`.
 
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/create_header.png)
+![creating a header file in CubeIDE](create_header.webp)
 
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/name_header.png)
+![naming a header in CubeIDE](name_header.webp)
 
 Near the top of the header file, copy in the following lines:
 
-`#pragma once`
+```c
+#pragma once
 
-`#include "stm32f3xx_hal.h"`
+#include <stdlib.h>
 
-`#include <stdlib.h>`
-
+#include "stm32f3xx_hal.h"
+```
 
 Then, create a Servo struct with 3 member variables:
+
 * `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
 * `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
 * `uint32_t *output` : this is the address of the output register where the number of ticks that are set to high is stored
@@ -120,13 +124,13 @@ Now that you have a Servo struct and function prototypes, it's time to implement
 
 On the menu to the left, in Core > Src, create a new .c file named servo.c
 
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/create_source.png)
+![creating a source file in CubeIDE](create_source.webp)
 
 Don't forget to #include your header file.
 
 Here is an example of what a function that creates a new object should look like in C:
 
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/new_thermistor.png)
+![new thermistor object example code](new_thermistor.webp)
 
 
 To initialize a servo object, you must initialize the timer used to generate the PWM signal. To do this, use HAL_TIM_PWM_Start(). Find more information about this built-in HAL function [here](http://www.disca.upv.es/aperles/arm_cortex_m3/llibre/st/STM32F439xx_User_Manual/group__tim__exported__functions__group3.html)
@@ -140,7 +144,7 @@ Now that you have the functions to create a servo object and change the angles, 
 
 Go to main.c and make sure to #include servo.h in the /* USER CODE BEGIN Includes */ section
 
-![](https://github.com/umrover/embedded-testbench/blob/master/training/nucleo/quick_start/images/main_include.png)
+![servo main include example code](main_include.webp)
 
 In the main function, create a new servo object using the new_servo function. Remember to put your code in a USER CODE spot. The timer parameter for `new_servo` should be a `TIM_HandleTypeDef*`, so look through main.c and find the name for the TIM_Handle that is being used. The channel parameter should correspond with which timer channel you are using (remember we set our pin to TIM1_CH1). The output parameter is the address of the register that holds the number of ticks that are set high in the output signal. For PWM signals, this is the CCR (compare and capture register), which is a member of the TIM object. Servo's output variable should be `&(TIM1->CCR1)` if using TIM1 and CH1.
 
@@ -153,6 +157,7 @@ The simplest method for debugging a digital signal is often to use a logic analy
 
 To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
 Play around with Logic:
+
 * Zoom in and out
 * Pause the display
 * Mouse over the different parts of the signal
@@ -161,6 +166,7 @@ Play around with Logic:
 
 # Wiring the Servo
 In order to properly wire the servo, first consult the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf).
+
 * How much voltage does the servo need?
 * Which wires are signal, power, and ground?
 
