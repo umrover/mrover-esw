@@ -57,6 +57,9 @@ only need to properly set the following values:
 3. Nominal Time Seg 1
 4. Nominal Time Seg 2
 
+Again, please refer to the [CAN info page](../../../info/communication-protocols/index.md#can) for
+more information on these values.
+
 There is a very in depth guide to configuring these values for STM32 MCUs in the
 [CAN FD Bit Timing](../../../info/communication-protocols/index.md#can-bit-timing) section of the
 docs. However, for the purposes of this starter project, you can use [this online calculator](https://phryniszak.github.io/stm32g-fdcan/)
@@ -71,6 +74,9 @@ You can now save the .ioc and generate the code.
 ### 4. Writing the CAN code
 
 In the `main.c`, you should see 6 TODOs. We will walk through each of them.
+
+As a reminder, when you are writing code, make sure to write within the `/* USER CODE */` tags.
+This will ensure that your code is not overwritten when you regenerate the code.
 
 #### TODO 1: Create the necessary variables to send a CAN message
 In order to send a CAN message, we need to create two objects:
