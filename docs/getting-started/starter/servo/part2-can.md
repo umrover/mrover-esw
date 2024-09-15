@@ -10,6 +10,9 @@ the specified angle. By the end of this part, you should have an understanding o
 
 Just as a reminder, if you have any questions, feel free to reach out to any ESW lead or member.
 
+***Before starting this project***, please give the [CAN info page](../../../info/communication-protocols/index.md#can)
+a read. It will get you start on the basics of CAN communication. ***Do not read "Using the Kvaser Bit Timing Calculator."***
+
 ## Prerequisites
 
 * STM32CubeIDE [installed](../../stm32cubeide/index.md)
@@ -17,9 +20,6 @@ Just as a reminder, if you have any questions, feel free to reach out to any ESW
 * Servo Part 1 Starter Project [completed](part1-pwm.md) and shown to an ESW lead
 * STM32G431RB Nucleo
 * MCP2551 CAN tranceiver
-
-***Before starting this project***, please give the [CAN info page](../../../info/communication-protocols/index.md#can)
-a read. It will get you start on the basics of CAN communication. ***Do not read "Using the Kvaser Bit Timing Calculator."***
 
 ## Guide
 
