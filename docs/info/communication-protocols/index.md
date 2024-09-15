@@ -89,6 +89,24 @@ with two different sets of bit timing parameters:
 For an in-depth guide on what these values mean, [this video](https://www.youtube.com/watch?v=se204xfyb4g),
 although long, is very informative.
 
+### CAN Bus
+
+![can bus diagram](can-bus.webp)
+
+As mentioned previously, the CAN bus is made up of two wires: CAN High (CANH) and CAN Low (CANL).
+Microcontrollers, however, do not have the capability to directly interface with the CAN bus. They
+require a CAN transceiver to convert the digital signals from the microcontroller to the analog
+signals on the CAN bus. The CAN transceiver also provides protection to the microcontroller from
+the high voltage on the CAN bus. This is why you will often see CAN TX and RX pins on a microcontroller,
+but no CANH or CANL pins. The TX and RX pins are connected to the CAN transceiver, which then
+connects to the CAN bus.
+
+Additionally, the CANH and CANL wires are connected to each other at the beginning and end of the bus. This is called
+termination. The termination is usually done with a 120&Omega; resistor at each end of the bus.
+Termination is important because it helps to reduce reflections on the bus, which can cause data
+errors.
+
+
 #### Using the Kvaser Bit Timing Calculator
 
 We will go over finding these values for ***STM32 MCUs*** using an [online tool](https://www.kvaser.com/support/calculators/can-fd-bit-timing-calculator/)
