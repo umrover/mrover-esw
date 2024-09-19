@@ -30,7 +30,7 @@ As you walk through the guide, keep the following questions in mind:
 
 ## Guide
 
-Open up Cube IDE and create a new project called tutorial by following the steps in the [Cube IDE New Project Guide](https://github.com/umrover/embedded-testbench/wiki/Cube-IDE-New-Project-Guide).
+Open up Cube IDE and create a new project called tutorial by following the steps in the [Cube IDE New Project Guide](../../stm32cubeide/index.md#creating-a-new-project).
 
 When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit [this](https://os.mbed.com/platforms/ST-Nucleo-G474RE/) page.
 
