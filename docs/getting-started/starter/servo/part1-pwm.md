@@ -20,10 +20,9 @@ so please reach out if you ever get stuck!
 ## Intro
 
 As mentioned earlier, by the end of the project you should be able to drive a servo.
-This project will also teach some coding practices used for STM32 code.
+This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
 While you are working through the project, keep the following in mind:
 
-* How could you decrease the amount of space or processing power needed for your code?
 * How could you document your code so that others can easily read and understand it?
 * How could you write your code so that it can easily be adjusted for different pins, different number of servos, etc.?
 
@@ -75,10 +74,10 @@ calculating these values.
 ### 3. Creating the header file
 
 Having a Servo object will make it easier to adjust the number servos or where the servos are
-in the future, so for good practice, we will create a servo object and function prototypes in a
-header file.
+in the future, so for good practice, we will create a servo class and declare any member variables
+and member functions in a header file.
 
-On the menu to the left, in `Core`&rarr;`Inc`, create a new header file named `servo.h`.
+On the menu to the left, in `Core`&rarr;`Inc`, create a new header file named `servo.hpp`.
 
 ![creating a header file in CubeIDE](create_header.webp)
 
@@ -91,32 +90,22 @@ Near the top of the header file, copy in the following lines:
 
 #include <stdlib.h>
 
-#include "stm32f3xx_hal.h"
+#include "stm32g4xx_hal.h"
 ```
 
-Then, create a Servo struct with 3 member variables:
+Then, create a Servo class with 3 member variables:
 
 * `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
 * `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
 * `uint32_t *output` : this is the address of the output register where the number of ticks that are set to high is stored
 
-To avoid getting errors when using your Servo struct later on, make sure to declare it like this:
-```
-typedef struct {
-	// TODO: fill this in
-} Servo;
-```
+
 
 Create the function prototypes for the 3 functions that are needed to create and use a Servo object:
-* `new_servo`
-* `initialize_servo`
-* `set_servo_angle`
+* A default constructor that does not take in any parameters
+* A constructor that initializes the servo with a timer, sets the channel, and 
+* `set_servo_angle` that converts an angle to the number of ticks for the CCR
 
-
-Try to fill out the header on your own, but here are some hints if you get stuck:
-* `new_servo` should take in parameters and return a Servo*
-* `initialize_servo` should initialize an existing Servo* to have a certain starting angle, it should also start the timer
-* `set_servo_angle` should convert an angle to the number of ticks for the CCR
 
 ### 4. Implementing Servo functions
 
