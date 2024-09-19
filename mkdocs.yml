@@ -17,6 +17,7 @@ nav:
           - Servo:
               - Part 1 - PWM: getting-started/starter/servo/part1-pwm.md
               - Part 2 - CAN: getting-started/starter/servo/part2-can.md
+          - Accelerometer: getting-started/starter/accelerometer/index.md
   - Useful Information:
       - Nucleos: info/nucleos.md
       - Timers: info/timers.md
