@@ -13,18 +13,19 @@ have that code show up automatically in the main file.
 1. Go to the CubeIDE [download page](https://www.st.com/en/development-tools/stm32cubeide.html) and scroll down to "Get Software."
    ![get software](get-software.webp)
 
-2. Click on "Select Version &rarr; 1.16.0" for the correct OS you are running. For this walkthrough,
-we will be using the <em>Debian</em> Linux installer.
+2. ***For this walkthrough, we will be using the <em>Debian</em> Linux installer for UBUNTU USERS.***
+Click on "Select Version &rarr; **1.16.0**" for the ***correct OS you are running***.
 
-3. Click on Accept for the License Agreement pop up.
 
-4. You will then be prompted to log in, create an account, or continue as a guest. You will need a
+1. Click on Accept for the License Agreement pop up.
+
+2. You will then be prompted to log in, create an account, or continue as a guest. You will need a
 MyST account in the future, so it is best to create one now. You may use any email address.
 
-5. After logging in and being brought back to the download page, scroll back down to "Get Software".
+1. After logging in and being brought back to the download page, scroll back down to "Get Software".
 It may take a while for the "Get Software" section to load.
 
-6. Download version 1.16.0 of the OS you are running. Again, this tutorial will be using the <em>Debian</em>
+1. Download version 1.16.0 of the OS you are running. Again, this tutorial will be using the <em>Debian</em>
 Linux installer.
 
 ### Install
