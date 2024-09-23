@@ -71,6 +71,12 @@ correctly set up this PWM timer. These values are located in the "Parameter Sett
 calculated. Refer to the timer [reference guide](../../../info/timers.md) for information on
 calculating these values.
 
+Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) for
+the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.
+
+Once you have determined and edited the timer config, save the file and generate code. Note: you can
+always come back to the .ioc to make changes.
+
 ### 3. Opening the header file
 
 Having a servo object will make it easier to adjust the number servos or where the servos are
