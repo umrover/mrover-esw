@@ -198,7 +198,7 @@ static void MX_CAN_Init(void)
   /* USER CODE BEGIN CAN_Init 2 */
 	CAN_FilterTypeDef  sFilterConfig;
 
-	uint32_t filter_id = 0x2024;
+	uint32_t filter_id = 2024;
 	uint32_t filter_mask = 0xFFFF;
 
 	sFilterConfig.FilterBank = 0;
