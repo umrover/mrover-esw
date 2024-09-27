@@ -88,7 +88,8 @@ See below for a demo on how we can access data in our case.
 
 ![image](https://user-images.githubusercontent.com/71603173/187026399-f7aaea9b-1071-4b00-bc8c-94914f84419c.png)
 
-When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high. In our case, the button is active low. This means that when the button is pushed down, the value returned is a 0.
+When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high.
+In our case, the button is active high. This means that when the button is pushed down, the value returned is a 1.
 
 Based on this information, you should now be able to implement logic on how to link the button to the LED. If you need additional resources, you may choose to refer to [this](https://medium.com/vicara-hardware-university/stm32-guide-gpio-and-buttons-8303e6c8cb44) guide on how to GPIO pins and buttons. Also, you are always welcome to ask another member for help!
 
