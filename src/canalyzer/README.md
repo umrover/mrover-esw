@@ -12,6 +12,7 @@ For prototyping, development of this board will begin on a STM32G431RB Nucleo.
 ## Project Goals
 
 - **Real-time Monitoring:** Display CAN bus messages in a structured and easy-to-read format
+  - During testing, have one nucleo to send and another to receive and read messages.
 - **Custom CAN Message Handling:** Implement support for our team's custom CAN message format
 - **Filter and Search:** Implement filters to allow users to focus on specific CAN IDs or data patterns
 - **Logging:** Enable saving of CAN bus data to a file for later analysis
