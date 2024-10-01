@@ -7,6 +7,8 @@ device that can be used to monitor and log CAN bus traffic. Its main inspiration
 [diagnostic tool](https://www.peak-system.com/PCAN-Diag-FD.456.0.html?&L=1). Custom hardware will
 be designed by EHW in parallel with the software development.
 
+For prototyping, development of this board will begin on a STM32G431RB Nucleo.
+
 ## Project Goals
 
 - **Real-time Monitoring:** Display CAN bus messages in a structured and easy-to-read format
