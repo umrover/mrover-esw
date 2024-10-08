@@ -39,7 +39,7 @@ You now have the URL you need to clone the project.
 
 Clone the project onto your local computer by running the following command in your terminal:
 ```sh
-git clone <URL copied in above step>
+git clone link-copied-in-above-step
 ```
 
 Enter the directory:
@@ -49,7 +49,7 @@ cd mrover-esw
 
 Then, create a new branch for yourself
 ```sh
-git checkout -b <starter/your-name>
+git checkout -b starter/your-first-name
 ```
 
 Open STM32CubeIDE and open the Servo ***Part 1*** starter project (the directory named `p1-pwm`). Follow the following
