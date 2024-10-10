@@ -53,7 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void H_EXTI_13(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
