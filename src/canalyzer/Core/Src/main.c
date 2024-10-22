@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -42,7 +43,15 @@
 /* Private variables ---------------------------------------------------------*/
 FDCAN_HandleTypeDef hfdcan1;
 
+UART_HandleTypeDef hlpuart1;
+
+TIM_HandleTypeDef htim16;
+
 /* USER CODE BEGIN PV */
+
+FDCAN_RxHeaderTypeDef rx_header;
+uint8_t rx_buf[8];
+
 
 /* USER CODE END PV */
 
@@ -50,6 +59,8 @@ FDCAN_HandleTypeDef hfdcan1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_FDCAN1_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_LPUART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -67,6 +78,10 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	char uart_buf[50];
+	int uart_buf_len;
+	//uint16_t timer_val;
+
 
   /* USER CODE END 1 */
 
@@ -89,14 +104,33 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_FDCAN1_Init();
+  MX_TIM16_Init();
+  MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  HAL_UART_Transmit(&hlpuart1, (uint8_t *)uart_buf, uart_buf_len, 100);
+  HAL_TIM_Base_Start(&htim16);
+
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+
+  HAL_FDCAN_Start(&hfdcan1);
+  printf("Started FDCAN \n\r");
+
+
+  /* Activate RxFIFO0 new message notifs */
+ if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
+ 	  Error_Handler();
+   }
+
   while (1)
   {
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -157,6 +191,8 @@ void SystemClock_Config(void)
   */
 static void MX_FDCAN1_Init(void)
 {
+    printf("FDCAN1 init \n\r");
+
 
   /* USER CODE BEGIN FDCAN1_Init 0 */
 
@@ -180,7 +216,7 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.DataSyncJumpWidth = 13;
   hfdcan1.Init.DataTimeSeg1 = 14;
   hfdcan1.Init.DataTimeSeg2 = 13;
-  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -188,8 +224,111 @@ static void MX_FDCAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
+  FDCAN_FilterTypeDef  sFilterConfig;
+
+//  hfdcan1.Init.ExtFiltersNbr = 1;
+
+  	sFilterConfig.IdType = FDCAN_EXTENDED_ID;
+  	sFilterConfig.FilterIndex = 0;
+  	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+  	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+  	sFilterConfig.FilterID1 = 2024;
+  	sFilterConfig.FilterID2 = 0xFFFF;
+
+  	if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
+  		Error_Handler();
+  	}
+
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK){
+    	Error_Handler();
+    }
+
+    HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
+
+    printf("Filters set \n\r");
+
+
 
   /* USER CODE END FDCAN1_Init 2 */
+
+}
+
+/**
+  * @brief LPUART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_LPUART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN LPUART1_Init 0 */
+
+  /* USER CODE END LPUART1_Init 0 */
+
+  /* USER CODE BEGIN LPUART1_Init 1 */
+
+  /* USER CODE END LPUART1_Init 1 */
+  hlpuart1.Instance = LPUART1;
+  hlpuart1.Init.BaudRate = 115200;
+  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+  hlpuart1.Init.StopBits = UART_STOPBITS_1;
+  hlpuart1.Init.Parity = UART_PARITY_NONE;
+  hlpuart1.Init.Mode = UART_MODE_TX_RX;
+  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  hlpuart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&hlpuart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&hlpuart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&hlpuart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN LPUART1_Init 2 */
+
+  /* USER CODE END LPUART1_Init 2 */
+
+}
+
+/**
+  * @brief TIM16 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM16_Init(void)
+{
+
+  /* USER CODE BEGIN TIM16_Init 0 */
+
+  /* USER CODE END TIM16_Init 0 */
+
+  /* USER CODE BEGIN TIM16_Init 1 */
+
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 79;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 65535;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM16_Init 2 */
+
+  /* USER CODE END TIM16_Init 2 */
 
 }
 
@@ -219,14 +358,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LPUART1_TX_Pin LPUART1_RX_Pin */
-  GPIO_InitStruct.Pin = LPUART1_TX_Pin|LPUART1_RX_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF12_LPUART1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -239,6 +370,44 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// connects LPUART1 to prinf
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF);
+  return ch;
+}
+void HAL_FDCAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs) {
+
+	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+	  printf("Entered RxFifo0 Callback \n\r");
+
+
+	if (HAL_FDCAN_GetRxMessage(hfdcan1, FDCAN_RX_FIFO0, &rx_header, rx_buf) != HAL_OK) {
+		Error_Handler();
+	}
+
+	  uint16_t timer_val = 1000*__HAL_TIM_GET_COUNTER(&htim16);
+	  printf("timestamp (ms): %d\n\r", timer_val);
+	  printf("id: %d\n\r", rx_header.Identifier);
+	  printf("message: %d\n\r", rx_buf[0]);
+
+	if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE, FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2) != HAL_OK){
+
+	//if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != HAL_OK) {
+		Error_Handler();
+	}
+	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+}
+
+
+
 
 /* USER CODE END 4 */
 
