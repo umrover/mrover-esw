@@ -42,14 +42,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
+FDCAN_HandleTypeDef hfdcan1;
 
 /* USER CODE BEGIN PV */
+FDCAN_TxHeaderTypeDef msgHead;
+uint8_t TxData[1];
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -88,9 +92,21 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
 
-  /* USER CODE END 2 */
+  HAL_FDCAN_Start(&hfdcan1);
+
+  // Initialize FDCAN.
+  msgHead.Identifier = 2024;
+  msgHead.IdType = FDCAN_EXTENDED_ID;
+  msgHead.TxFrameType = FDCAN_DATA_FRAME;
+  msgHead.DataLength = FDCAN_DLC_BYTES_1;
+  msgHead.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  msgHead.BitRateSwitch = FDCAN_BRS_OFF;
+  msgHead.FDFormat = FDCAN_CLASSIC_CAN;
+  msgHead.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  msgHead.MessageMarker = 0;
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
@@ -108,13 +124,24 @@ int main(void)
   {
     Error_Handler();
   }
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  unsigned int counter = 0;
   while (1)
   {
 
     /* USER CODE END WHILE */
+
+	  int button = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, button);
+
+	  if (button) {
+		TxData[0] = counter;
+		HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &msgHead, TxData);
+		counter++;
+	  }
 
     /* USER CODE BEGIN 3 */
   }
@@ -168,12 +195,56 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief FDCAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_FDCAN1_Init(void)
+{
+
+  /* USER CODE BEGIN FDCAN1_Init 0 */
+
+  /* USER CODE END FDCAN1_Init 0 */
+
+  /* USER CODE BEGIN FDCAN1_Init 1 */
+
+  /* USER CODE END FDCAN1_Init 1 */
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
+  hfdcan1.Init.NominalPrescaler = 2;
+  hfdcan1.Init.NominalSyncJumpWidth = 18;
+  hfdcan1.Init.NominalTimeSeg1 = 119;
+  hfdcan1.Init.NominalTimeSeg2 = 50;
+  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 1;
+  hfdcan1.Init.DataTimeSeg1 = 1;
+  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 0;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FDCAN1_Init 2 */
+
+  /* USER CODE END FDCAN1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
@@ -183,11 +254,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+void H_EXTI_13(void) {
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+
+}
 
 /* USER CODE END 4 */
 

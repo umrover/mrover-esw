@@ -19,3 +19,10 @@ For prototyping, development of this board will begin on a STM32G431RB Nucleo.
 - **Custom CAN Message Handling:** Implement support for our team's custom CAN message format
 - **Filter and Search:** Implement filters to allow users to focus on specific CAN IDs or data patterns
 - **Logging:** Enable saving of CAN bus data to a file for later analysis
+
+
+## Current progress:
+- Ava: UART communication to PC from STM32.
+- Art: sending CAN messages (not tested ._.).
+## Ideas/Thoughts
+- Add capability for adjusting CAN message format - extended/standard ID, BRS on/off, etc.
