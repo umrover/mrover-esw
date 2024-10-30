@@ -20,10 +20,9 @@ so please reach out if you ever get stuck!
 ## Intro
 
 As mentioned earlier, by the end of the project you should be able to drive a servo.
-This project will also teach some coding practices used for STM32 code.
+This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
 While you are working through the project, keep the following in mind:
 
-* How could you decrease the amount of space or processing power needed for your code?
 * How could you document your code so that others can easily read and understand it?
 * How could you write your code so that it can easily be adjusted for different pins, different number of servos, etc.?
 
@@ -40,7 +39,7 @@ You now have the URL you need to clone the project.
 
 Clone the project onto your local computer by running the following command in your terminal:
 ```sh
-git clone <URL copied in above step>
+git clone link-copied-in-above-step
 ```
 
 Enter the directory:
@@ -50,7 +49,7 @@ cd mrover-esw
 
 Then, create a new branch for yourself
 ```sh
-git checkout -b <starter/your-name>
+git checkout -b starter/your-first-name
 ```
 
 Open STM32CubeIDE and open the Servo ***Part 1*** starter project (the directory named `p1-pwm`). Follow the following
@@ -67,90 +66,94 @@ Once the .ioc is open, configure the pins for PWM.
 
 ![timer 1 configuration in stm32cubeide](servo-timer-config.webp)
 
-You will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
+We will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
 correctly set up this PWM timer. These values are located in the "Parameter Settings" and must be
 calculated. Refer to the timer [reference guide](../../../info/timers.md) for information on
 calculating these values.
 
-### 3. Creating the header file
+Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) for
+the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.
 
-Having a Servo object will make it easier to adjust the number servos or where the servos are
-in the future, so for good practice, we will create a servo object and function prototypes in a
-header file.
+Once you have determined and edited the timer config, save the file and generate code. Note: you can
+always come back to the .ioc to make changes.
 
-On the menu to the left, in `Core`&rarr;`Inc`, create a new header file named `servo.h`.
+### 3. Opening the header file
 
-![creating a header file in CubeIDE](create_header.webp)
+Having a servo object will make it easier to adjust the number servos or where the servos are
+in the future, so for good practice, we will create a Servo class and declare any member variables
+and member functions in a header file.
 
-![naming a header in CubeIDE](name_header.webp)
+On the menu to the left, in `Core`&rarr;`Inc`, open the header file named `servo.hpp`.
 
-Near the top of the header file, copy in the following lines:
+Here, we can see the interface for the Servo class that we will be implementing.
 
-```c
-#pragma once
-
-#include <stdlib.h>
-
-#include "stm32f3xx_hal.h"
-```
-
-Then, create a Servo struct with 3 member variables:
+The Servo class has 2 member variables:
 
 * `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
 * `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
-* `uint32_t *output` : this is the address of the output register where the number of ticks that are set to high is stored
 
-To avoid getting errors when using your Servo struct later on, make sure to declare it like this:
-```
-typedef struct {
-	// TODO: fill this in
-} Servo;
-```
+It also has 3 member functions:
 
-Create the function prototypes for the 3 functions that are needed to create and use a Servo object:
-* `new_servo`
-* `initialize_servo`
-* `set_servo_angle`
+* A constructor that takes in the timer and channel for the PWM signal
+* A function `start_servo()` that starts the PWM generation
+* A function `set_servo_angle(int angle)` that moves the servo to the specified angle
 
-
-Try to fill out the header on your own, but here are some hints if you get stuck:
-* `new_servo` should take in parameters and return a Servo*
-* `initialize_servo` should initialize an existing Servo* to have a certain starting angle, it should also start the timer
-* `set_servo_angle` should convert an angle to the number of ticks for the CCR
 
 ### 4. Implementing Servo functions
 
-Now that you have a Servo struct and function prototypes, it's time to implement the functions.
+Now that we know the interface for the Servo class, it's time to implement the functions.
 
-On the menu to the left, in Core > Src, create a new .c file named servo.c
+On the menu to the left, in `Core`&rarr;`Src`, open the C++ source file named `servo.cpp`.
 
-![creating a source file in CubeIDE](create_source.webp)
+To start the servo, you must initialize the timer used to generate the PWM signal. To do this,
+use `HAL_TIM_PWM_Start(TIM_HandleTypeDef *htim, uint32_t Channel)`. Find more information about this
+built-in HAL function [here](http://www.disca.upv.es/aperles/arm_cortex_m3/llibre/st/STM32F439xx_User_Manual/group__tim__exported__functions__group3.html).
 
-Don't forget to #include your header file.
+When implementing set_servo_angle, keep in mind what PWM signal corresponds to what angle.
+Check back on the [servo datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf)
+to determine this. In order to set the CCR register to change the PWM signal, you can use
+`__HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)`. Below is information on this function:
 
-Here is an example of what a function that creates a new object should look like in C:
-
-![new thermistor object example code](new_thermistor.webp)
-
-
-To initialize a servo object, you must initialize the timer used to generate the PWM signal. To do this, use HAL_TIM_PWM_Start(). Find more information about this built-in HAL function [here](http://www.disca.upv.es/aperles/arm_cortex_m3/llibre/st/STM32F439xx_User_Manual/group__tim__exported__functions__group3.html)
-
-When implementing set_servo_angle, keep in mind what PWM signal corresponds to what angle. Check back on the [servo datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) to determine this.
-
+```c
+/**
+  * @brief  Set the TIM Capture Compare Register value on runtime without calling another time ConfigChannel function.
+  * @param  __HANDLE__ TIM handle.
+  * @param  __CHANNEL__ TIM Channels to be configured.
+  *          This parameter can be one of the following values:
+  *            @arg TIM_CHANNEL_1: TIM Channel 1 selected
+  *            @arg TIM_CHANNEL_2: TIM Channel 2 selected
+  *            @arg TIM_CHANNEL_3: TIM Channel 3 selected
+  *            @arg TIM_CHANNEL_4: TIM Channel 4 selected
+  *            @arg TIM_CHANNEL_5: TIM Channel 5 selected
+  *            @arg TIM_CHANNEL_6: TIM Channel 6 selected
+  * @param  __COMPARE__ specifies the Capture Compare register new value.
+  * @retval None
+  */
+#define __HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)
+```
 
 ### 5. Testing your servo functions
 
-Now that you have the functions to create a servo object and change the angles, it's time to test them out in main.c.
+Now that we have implemented our Servo class, it's time to test it out.
 
-Go to main.c and make sure to #include servo.h in the /* USER CODE BEGIN Includes */ section
+Since this is a C++ project, we will not be using the `main.c`. Instead, navigate to `Core`&rarr;`Src`
+and open `new_main.cpp`.
 
-![servo main include example code](main_include.webp)
+In the `new_main()` function, create a new Servo using the constructor. The timer parameter for
+should be a `TIM_HandleTypeDef*`. The name for the TIM_Handle that is being used is at the top of
+`new_main.c`. The channel parameter should correspond with which timer channel you are using
+(remember we set our pin to TIM1_CH1).
 
-In the main function, create a new servo object using the new_servo function. Remember to put your code in a USER CODE spot. The timer parameter for `new_servo` should be a `TIM_HandleTypeDef*`, so look through main.c and find the name for the TIM_Handle that is being used. The channel parameter should correspond with which timer channel you are using (remember we set our pin to TIM1_CH1). The output parameter is the address of the register that holds the number of ticks that are set high in the output signal. For PWM signals, this is the CCR (compare and capture register), which is a member of the TIM object. Servo's output variable should be `&(TIM1->CCR1)` if using TIM1 and CH1.
+Now, we can start the servo using the `start_servo()` function we created.
 
-Once you have the servo created, add in the `initialize_servo` function to initialize the timer and set the starting angle. Then, in the `while(1)` loop, change the angle of the servo a few times to make sure your `set_servo` function works and that the PSC and ARR you selected in the .ioc are correct. Between each function call make sure to add a delay (Hint: there is a built in HAL function for delays).
+Then, in the `while(1)` loop, change the angle of the servo a few times to make sure your
+`set_servo_angle()` function works and that the PSC and ARR you selected in the .ioc are correct.
+Between each function call make sure to add a delay (Hint: there is a built in HAL function for delays).
 
-When you are satisfied with your code, make sure it builds and then get a Nucleo, a logic analyzer, and some jumper cables to check your PWM signals. If you think the PWM signals are correct based on the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf), you can test your code on a servo. If you are unsure, just ask for help!
+When you are satisfied with your code, make sure it builds and then get a Nucleo, a logic analyzer,
+and some jumper cables to check your PWM signals. If you think the PWM signals are correct based on the
+[datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf), you can test
+your code on a servo. If you are unsure, just ask for help!
 
 #### Logic Analyzer
 The simplest method for debugging a digital signal is often to use a logic analyzer. Please install [Logic](https://www.saleae.com/downloads/) on your laptop.

@@ -182,7 +182,7 @@ for this information.
 #### TODO 4-6: Send a CAN message to rotate the servo
 Now that we have the CAN message header for all the messages we want to send, we can send the
 message using the `HAL_FDCAN_AddMessageToTxFifoQ` function. This function takes in the handle for
-the FDCAN peripheral, the message header, the message data, and the message data.
+the FDCAN peripheral, the message header, and the message data.
 
 Here is an example of how to send a CAN message to turn the servo to 45 degrees:
 

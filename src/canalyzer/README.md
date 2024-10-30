@@ -7,10 +7,6 @@ device that can be used to monitor and log CAN bus traffic. Its main inspiration
 [diagnostic tool](https://www.peak-system.com/PCAN-Diag-FD.456.0.html?&L=1). Custom hardware will
 be designed by EHW in parallel with the software development.
 
-In order to get a prototype up and running quickly, we will begin software development with a
-Linux based application. It will utilize `ncurses` for a text-based terminal user interface and
-`socketcan` to interface with the CAN bus.
-
 ## Project Goals
 
 - **Real-time Monitoring:** Display CAN bus messages in a structured and easy-to-read format

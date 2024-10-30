@@ -17,3 +17,7 @@ RemoteSystemsTempFiles/
 
 # macOS
 .DS_Store
+
+# Python
+.venv/
+venv/
