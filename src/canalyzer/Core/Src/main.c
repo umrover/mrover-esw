@@ -118,15 +118,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
 
+
   if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
   {
     Error_Handler();
   }
 
-
-
   printf("Started FDCAN \n\r");
-
 
   /* Activate RxFIFO0 new message notifs */
  if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
@@ -134,9 +132,9 @@ int main(void)
    }
  printf("Activated notification \n\r");
 
+
   while (1)
   {
-
 
     /* USER CODE END WHILE */
 
@@ -208,19 +206,19 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
   hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 2;
-  hfdcan1.Init.NominalSyncJumpWidth = 18;
-  hfdcan1.Init.NominalTimeSeg1 = 119;
-  hfdcan1.Init.NominalTimeSeg2 = 50;
-  hfdcan1.Init.DataPrescaler = 1;
-  hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.NominalPrescaler = 1;
+  hfdcan1.Init.NominalSyncJumpWidth = 35;
+  hfdcan1.Init.NominalTimeSeg1 = 104;
+  hfdcan1.Init.NominalTimeSeg2 = 35;
+  hfdcan1.Init.DataPrescaler = 5;
+  hfdcan1.Init.DataSyncJumpWidth = 14;
+  hfdcan1.Init.DataTimeSeg1 = 13;
+  hfdcan1.Init.DataTimeSeg2 = 14;
   hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 1;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
@@ -234,7 +232,7 @@ static void MX_FDCAN1_Init(void)
 
   	sFilterConfig.IdType = FDCAN_EXTENDED_ID;
   	sFilterConfig.FilterIndex = 0;
-  	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+  	sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
   	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
   	sFilterConfig.FilterID1 = 2024;
   	sFilterConfig.FilterID2 = 0;
@@ -380,10 +378,14 @@ PUTCHAR_PROTOTYPE
 {
   HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF);
   return ch;
-}
-void HAL_FDCAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs) {
 
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+}
+
+
+//void HAL_FDCAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs) {
+ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs){
+
+
 	  printf("Entered RxFifo0 Callback \n\r");
 
 	  if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == RESET){
@@ -394,17 +396,15 @@ void HAL_FDCAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hfdcan1, uint32_t 
 		Error_Handler();
 	}
 	  uint16_t timer_val = 1000*__HAL_TIM_GET_COUNTER(&htim16);
-	  printf("timestamp (ms): %d\n\r", timer_val);
-	  printf("id: %d\n\r", rx_header.Identifier);
-	  printf("message: %d\n\r", rx_buf[0]);
+	  printf("Timestamp (ms): %d\n\r", timer_val);
+	  printf("ID: %d\n\r", rx_header.Identifier);
+	  printf("Message: %d\n\r", rx_buf[0]);
 
-	  if (HAL_FDCAN_ActivateNotification(hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK){
-		Error_Handler();
-	}
-	//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+//	  if (HAL_FDCAN_ActivateNotification(hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK){
+//		Error_Handler();
+//	}
 
 }
-
 
 
 
