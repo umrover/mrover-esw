@@ -11,6 +11,11 @@ public:
     Stepper(unsigned int pin1, unsigned int pin2, 
     unsigned int pin3, unsigned int pin4)
     {
+        coil1_pin1 = pin1;
+        coil1_pin2 = pin2;
+        coil2_pin1 = pin3;
+        coil2_pin2 = pin4;
+        
 
     } // base constructor
     void setSpeed(unsigned int rpm);
@@ -31,6 +36,10 @@ private:
     int speed; // rpm
     float angle; // 1.8 deg step
     float step = 1.8; // degrees
+    unsigned int coil1_pin1;
+    unsigned int coil1_pin2;
+    unsigned int coil2_pin1;
+    unsigned int coil2_pin2;
 };
 
 // Potential functions:
