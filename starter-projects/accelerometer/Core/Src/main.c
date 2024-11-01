@@ -47,6 +47,11 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef hlpuart1;
 
 /* USER CODE BEGIN PV */
+/*We want to configure the DATA_FORMAT register such that
+ * the device is in full resolution mode, right justified mode,
+ * and a g range of +-16. The other settings are irrelevant and
+ * may be set to 0. Come up with a binary number to write to the
+ * register to get these desired behaviors.*/
 
 /* USER CODE END PV */
 
@@ -101,13 +106,13 @@ float get_decimal(uint8_t addr, uint8_t lsb_reg, uint8_t msb_reg) {
 
 	// Combine the lsb and msb val by doing the following:
 	// TODO - 1) shift the most significant byte value 8 bits to the left and
-	uint16_t shifted_msb = TODO;
+	uint16_t shifted_msb = msb_val << 8;;
 	// TODO - 2) OR'ing it with the lsb val
-	uint16_t combined_val = TODO;
+	uint16_t combined_val = lsb_val | shifted_msb;
 
 	// Scale data based on values in the accelerometer library.
 	// TODO - Find the scale factor (can be found in the data sheet under Data Format Register section).
-	float scale_mg = TODO;
+	float scale_mg = 16;
     float scale_ms2 = scale_mg * mg_to_ms2;
 	float scaled_data = combined_val * scale_ms2;
 
@@ -154,7 +159,7 @@ int main(void)
 
   // TODO - Find the i2c dev address in the data sheet
   	// const int i2c_dev_address = <insert address val here>;
-  	const uint8_t i2c_dev_address = TODO;
+  	const uint8_t i2c_dev_address = 0x53;
 
   	// TODO - Read through this section for the registers.
   	const uint8_t x_lsb_reg = 0x32;
@@ -164,12 +169,12 @@ int main(void)
   	const uint8_t z_lsb_reg = 0x36;
   	const uint8_t z_msb_reg = 0x37;
 
-  	const uint8_t power_ctrl_reg = TODO;
-  	const uint8_t data_format_reg = TODO;
+  	const uint8_t power_ctrl_reg = 0x2D;
+  	const uint8_t data_format_reg = 0x31;
 
   	// Formats output data - Must be done before waking device
   	// TODO - Format data so that the output range is full resolution +/- 16g
-  	const uint8_t data_format_val = TODO;
+  	const uint8_t data_format_val = 0b00001011;
   	uint8_t buf[1] = {data_format_val};
   	i2c_write(i2c_dev_address, data_format_reg, buf, 1);
 
@@ -179,7 +184,7 @@ int main(void)
 
   	// Wakes the accelerometer from sleep mode.
   	// TODO - Write the values to wake the accelerometer from sleep mode
-  	const uint8_t power_ctrl_val = TODO;
+  	const uint8_t power_ctrl_val = 0b00001000;
   	buf[0] = power_ctrl_val;
   	i2c_write(i2c_dev_address, power_ctrl_reg, buf, 1);
 
