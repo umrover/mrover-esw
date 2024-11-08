@@ -57,8 +57,6 @@ void H_EXTI_13(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define B1_Pin GPIO_PIN_13
-#define B1_GPIO_Port GPIOC
 #define RCC_OSC32_OUT_Pin GPIO_PIN_14
 #define RCC_OSC32_OUT_GPIO_Port GPIOC
 #define RCC_OSC32_OUTC15_Pin GPIO_PIN_15
