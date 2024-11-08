@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -48,10 +48,11 @@ UART_HandleTypeDef hlpuart1;
 TIM_HandleTypeDef htim16;
 
 /* USER CODE BEGIN PV */
-
-FDCAN_RxHeaderTypeDef rx_header;
-uint8_t rx_buf[8];
-
+FDCAN_TxHeaderTypeDef TxHeader;
+FDCAN_RxHeaderTypeDef RxHeader;
+uint8_t tx_data[12];
+uint8_t rx_data[12];
+int _index = 0;
 
 /* USER CODE END PV */
 
@@ -82,7 +83,6 @@ int main(void)
 	int uart_buf_len;
 	//uint16_t timer_val;
 
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -107,39 +107,50 @@ int main(void)
   MX_TIM16_Init();
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
+//  HAL_UART_Transmit(&hlpuart1, (uint8_t *)uart_buf, uart_buf_len, 100);
+	HAL_TIM_Base_Start(&htim16);
 
-  HAL_UART_Transmit(&hlpuart1, (uint8_t *)uart_buf, uart_buf_len, 100);
-  HAL_TIM_Base_Start(&htim16);
+	if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
+		Error_Handler();
+	}
 
+//  printf("Started FDCAN \n\r");
 
+	/* Activate RxFIFO0 new message notifs */
+	if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
+			0) != HAL_OK) {
+		Error_Handler();
+	}
+// printf("Activated notification \n\r");
+
+	TxHeader.Identifier = 0x11;
+	TxHeader.IdType = FDCAN_STANDARD_ID;
+	TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+	TxHeader.DataLength = FDCAN_DLC_BYTES_12;
+	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+	TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+	TxHeader.FDFormat = FDCAN_FD_CAN;
+	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+	TxHeader.MessageMarker = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	while (1) {
+		for (int i = 0; i < 12; i++) {
+			tx_data[i] = _index++;
+		}
 
-
-
-  if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  printf("Started FDCAN \n\r");
-
-  /* Activate RxFIFO0 new message notifs */
- if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK) {
- 	  Error_Handler();
-   }
- printf("Activated notification \n\r");
-
-
-  while (1)
-  {
-
+		if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, tx_data)
+				!= HAL_OK) {
+			Error_Handler();
+		}
+		HAL_Delay(1000);
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
   /* USER CODE END 3 */
 }
 
@@ -164,8 +175,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
-  RCC_OscInitStruct.PLL.PLLN = 35;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+  RCC_OscInitStruct.PLL.PLLN = 8;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -183,7 +194,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -206,45 +217,44 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
-  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_NO_BRS;
+  hfdcan1.Init.Mode = FDCAN_MODE_EXTERNAL_LOOPBACK;
   hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
   hfdcan1.Init.NominalPrescaler = 1;
-  hfdcan1.Init.NominalSyncJumpWidth = 35;
-  hfdcan1.Init.NominalTimeSeg1 = 104;
-  hfdcan1.Init.NominalTimeSeg2 = 35;
-  hfdcan1.Init.DataPrescaler = 5;
-  hfdcan1.Init.DataSyncJumpWidth = 14;
-  hfdcan1.Init.DataTimeSeg1 = 13;
-  hfdcan1.Init.DataTimeSeg2 = 14;
+  hfdcan1.Init.NominalSyncJumpWidth = 17;
+  hfdcan1.Init.NominalTimeSeg1 = 17;
+  hfdcan1.Init.NominalTimeSeg2 = 110;
+  hfdcan1.Init.DataPrescaler = 8;
+  hfdcan1.Init.DataSyncJumpWidth = 4;
+  hfdcan1.Init.DataTimeSeg1 = 11;
+  hfdcan1.Init.DataTimeSeg2 = 4;
   hfdcan1.Init.StdFiltersNbr = 1;
-  hfdcan1.Init.ExtFiltersNbr = 1;
+  hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
-  FDCAN_FilterTypeDef  sFilterConfig;
+	FDCAN_FilterTypeDef sFilterConfig;
 
+	sFilterConfig.IdType = FDCAN_STANDARD_ID;
+	sFilterConfig.FilterIndex = 0;
+	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+	sFilterConfig.FilterID1 = 0x11;
+	sFilterConfig.FilterID2 = 0x11;
 
-  	sFilterConfig.IdType = FDCAN_EXTENDED_ID;
-  	sFilterConfig.FilterIndex = 0;
-  	sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
-  	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  	sFilterConfig.FilterID1 = 2024;
-  	sFilterConfig.FilterID2 = 0;
+	if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
+		Error_Handler();
+	}
 
-  	if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK) {
-  		Error_Handler();
-  	}
-
-    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK){
-    	Error_Handler();
-    }
-
+	if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT,
+			FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK) {
+		Error_Handler();
+	}
 
   /* USER CODE END FDCAN1_Init 2 */
 
@@ -372,41 +382,43 @@ static void MX_GPIO_Init(void)
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
-  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
-PUTCHAR_PROTOTYPE
-{
-  HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF);
-  return ch;
+PUTCHAR_PROTOTYPE {
+	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &ch, 1, 0xFFFF);
+	return ch;
 
 }
 
-
 //void HAL_FDCAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs) {
- void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan1, uint32_t RxFifo0ITs){
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
 
+	printf("Entered RxFifo0 Callback \n\r");
 
-	  printf("Entered RxFifo0 Callback \n\r");
-
-	  if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == RESET){
-		  Error_Handler();
-	  }
-
-	if (HAL_FDCAN_GetRxMessage(hfdcan1, FDCAN_RX_FIFO0, &rx_header, rx_buf) != HAL_OK) {
+	if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == RESET) {
 		Error_Handler();
 	}
-	  uint16_t timer_val = 1000*__HAL_TIM_GET_COUNTER(&htim16);
-	  printf("Timestamp (ms): %d\n\r", timer_val);
-	  printf("ID: %d\n\r", rx_header.Identifier);
-	  printf("Message: %d\n\r", rx_buf[0]);
+
+	if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rx_data)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	uint16_t timer_val = 1000 * __HAL_TIM_GET_COUNTER(&htim16);
+	printf("Timestamp (ms): %d\n\r", timer_val);
+	printf("ID: %d\n\r", RxHeader.Identifier);
+	printf("Message: %d\n\r", rx_data[0]);/* Retreive Rx messages from RX FIFO0 */
+
+	if (HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0)
+			!= HAL_OK) {
+		/* Notification Error */
+		Error_Handler();
+	}
 
 //	  if (HAL_FDCAN_ActivateNotification(hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK){
 //		Error_Handler();
 //	}
 
 }
-
-
 
 /* USER CODE END 4 */
 
@@ -417,11 +429,10 @@ PUTCHAR_PROTOTYPE
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 
