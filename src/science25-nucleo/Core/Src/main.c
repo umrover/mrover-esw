@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "new_main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -128,54 +129,54 @@ uint8_t RxData[8];
 //    TxHeader.MessageMarker = 0;
 //}
 
-float get_methane_ppm()
-{
-	HAL_StatusTypeDef status;
-	ADC_HandleTypeDef *hadc = &hadc2;
-	uint32_t raw_value;
-	float ppm = -1;
-
-	HAL_ADC_Start(hadc);
-	status = HAL_ADC_PollForConversion(hadc, 100);
-
-	if (status == HAL_OK)
-	{
-		raw_value = HAL_ADC_GetValue(hadc);
-
-		//calculate methane ppm from raw analog in
-		float voltage = raw_value * 5.00 / 4096.00;
-		float rs = (5 - voltage) / voltage;
-		const float r0 = 0.92;
-		ppm = powf(rs / r0, -3.20) * 860.00;
-	}
-
-	HAL_ADC_Stop(hadc);
-	return ppm;
-
-}
-
-float get_uv_index()
-{
-	HAL_StatusTypeDef status;
-	ADC_HandleTypeDef *hadc = &hadc1;
-	uint32_t raw_value;
-	float uv_index = -1;
-
-	HAL_ADC_Start(hadc);
-	status = HAL_ADC_PollForConversion(hadc, 100);
-
-	if (status == HAL_OK)
-	{
-		raw_value = HAL_ADC_GetValue(hadc);
-
-		//calculate methane ppm from raw analog in
-		uv_index = raw_value / 100.0;
-	}
-
-	HAL_ADC_Stop(hadc);
-	return uv_index;
-
-}
+//float get_methane_ppm()
+//{
+//	HAL_StatusTypeDef status;
+//	ADC_HandleTypeDef *hadc = &hadc2;
+//	uint32_t raw_value;
+//	float ppm = -1;
+//
+//	HAL_ADC_Start(hadc);
+//	status = HAL_ADC_PollForConversion(hadc, 100);
+//
+//	if (status == HAL_OK)
+//	{
+//		raw_value = HAL_ADC_GetValue(hadc);
+//
+//		//calculate methane ppm from raw analog in
+//		float voltage = raw_value * 5.00 / 4096.00;
+//		float rs = (5 - voltage) / voltage;
+//		const float r0 = 0.92;
+//		ppm = powf(rs / r0, -3.20) * 860.00;
+//	}
+//
+//	HAL_ADC_Stop(hadc);
+//	return ppm;
+//
+//}
+//
+//float get_uv_index()
+//{
+//	HAL_StatusTypeDef status;
+//	ADC_HandleTypeDef *hadc = &hadc1;
+//	uint32_t raw_value;
+//	float uv_index = -1;
+//
+//	HAL_ADC_Start(hadc);
+//	status = HAL_ADC_PollForConversion(hadc, 100);
+//
+//	if (status == HAL_OK)
+//	{
+//		raw_value = HAL_ADC_GetValue(hadc);
+//
+//		//calculate methane ppm from raw analog in
+//		uv_index = raw_value / 100.0;
+//	}
+//
+//	HAL_ADC_Stop(hadc);
+//	return uv_index;
+//
+//}
 
 void i2c_read(uint8_t dev_addr, uint8_t mem_addr, uint8_t* buf, uint16_t size) {
 	I2C_HandleTypeDef *i2c = &hi2c2;
@@ -306,7 +307,7 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-
+  new_main();
   /* USER CODE END 2 */
 
   /* Initialize leds */
