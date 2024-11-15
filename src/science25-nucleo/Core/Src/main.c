@@ -331,30 +331,30 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  float ppm = get_methane_ppm();
-	  HAL_Delay(500);
-	  float uv_index = get_uv_index();
-	  HAL_Delay(500);
-	  uint8_t buf[8];
-	  i2c_read(ADDRESS_3, OXYGEN_DATA_REGISTER, buf, OXYGEN_DATA_LENGTH);
-	  HAL_Delay(500); // Read every second
-
-	  HAL_StatusTypeDef status;
-
-	  uint8_t command[3] = {0xAC, 0x33, 0x00};
-	  status = HAL_I2C_Master_Transmit(&hi2c1, (TEMP_HUM_ADDRESS << 1), command, 3, 100);
-	  if (status != HAL_OK){
-		  printf("Tough");
-	  }
-
-	  HAL_Delay(100);
-	  uint8_t buf_two[6];
-	  uint8_t size = 6;
-	  status = HAL_I2C_Master_Receive(&hi2c1, (TEMP_HUM_ADDRESS << 1) | 0x01, buf_two, size, 100);
-	  if (status != HAL_OK){
-		  printf("Tough");
-	  }
-	  HAL_Delay(100);
+//	  float ppm = get_methane_ppm();
+//	  HAL_Delay(500);
+//	  float uv_index = get_uv_index();
+//	  HAL_Delay(500);
+//	  uint8_t buf[8];
+//	  i2c_read(ADDRESS_3, OXYGEN_DATA_REGISTER, buf, OXYGEN_DATA_LENGTH);
+//	  HAL_Delay(500); // Read every second
+//
+//	  HAL_StatusTypeDef status;
+//
+//	  uint8_t command[3] = {0xAC, 0x33, 0x00};
+//	  status = HAL_I2C_Master_Transmit(&hi2c1, (TEMP_HUM_ADDRESS << 1), command, 3, 100);
+//	  if (status != HAL_OK){
+//		  printf("Tough");
+//	  }
+//
+//	  HAL_Delay(100);
+//	  uint8_t buf_two[6];
+//	  uint8_t size = 6;
+//	  status = HAL_I2C_Master_Receive(&hi2c1, (TEMP_HUM_ADDRESS << 1) | 0x01, buf_two, size, 100);
+//	  if (status != HAL_OK){
+//		  printf("Tough");
+//	  }
+//	  HAL_Delay(100);
 
     /* USER CODE END WHILE */
 
