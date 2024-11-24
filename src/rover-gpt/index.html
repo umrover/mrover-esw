@@ -1,0 +1,54 @@
+<html>
+  <head>
+  
+  </head>
+  <body>
+    <textarea style="min-width: 500px; min-height: 200px;" disabled>
+                                     _   
+                                    | |  
+  _ __ _____   _____ _ __ __ _ _ __ | |_ 
+ | '__/ _ \ \ / / _ \ '__/ _` | '_ \| __|
+ | | | (_) \ V /  __/ | | (_| | |_) | |_ 
+ |_|  \___/ \_/ \___|_|  \__, | .__/ \__|
+                          __/ | |        
+                         |___/|_|        
+    </textarea>
+    <br>
+    <br>
+    <input type="text" id="uv_data" placeholder="UV sensor value"/>
+    <button onclick="sendData('uv_data', 'uv_data')">Send UV</button>
+    <br>
+    <br>
+    <input type="text" id="methane_data" placeholder="Methane sensor value"/>
+    <button onclick="sendData('methane_data', 'methane_data')">Send Methane</button>
+    <br>
+    <br>
+    <input type="text" id="oxygen_data" placeholder="Oxygen sensor value"/>
+    <button onclick="sendData('uv_data', 'oxygen_data')">Send Oxygen</button>
+    <br>
+    <br>
+    <input type="text" id="temp_data" placeholder="Temperature sensor value"/>
+    <button onclick="sendData('temp_data', 'temp_data')">Send Temperature</button>
+    <br>
+    <br>
+    <input type="text" id="humidity_data" placeholder="Humidity sensor value"/>
+    <button onclick="sendData('humidity_data', 'humidity_data')">Send Humidity Data</button>
+    <br>
+    <br>
+    <button onclick="generateGraph()"></button>
+    <br>
+    <br>
+    <textarea id="output"  style="min-width: 500px; min-height: 500px;">Output Logs:</textarea>
+
+    <script>
+      async function sendData(endpoint, id){
+        let value = document.getElementById(id).value;
+        console.log(value);
+        let res = await fetch(`/${endpoint}?value=${value}`);
+        let data = await res.json();
+        document.getElementById("output").innerHTML += "\n\n" + (data?.response ?? data);
+      }
+    </script>
+
+  </body>
+</html>
