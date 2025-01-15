@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "new_main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,8 +60,12 @@ COM_InitTypeDef BspCOMInit;
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 
+FDCAN_HandleTypeDef hfdcan1;
+
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
+
+TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN PV */
 
@@ -75,6 +78,8 @@ static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_FDCAN1_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 #define CAN_MSG_REQUEST_I2C1    0x100
@@ -306,6 +311,8 @@ int main(void)
   MX_ADC2_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
+  MX_FDCAN1_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   new_main();
   /* USER CODE END 2 */
@@ -537,6 +544,49 @@ static void MX_ADC2_Init(void)
 }
 
 /**
+  * @brief FDCAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_FDCAN1_Init(void)
+{
+
+  /* USER CODE BEGIN FDCAN1_Init 0 */
+
+  /* USER CODE END FDCAN1_Init 0 */
+
+  /* USER CODE BEGIN FDCAN1_Init 1 */
+
+  /* USER CODE END FDCAN1_Init 1 */
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV2;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
+  hfdcan1.Init.Mode = FDCAN_MODE_EXTERNAL_LOOPBACK;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
+  hfdcan1.Init.NominalPrescaler = 1;
+  hfdcan1.Init.NominalSyncJumpWidth = 16;
+  hfdcan1.Init.NominalTimeSeg1 = 56;
+  hfdcan1.Init.NominalTimeSeg2 = 28;
+  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 5;
+  hfdcan1.Init.DataTimeSeg1 = 11;
+  hfdcan1.Init.DataTimeSeg2 = 5;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 3;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FDCAN1_Init 2 */
+
+  /* USER CODE END FDCAN1_Init 2 */
+
+}
+
+/**
   * @brief I2C1 Initialization Function
   * @param None
   * @retval None
@@ -629,6 +679,44 @@ static void MX_I2C2_Init(void)
   /* USER CODE BEGIN I2C2_Init 2 */
 
   /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 0;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 65535;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
 
 }
 
