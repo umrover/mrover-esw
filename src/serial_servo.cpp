@@ -48,6 +48,9 @@ int main() {
         return 1;
     }
 
+    char read_buffer[256];  // Buffer to store the incoming data
+    memset(&read_buffer, 0, sizeof(read_buffer));
+
     // Continuously read numbers from user and send them to the Arduino
     int deg, id;
     while (true) {
@@ -71,6 +74,16 @@ int main() {
         }
 
         std::cout << "Sent: " << message;
+
+
+        // Read data from Arduino
+        sleep(3);
+
+        ssize_t bytes_read = read(serial_port, &read_buffer, sizeof(read_buffer) - 1);
+        if (bytes_read > 0) {
+            read_buffer[bytes_read] = '\0';  // Null-terminate the string
+            std::cout << "Arduino says: " << read_buffer << std::endl;
+        }
     }
 
     // Close the serial port (this will never be reached as the loop is infinite)
