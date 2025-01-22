@@ -10,33 +10,33 @@
 #include "registers.h"
 
 // TODO: Change
-#define CS_BANK  GPIOA
+#define CS_BANK  GPIOB
 #define CS_PIN   GPIO_PIN_1
-#define CD_BANK  GPIOA
-#define CD_PIN   GPIO_PIN_1
-#define WR_BANK  GPIOA
-#define WR_PIN   GPIO_PIN_1
-#define RD_BANK  GPIOA
-#define RD_PIN   GPIO_PIN_1
-#define RST_BANK GPIOA
-#define RST_PIN  GPIO_PIN_1
+#define CD_BANK  GPIOB
+#define CD_PIN   GPIO_PIN_2
+#define WR_BANK  GPIOC
+#define WR_PIN   GPIO_PIN_2
+#define RD_BANK  GPIOC
+#define RD_PIN   GPIO_PIN_3
+#define RST_BANK GPIOB
+#define RST_PIN  GPIO_PIN_7
 
-#define D0_BANK GPIOB
-#define D0_PIN GPIO_PIN_1
-#define D1_BANK GPIOB
+#define D0_BANK GPIOA
+#define D0_PIN GPIO_PIN_0
+#define D1_BANK GPIOA
 #define D1_PIN GPIO_PIN_1
-#define D2_BANK GPIOB
-#define D2_PIN GPIO_PIN_1
-#define D3_BANK GPIOB
-#define D3_PIN GPIO_PIN_1
-#define D4_BANK GPIOB
-#define D4_PIN GPIO_PIN_1
-#define D5_BANK GPIOB
-#define D5_PIN GPIO_PIN_1
-#define D6_BANK GPIOB
-#define D6_PIN GPIO_PIN_1
-#define D7_BANK GPIOB
-#define D7_PIN GPIO_PIN_1
+#define D2_BANK GPIOA
+#define D2_PIN GPIO_PIN_2
+#define D3_BANK GPIOA
+#define D3_PIN GPIO_PIN_3
+#define D4_BANK GPIOA
+#define D4_PIN GPIO_PIN_4
+#define D5_BANK GPIOA
+#define D5_PIN GPIO_PIN_5
+#define D6_BANK GPIOA
+#define D6_PIN GPIO_PIN_6
+#define D7_BANK GPIOA
+#define D7_PIN GPIO_PIN_7
 
 // Control signals are ACTIVE LOW (idle is HIGH)
 // Command/Data: LOW = command, HIGH = data
