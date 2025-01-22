@@ -2,7 +2,7 @@
 #include <DynamixelShield.h>
 
 DynamixelShield dxl;
-const uint8_t DXL_ID = 0; // check label on Dynamixel
+//const uint8_t DXL_ID = 0; // check label on Dynamixel
 
 const float DXL_PROTOCOL_VERSION = 2.0;
 
@@ -18,15 +18,6 @@ void setup() {
   // Set Port Protocol Version. This has to match with DYNAMIXEL protocol version.
   dxl.setPortProtocolVersion(DXL_PROTOCOL_VERSION);
 
-  // Get DYNAMIXEL information
-  dxl.ping(DXL_ID);
-
-  // Turn off torque when configuring items in EEPROM
-  // Operating Mode 4 is Extended Position Control Mode
-  dxl.torqueOff(DXL_ID);
-  dxl.setOperatingMode(DXL_ID, 4);
-  dxl.torqueOn(DXL_ID);
-
 }
 
 void loop() {
@@ -34,13 +25,36 @@ void loop() {
     String input = Serial.readStringUntil('\n');  // Read the incoming data until newline
     input.trim();  // Remove extra whitespace or newline characters
 
-    // Check if the input is not empty or invalid
+    // Check if the input is not empty
     if (input.length() > 0) {
-      int deg_in = input.toInt();  // Convert the string to an integer
-      if (deg_in != 0 || input == "0") {  // Only process if conversion is valid (deg_in != 0, or input is exactly "0")
-        // Adjust the motor position
-        int new_position = dxl.getPresentPosition(DXL_ID) + (deg_in * (511 / 45)); // conversion isn't perfect
-        dxl.setGoalPosition(DXL_ID, new_position);
+      int spaceIndex = input.indexOf(' ');  // Find the space separating ID and Degrees
+      if (spaceIndex != -1) {
+        // Extract ID and Degrees from the input string
+        int id = input.substring(0, spaceIndex).toInt();  // Get the ID (before the space)
+        int deg_in = input.substring(spaceIndex + 1).toInt();  // Get Degrees (after the space)
+
+        // Validate parsed values
+        if (id >= 0 && deg_in != 0 || input.substring(spaceIndex + 1) == "0") {
+
+          // Get DYNAMIXEL information
+          dxl.ping(id);
+          
+          // Turn off torque when configuring items in EEPROM
+          // Operating Mode 4 is Extended Position Control Mode
+          dxl.torqueOff(id);
+          dxl.setOperatingMode(id, 4);
+          dxl.torqueOn(id);
+
+
+          // Adjust the motor position for the specified ID
+          int new_position = dxl.getPresentPosition(id) + (deg_in * (511 / 45));
+          dxl.setGoalPosition(id, new_position);
+
+          Serial.print(id);
+          Serial.print(" ");
+          Serial.print(deg_in);
+          Serial.print("\n");
+        }
       }
     } 
   }
