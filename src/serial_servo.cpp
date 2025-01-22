@@ -49,14 +49,16 @@ int main() {
     }
 
     // Continuously read numbers from user and send them to the Arduino
-    int num;
+    int deg, id;
     while (true) {
+        std::cout << "Enter ID: ";
+        std::cin >> id; // Read the number
         std::cout << "Enter a number (degrees to spin): ";
-        std::cin >> num; // Read the number
+        std::cin >> deg; // Read the number
 
         // Format the message with the single number
         std::stringstream ss;
-        ss << num << "\n"; // Format as "num\n"
+        ss << id << " " << deg << "\n"; // Format as "num\n"
         std::string message = ss.str();
 
         // Send the formatted message to the serial port
