@@ -77,7 +77,7 @@ int main() {
 
 
         // Read data from Arduino
-        sleep(3);
+        sleep(10);
 
         ssize_t bytes_read = read(serial_port, &read_buffer, sizeof(read_buffer) - 1);
         if (bytes_read > 0) {

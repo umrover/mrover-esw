@@ -50,6 +50,18 @@ void loop() {
           int new_position = dxl.getPresentPosition(id) + (deg_in * (511 / 45));
           dxl.setGoalPosition(id, new_position);
 
+          while (true) {
+            Serial.print("Present Position: ");
+            Serial.print(dxl.getPresentPosition(id));
+            Serial.print("\t\t");
+            if(dxl.getPresentPosition(id) == new_position) {
+              break;
+            }
+            delay(100);
+          }
+
+          delay(1000);
+
           // Send back the ID and new position
           Serial.print("ID: ");
           Serial.print(id);
