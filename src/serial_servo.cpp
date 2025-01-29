@@ -87,7 +87,7 @@ while (!done){
         FD_SET(serial_port, &readfds);
 
         struct timeval timeout;
-        timeout.tv_sec = 1;  // 1 second timeout
+        timeout.tv_sec = 1.5;  // 1 second timeout
         timeout.tv_usec = 0;
 
         int retval = select(serial_port + 1, &readfds, NULL, NULL, &timeout);
