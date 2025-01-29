@@ -47,13 +47,18 @@ void loop() {
 
 
           // Adjust the motor position for the specified ID
-          int new_position = dxl.getPresentPosition(id) + (deg_in * (511 / 45));
+          int prev_position = dxl.getPresentPosition(id);
+          int new_position = prev_position + (deg_in * (511 / 45));
           dxl.setGoalPosition(id, new_position);
 
-          while (abs(dxl.getPresentPosition(id)) < abs(new_position)) {
+          int delta = (new_position - prev_position);
+          int temp = 0;
+
+          while (abs(dxl.getPresentPosition(id)-prev_position) < abs(delta)) {
             // Serial.print("Present Position: ");
             // Serial.print(dxl.getPresentPosition(id));
             // Serial.print("\t\t");
+            temp = dxl.getPresentPosition(id);
             delay(100);
           }
 
@@ -63,8 +68,8 @@ void loop() {
           Serial.print("ID: ");
           Serial.print(id);
           Serial.print(", Current Position: ");
-          Serial.println(dxl.getPresentPosition(id));
-          Serial.println("Done");
+          Serial.print(temp);
+          Serial.print(" Done");
 
         }
       }

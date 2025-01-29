@@ -79,7 +79,9 @@ int main() {
 
         // Read data from Arduino
         // sleep(10);
-while (true){
+        bool done = false;
+
+while (!done){
         fd_set readfds;
         FD_ZERO(&readfds);
         FD_SET(serial_port, &readfds);
@@ -98,11 +100,12 @@ while (true){
                 // Read the data
                 int bytes = read(serial_port, &read_buffer, sizeof(read_buffer) - 1);
                 if (bytes > 0) {
-                    read_buffer[bytes] = '\0'; // Null-terminate the string
+                    read_buffer[bytes+1] = '\0'; // Null-terminate the string
                     printf("Received: %s\n", read_buffer);
 
                     // Exit if acknowledgment is received
                     if (strstr(read_buffer, "Done")) {
+                        done = true;
                         break;
                     }
                 }
