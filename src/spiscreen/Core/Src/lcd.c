@@ -72,23 +72,62 @@ void init () {
 	SendData(0x2A);
 	SendData     (0x0D);
 	SendData(0x78);
-//	    HX8357D_SETGAMMA, 34,
-//	      0x02, 0x0A, 0x11, 0x1d, 0x23, 0x35, 0x41, 0x4b, 0x4b,
-//	      0x42, 0x3A, 0x27, 0x1B, 0x08, 0x09, 0x03, 0x02, 0x0A,
-//	      0x11, 0x1d, 0x23, 0x35, 0x41, 0x4b, 0x4b, 0x42, 0x3A,
-//	      0x27, 0x1B, 0x08, 0x09, 0x03, 0x00, 0x01,
-//	    HX8357_COLMOD, 1,
-//	      0x55,                      // 16 bit
-//	    HX8357_MADCTL, 1,
-//	      0xC0,
-//	    HX8357_TEON, 1,
-//	      0x00,                      // TW off
-//	    HX8357_TEARLINE, 2,
-//	      0x00, 0x02,
-//	    HX8357_SLPOUT, 0x80 + 150/5, // Exit Sleep, then delay 150 ms
-//	    HX8357_DISPON, 0x80 +  50/5, // Main screen turn on, delay 50 ms
+
+	SendCommand (   HX8357D_SETGAMMA); //34
+	SendData (0x02);
+	SendData(0x0A);
+	SendData (0x11);
+	SendData (0x1d);
+	SendData (0x23);
+	SendData(0x35);
+	SendData (0x41);
+	SendData(0x4b);
+	SendData(0x4b);
+	SendData(0x42);
+	SendData(0x3A);
+	SendData(0x27);
+	SendData(0x1B);
+	SendData(0x08);
+	SendData(0x09);
+	SendData(0x03);
+	SendData(0x02);
+	SendData(0x0A);
+	SendData(0x11);
+	SendData(0x1d);
+	SendData(0x23);
+	SendData(0x35);
+	SendData(0x41);
+	SendData(0x4b);
+	SendData(0x4b);
+	SendData(0x42);
+	SendData(0x3A);
+	SendData(0x27);
+	SendData(0x1B);
+	SendData(0x08);
+	SendData(0x09);
+	SendData(0x03);
+	SendData(0x00);
+	SendData(0x01);
+
+	SendCommand(HX8357_COLMOD); //1
+	SendData(0x55); // 16 bit
+
+	SendCommand(HX8357_MADCTL);// 1,
+	SendData(0xC0);
+	SendCommand(HX8357_TEON); // 1
+	SendData(0x00);    // TW off
+	SendCommand(HX8357_TEARLINE); // 2
+	SendData(0x00);
+	SendData(0x02);
+
+	SendCommand(HX8357_SLPOUT);
+	SendData(0x80);
+	HAL_Delay(150); // Exit Sleep, then delay 150 ms
+
+	SendCommand(HX8357_DISPON);
+	SendData(0x80);
+	HAL_Delay(50); // Main screen turn on, delay 50 ms
 //	    0,                           // END OF COMMAND LIST
-//
 
 }
 
