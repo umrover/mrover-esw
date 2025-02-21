@@ -6,6 +6,7 @@
  */
 #include "lcd.h"
 #include "main.h"
+#include "Adafruit_HX8357.h"
 
 extern SPI_HandleTypeDef hspi2;
 
@@ -33,7 +34,7 @@ void init () {
 	SendData(0x57);
 	HAL_Delay(300);
 
-	SendCommand(HX8357D_SETRGB);
+	SendCommand(HX8357_SETRGB); //	SendCommand(HX8357D_SETRGB);
 	SendData(0x80);
 	SendData(0x00);
 	SendData(0x06);
