@@ -1,6 +1,7 @@
 # STM32CubeIDE
 
 ## About
+
 STM32CubeIDE allows the user to write, compile, and flash code to the STM32 microcontroller! The IDE
 is based on the Eclipse framework and contains the GCC compiler and GDB debugging tool for in
 program compilation and debugging. The IDE also has flashing functionality for easy and quick
@@ -9,30 +10,33 @@ code generation, allowing the user to initialize an entire module with a few cli
 have that code show up automatically in the main file.
 
 ## Downloading and Installing
+
 ### Download
+
 1. Go to the CubeIDE [download page](https://www.st.com/en/development-tools/stm32cubeide.html) and scroll down to "Get Software."
    ![get software](get-software.webp)
 
-2. ***For this walkthrough, we will be using the <em>Debian</em> Linux installer for UBUNTU USERS.***
-Click on "Select Version &rarr; **1.16.0**" for the ***correct OS you are running***.
+2. **_For this walkthrough, we will be using the <em>Debian</em> Linux installer for UBUNTU USERS._**
+   Click on "Select Version &rarr; **1.16.0**" for the **_correct OS you are running!!!_**
 
+3. Click on Accept for the License Agreement pop up.
 
-1. Click on Accept for the License Agreement pop up.
+4. You will then be prompted to log in, create an account, or continue as a guest. You will need a
+   MyST account in the future, so it is best to create one now. You may use any email address.
 
-2. You will then be prompted to log in, create an account, or continue as a guest. You will need a
-MyST account in the future, so it is best to create one now. You may use any email address.
+5. After logging in and being brought back to the download page, scroll back down to "Get Software".
+   It may take a while for the "Get Software" section to load.
 
-1. After logging in and being brought back to the download page, scroll back down to "Get Software".
-It may take a while for the "Get Software" section to load.
-
-1. Download version 1.16.0 of the OS you are running. Again, this tutorial will be using the <em>Debian</em>
-Linux installer.
+6. Download version 1.16.0 of the OS you are running. Again, this tutorial will be using the <em>Debian</em>
+   Linux installer.
 
 ### Install
+
 1\. Open a new terminal ([guide](https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/)).
 
 2\. The downloaded installer zip file should be in your `Downloads` folder. You can navigate to this
 folder by entering the following command in your terminal:
+
 ```sh
 cd ~/Downloads
 ```
@@ -50,6 +54,7 @@ unzip <zip_file_name>
 ```
 
 For example:
+
 ```sh
 unzip en.st-stm32cubeide_1.16.0_21983_20240628_1741_amd64.deb_bundle.sh.zip
 ```
@@ -64,6 +69,7 @@ sudo sh <sh_file_name>
 ```
 
 For example:
+
 ```sh
 sudo sh st-stm32cubeide_1.16.0_21983_20240628_1741_amd64.deb_bundle.sh
 ```
@@ -77,6 +83,7 @@ Then, enter `y` and then the `Enter` key.
 Then, click `y` and then the `Enter` key.
 
 10\. It may take a while to install. You are done once you have seen the following:
+
 ```
 STM32CubeIDE installed successfully
 ```
@@ -84,13 +91,16 @@ STM32CubeIDE installed successfully
 11\. You should now be able to launch STM32CubeIDE from the Ubuntu Applications menu ([guide](https://help.ubuntu.com/stable/ubuntu-help/shell-apps-open.html.en)).
 
 ## Creating a New Project
+
 This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
 will be developing on.
 
 ### Prerequisites
-* STM32CubeIDE [installed](../stm32cubeide/index.md)
+
+- STM32CubeIDE [installed](../stm32cubeide/index.md)
 
 ### Guide
+
 Open STM32CubeIDE, select the desired workspace, and click `Launch` (the default is fine for now).
 
 ![image](https://user-images.githubusercontent.com/71603173/186999707-e8a45808-e55b-4859-a797-41e1fe225b05.png)
@@ -113,7 +123,7 @@ Now you will be prompted with the following window:
 
 ![image](https://user-images.githubusercontent.com/71603173/187000137-4465eb7f-d7b6-4ec2-8986-57e7c16f9a14.png)
 
-Here you can name your project whatever you want, but we can just call it "tutorial".  Leave everything else as default and click Finish.
+Here you can name your project whatever you want, but we can just call it "tutorial". Leave everything else as default and click Finish.
 
 You will then be prompted with this window to configure this board. Make sure to uncheck all the
 boxes by clicking `Unselect All`. Then select `OK`.
@@ -136,11 +146,13 @@ user. The `main.c` file is where you will want to write your code.
 **Congratulations! You have successfully created a new project in CubeIDE!**
 
 ## Opening an Existing Project
+
 This quick guide will teach you how to open an existing STM32 project in your STM32CubeIDE workspace.
 
 ### Prerequisites
-* STM32CubeIDE [installed](#install)
-* Any existing STM32 project downloaded
+
+- STM32CubeIDE [installed](#install)
+- Any existing STM32 project downloaded
 
 ### Guide
 
@@ -156,7 +168,7 @@ Click `Finish`.
 
 **Congratulations! You have successfully opened an existing project in CubeIDE!**
 
-***Note:*** Your project files will remain in the original directory that you opened
+**_Note:_** Your project files will remain in the original directory that you opened
 and any changes you make in STM32CubeIDE will reflect in the original directory.
 All that you have done is added the project to the workspace, allowing you to
 open it in STM32CubeIDE.
