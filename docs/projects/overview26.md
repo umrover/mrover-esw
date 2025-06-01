@@ -44,7 +44,7 @@ handles the absolute encoder reading and communicates with the 3BM over CAN. Thi
 would be a simple PCB with an STM32 microcontroller, an absolute encoder, and a CAN transceiver.
 This would allow us to rapidly poll the absolute encoder (e.g. at 1 kHz) over I2C/SPI and
 have the 3BM (or any other board) read the absolute encoder at a lower frequency (e.g. 100 Hz)
-over CAN.
+over CAN. This project would involve writing the firmware for the board that EHW is designing.
 
 EHW has begun designing this board, but it is still in the early stages. The current hardware
 is as follows:
