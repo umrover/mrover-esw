@@ -1,4 +1,4 @@
-# Accelerometer Starter Project
+# Temperature and Humidity Starter Project
 
 ## About
 The purpose of this starter project is to guide you through reading data from the AHT20 Temperature and Humidity Sensor using I2C with an STM32 Nucleo
@@ -20,12 +20,6 @@ The purpose of this starter project is to guide you through reading data from th
 [AHT20 Sensor datasheet](https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf)
 
 [Nucleo STM32G431RB User Manual (pinout on page 29)](https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf)
-
-
-## More Important Nucleo Features
-Nucleos come with a removable ST-Link debugger/programmer integrated on the board, allowing extensive debugging options through a simple USB connection. STM32 MCUs have a wide range of hardware capabilities, with dedicated internal circuitry for I2C, SPI, UART, timers, and more.
-
-Read [this](https://github.com/umrover/embedded-testbench/wiki/Nucleo-Quick-Start) for more information.
 
 ## Hexadecimal
 Hexadecimal is a numbering system which uses base-16. Unlike our usual base-10 decimal system (0123456789) or the base-2 binary system (01), hexadecimal has a total of 16 different digits (0123456789ABCDEF). We tend to use hexadecimal to express our binary-based ideas because it is easier to read and easy to convert to and from binary. Each hexadecimal digit is equal to four bits (binary digits). For example, Hex number 0xA is equivalent to binary number 0b1010, or decimal number 10. Because of this a byte can be represented by two hexadecimal digits (8 bits).
@@ -62,7 +56,7 @@ The AHT20 I2C address we will need to write to and read from is found [here](htt
 A callback is a function that is called automatically when an operation finishes (like I2C read and write operations). We don't need to make these function calls ourselves, the microcontroller instead does it for us. We will use I2C transmit and recieve callbacks to handle communicating with the AHT20 sensor without having to block other code from finishing while we wait for transmits/recieves to finish.
 
 ## Starter code
-If you already cloned mrover-esw for the [other starter projects](https://github.com/umrover/mrover-esw), you do **not** need to do it again for the tempurature and humidity sensor.
+If you already cloned mrover-esw for the [other starter projects](https://github.com/umrover/mrover-esw), you do **not** need to do it again for the temperature and humidity sensor.
 
 To get the starter code, open up a new terminal window, clone the mrover-esw repository, and make a tutorial branch for yourself\
 `$ git clone https://github.com/umrover/mrover-esw` (if not already cloned)\
