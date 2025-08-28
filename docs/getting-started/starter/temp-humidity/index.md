@@ -10,7 +10,7 @@ The purpose of this starter project is to guide you through reading data from th
 
 * AHT20 Temperature and Humidity Sensor
 
-![aht20 sensor](4566-05.webp)
+![aht20 sensor](aht20.webp)
 
 * Lots of female-to-male, male-to-male, and female-to-female wires!
 * 1 USB A to mini B cable
@@ -86,7 +86,7 @@ The process for receiving data from the AHT20 sensor can be broken into 3 main s
 
 ## Important Notes and Tips
 - Define functions for transmitting, receiving, and converting values to and from the AHT20 sensor outside of the eventLoop and I2C callback functions and then call these functions when necessary.
-- As descirbed in the [datasheet](https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf) the AHT20 requires a delay after powering on the sensor. Find the delay and add it to the start of your code.
+- As described in the [datasheet](https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf) the AHT20 requires a delay after powering on the sensor. Find the delay and add it to the start of your code.
 - The address parameters of the HAL I2C receive and transmit functions will need to be provided with 8 bits, bits 1-7 will be the AHT20's ID and bit 0 represents whether you are writing/reading (0/1) to the sensor. You can accomplish this using the logical left shift operator (<<) and the bitwise or operator (|).
 - When converting the raw values from the buffer to the actual sensor values use the datasheet to determine which bytes from the buffer correspond to temperature/humidity and use the logical left shift operator (<<) to combine them into a single value. Then use the conversion formula from the datasheet to find the actual temperature and humidity values.
 
