@@ -1,13 +1,5 @@
 # Communication Protocols
 
-## SPI
-
-
-
-## UART
-
-
-
 ## I2C
 
 I2C is a synchronous serial communication protocol that is commonly used in embedded systems. On MRover we often use I2C to interface with sensors. I2C has a single leader device and multiple follower devices (traditionally master and slave devices). An example of this is the science board being the leader and multiple sensors being the followers. The leader device controls the clock and initiates communication, while the followers respond when addressed. Each I2C device has a unique 7-bit address allowing for multiple devices to be placed on the same bus.
@@ -18,18 +10,18 @@ I2C uses two wires, a clock line (SCL) and a data line (SDA). Both lines are ope
 
 ### How Communication Works
 
-Each transaction between the leader and a follower begins with a Start Condition and ends with a Stop Condition.
+Each transaction between the leader and a follower begins with a start condition and ends with a stop condition.
 
 - Start Condition: occurs when the leader pulls SDA low while SCL is held high.
 - Stop Condition: occurs when the leader releases SDA high while SCL is held high.
 
-After a Start Condition the leader sends a message over the bus consisting of:
+After a start condition the leader sends a message over the bus consisting of:
 
 1. 7-bit address of follower
 2. Read/Write bit (0 = write, 1 = read)
 3. ACK bit (the addressed follower pulls SDA low to acknowledge its address was received)
 
-Then the actual data transfer begins, sending byte-by-byte with each byte followed by an ACK/NACK bit. After all data is sent the leader sends the Stop Condition and the bus waits for another transaction.
+Then the actual data transfer begins, sending byte-by-byte with each byte followed by an ACK/NACK bit. After all data is sent the leader sends the stop condition and the bus waits for another transaction.
 
 ## CAN
 
