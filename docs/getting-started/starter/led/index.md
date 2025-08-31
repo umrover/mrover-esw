@@ -26,7 +26,7 @@ As you walk through the guide, keep the following questions in mind:
 * STM32CubeIDE [installed](../../stm32cubeide/index.md)
 * STM32G431RB Nucleo (pictured below)
 
-![stm32f303re nucleo](f303re-nucleo.webp)
+![stm32f303re nucleo](nucleo-g431.webp)
 
 ## Guide
 
