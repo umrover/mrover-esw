@@ -6,7 +6,7 @@ The purpose of this starter project is to guide you through reading data from th
 ## Hardware
 * Nucleo STM32G431RB
 
-![stm32f303re nucleo](f303re-nucleo.webp)
+![stm32g431rb nucleo](g431rb.webp)
 
 * AHT20 Temperature and Humidity Sensor
 
@@ -68,21 +68,15 @@ Open up the Cube IDE project by opening the folder and double clicking on the .p
 # Wiring and Set up
 Notice that the AHT20 sensor has 4 pins: VIN (voltage input), GND (ground), SCL (I2C clock line), and SDA (I2C data line). We will use the jumper wires and breadboard from the hardware step to make appropriate connections to all four pins. 
 
-A breadboard is broken into two sets of long rails on the outside edges of the board and multiple shorter rails on the inner part of the board. These rails allow for easy connections between wires on the same rail. Below is a picture depicting these rails. 
-
-![breadboard](breadboard_diagram.webp)
-
-Feel free to ask an ESW member for help with using a breadboard.
-
-To wire the sensor conenct the VIN pin on the AHT20 sensor to the 3.3V pin on the nucleo and the GND pin on the AHT20 sensor to the GND pin on the nucleo. To use I2C we will need to connect the clock and data pins of the AHT20 sensor to the clock and data pins on the nucleo that we configured in our .ioc file. To see which pins we are using for I2C on the nucleo open the .ioc file and search for the pins set to I2C3_SCL and I2C3_SDA. Finally, make connections to the pins corresponding to I2C3_SCL and I2C3_SDA on the nucleo using the pinout found on page 29 [here](https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf).
+To wire the sensor connect the VIN pin on the AHT20 sensor to the 3.3V pin on the nucleo and the GND pin on the AHT20 sensor to the GND pin on the nucleo. To use I2C we will need to connect the clock and data pins of the AHT20 sensor to the clock and data pins on the nucleo that we configured in our .ioc file. To see which pins we are using for I2C on the nucleo open the .ioc file and search for the pins set to I2C3_SCL and I2C3_SDA. Finally, make connections to the pins corresponding to I2C3_SCL and I2C3_SDA on the nucleo using the pinout found on page 29 [here](https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf).
 
 ## Getting Started
-Notice that the starter file for the project already contains multiple variable definitions. To begin set the value of the "TEMP_HUM_ADDRESS" constant to the AHT20 address found earlier. We will use this constant throughout our code when interacting with the sensor over I2C. Also notice the init() function which is called once, and has the job of pointing the "i2c" pointer to the hi2c3 object and also calling the "eventLoop()" function, which is the infinite loop that we will use to constantly send and receive data from the AHT20 sensor.
+Notice that the starter file for the project already contains multiple variable definitions. To begin set the value of the `TEMP_HUM_ADDRESS` constant to the AHT20 address found earlier. We will use this constant throughout our code when interacting with the sensor over I2C. Also notice the init() function which is called once, and has the job of pointing the "i2c" pointer to the hi2c3 object and also calling the `eventLoop()` function, which is the infinite loop that we will use to constantly send and receive data from the AHT20 sensor.
 
 The process for receiving data from the AHT20 sensor can be broken into 3 main steps:
-- Transmit a command (found in the datasheet) to the sensor to start a measurement, using the "HAL_I2C_Master_Transmit_IT" function.
-- Implement the "HAL_I2C_MasterTxCpltCallback" callback function, which will be called when the sensor has finished measuring and storing the new temperature and humidity values. We need these values so you will need to request them using the "HAL_I2C_Master_Receive_IT" function and by providing the buffer defined earlier in the code. The buffer will be the location in which the received bytes will be stored.
-- Finally implement the "HAL_I2C_MasterRxCpltCallback" callback function, which will be called when the sensor has sent us the raw values and the buffer is populated. You will then need to convert the raw values to the actual temperature and humidity values found in the datasheet.
+- Transmit a command (found in the datasheet) to the sensor to start a measurement, using the `HAL_I2C_Master_Transmit_IT` function.
+- Implement the `HAL_I2C_MasterTxCpltCallback` callback function, which will be called when the sensor has finished measuring and storing the new temperature and humidity values. We need these values so you will need to request them using the `HAL_I2C_Master_Receive_IT` function and by providing the buffer defined earlier in the code. The buffer will be the location in which the received bytes will be stored.
+- Finally implement the `HAL_I2C_MasterRxCpltCallback` callback function, which will be called when the sensor has sent us the raw values and the buffer is populated. You will then need to convert the raw values to the actual temperature and humidity values found in the datasheet.
 
 ## Important Notes and Tips
 - Define functions for transmitting, receiving, and converting values to and from the AHT20 sensor outside of the eventLoop and I2C callback functions and then call these functions when necessary.

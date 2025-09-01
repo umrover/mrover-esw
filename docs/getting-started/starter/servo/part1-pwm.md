@@ -173,6 +173,11 @@ In order to properly wire the servo, first consult the [datasheet](http://www.ee
 * How much voltage does the servo need?
 * Which wires are signal, power, and ground?
 
+#### Using a Breadboard
+A breadboard is broken into two sets of long rails on the outside edges of the board and multiple shorter rails on the inner part of the board. These rails allow for easy connections between wires on the same rail. Below is a picture depicting these rails. 
+
+![breadboard](breadboard_diagram.webp)
+
 In order for the signal to work, the servo and the Nucleo must have a common ground. Connect the servo's ground wire to one of the ground pins on the Nucleo, the power to the appropriate power pin on the Nucleo, and the signal wire to PC0.
 
 If you have any questions, don't be afraid to reach out to the ESW lead, SAM(s), or Embedded lead.
