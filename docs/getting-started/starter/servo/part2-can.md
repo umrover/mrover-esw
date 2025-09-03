@@ -191,7 +191,7 @@ Here is an example of how to send a CAN message to turn the servo to 45 degrees:
 // uint8_t TxData[1];
 
 TxData[0] = 45;
-HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData)
+HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData);
 ```
 
 ### 5. Testing the project

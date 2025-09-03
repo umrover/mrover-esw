@@ -53,7 +53,7 @@ cd mrover-esw
 Then, create a new branch for yourself
 
 ```sh
-git checkout -b starter/your-first-name
+git switch -c starter/your-first-name
 ```
 
 Open STM32CubeIDE and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`). Follow the following
@@ -179,4 +179,4 @@ In order to properly wire the servo, first consult the [datasheet](http://www.ee
 
 In order for the signal to work, the servo and the Nucleo must have a common ground. Connect the servo's ground wire to one of the ground pins on the Nucleo, the power to the appropriate power pin on the Nucleo, and the signal wire to PC0.
 
-If you have any questions, don't be afraid to reach out to the ESW lead, SAM(s), or Embedded lead.
+If you have any questions, don't be afraid to reach out to an ESW lead or SAM(s).
