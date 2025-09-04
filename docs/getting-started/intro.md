@@ -11,7 +11,8 @@ All new members are asked to complete the following:
 1. [Install STM32CubeIDE](stm32cubeide/index.md)
 2. [Starter Project: LED](starter/led/index.md)
 3. [Starter Project: Servo Part 1](starter/servo/part1-pwm.md)
-3. [Starter Project: Servo Part 2](starter/servo/part2-can.md)
+4. [Starter Project: Servo Part 2](starter/servo/part2-can.md)
+5. [Starter Project: Temperature and Humidity Sensor](starter/temp-humidity/index.md)
 
 As everyone comes from varying levels of experience, extra information is provided in these docs to
 assist the learning process. Please do not hesitate to ask for help!
