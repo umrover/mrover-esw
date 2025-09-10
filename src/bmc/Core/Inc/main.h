@@ -73,6 +73,8 @@ void Error_Handler(void);
 #define SPI_MISO_GPIO_Port GPIOA
 #define SPI_MOSI_Pin GPIO_PIN_7
 #define SPI_MOSI_GPIO_Port GPIOA
+#define SPI_CS_Pin GPIO_PIN_0
+#define SPI_CS_GPIO_Port GPIOB
 #define CAN_RX_LED_Pin GPIO_PIN_11
 #define CAN_RX_LED_GPIO_Port GPIOB
 #define CAN_TX_LED_Pin GPIO_PIN_12

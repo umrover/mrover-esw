@@ -768,7 +768,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, CAN_RX_LED_Pin|CAN_TX_LED_Pin|MOTOR_DIR_Pin|CAN_STB_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, SPI_CS_Pin|CAN_RX_LED_Pin|CAN_TX_LED_Pin|MOTOR_DIR_Pin
+                          |CAN_STB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : LIMIT_A_Pin LIMIT_B_Pin */
   GPIO_InitStruct.Pin = LIMIT_A_Pin|LIMIT_B_Pin;
@@ -776,8 +777,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CAN_RX_LED_Pin CAN_TX_LED_Pin MOTOR_DIR_Pin CAN_STB_Pin */
-  GPIO_InitStruct.Pin = CAN_RX_LED_Pin|CAN_TX_LED_Pin|MOTOR_DIR_Pin|CAN_STB_Pin;
+  /*Configure GPIO pins : SPI_CS_Pin CAN_RX_LED_Pin CAN_TX_LED_Pin MOTOR_DIR_Pin
+                           CAN_STB_Pin */
+  GPIO_InitStruct.Pin = SPI_CS_Pin|CAN_RX_LED_Pin|CAN_TX_LED_Pin|MOTOR_DIR_Pin
+                          |CAN_STB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
