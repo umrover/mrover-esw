@@ -131,7 +131,7 @@ int main(void)
   MX_TIM17_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_PostInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
