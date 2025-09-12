@@ -1,0 +1,3 @@
+# DBC Tools
+
+The goal of this project is to make the DBC files found in this directory the only location in which we update CAN message definitions. We are also aiming to implement compile-time generation of packing and unpacking functions based on the information found in each DBC file within this directory. Please update this readme with important notes and observations throughout the development of the DBC tools library.
