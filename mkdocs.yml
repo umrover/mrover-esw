@@ -17,7 +17,7 @@ nav:
           - Servo:
               - Part 1 - PWM: getting-started/starter/servo/part1-pwm.md
               - Part 2 - CAN: getting-started/starter/servo/part2-can.md
-          - Accelerometer: getting-started/starter/accelerometer/index.md
+          - Temp-Humidity: getting-started/starter/temp-humidity/index.md
   - Projects:
       - projects/overview26.md
   - Useful Information:
@@ -26,5 +26,7 @@ nav:
       - Brushed Motors: info/brushed.md
       - Brushless Motors: info/brushless.md
       - Science: info/science.md
+      - Nucleo Information: info/nucleos.md
+      - STM32 Boot: info/stm32-boot.md
   - Headers:
       - hardware.hpp: headers/hardware.md

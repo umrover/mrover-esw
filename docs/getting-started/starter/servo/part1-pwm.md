@@ -11,11 +11,11 @@ so please reach out if you ever get stuck!
 
 ## Prerequisites
 
-* STM32CubeIDE [installed](../../stm32cubeide/index.md)
-* LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
-* Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
-* STM32G431RB Nucleo
-* Servo
+- STM32CubeIDE [installed](../../stm32cubeide/index.md)
+- LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
+- Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
+- STM32G431RB Nucleo
+- SG90 Servo
 
 ## Intro
 
@@ -23,12 +23,13 @@ As mentioned earlier, by the end of the project you should be able to drive a se
 This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
 While you are working through the project, keep the following in mind:
 
-* How could you document your code so that others can easily read and understand it?
-* How could you write your code so that it can easily be adjusted for different pins, different number of servos, etc.?
+- How could you document your code so that others can easily read and understand it?
+- How could you write your code so that it can easily be adjusted for different pins, different number of servos, etc.?
 
 ## Guide
 
 ### 1. Setting up the project
+
 Since you already have practice creating a project, you will only need to clone and open the
 premade STM32 project for this starter project.
 
@@ -38,21 +39,24 @@ Go to [this repository](https://github.com/umrover/mrover-esw), click the "Code"
 You now have the URL you need to clone the project.
 
 Clone the project onto your local computer by running the following command in your terminal:
+
 ```sh
 git clone link-copied-in-above-step
 ```
 
 Enter the directory:
+
 ```sh
 cd mrover-esw
 ```
 
 Then, create a new branch for yourself
+
 ```sh
-git checkout -b starter/your-first-name
+git switch -c starter/your-first-name
 ```
 
-Open STM32CubeIDE and open the Servo ***Part 1*** starter project (the directory named `p1-pwm`). Follow the following
+Open STM32CubeIDE and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`). Follow the following
 [guide](../../stm32cubeide/index.md#opening-an-existing-project) to open an existing project if you do not
 know how to do so.
 
@@ -89,15 +93,14 @@ Here, we can see the interface for the Servo class that we will be implementing.
 
 The Servo class has 2 member variables:
 
-* `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
-* `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
+- `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
+- `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
 
 It also has 3 member functions:
 
-* A constructor that takes in the timer and channel for the PWM signal
-* A function `start_servo()` that starts the PWM generation
-* A function `set_servo_angle(int angle)` that moves the servo to the specified angle
-
+- A constructor that takes in the timer and channel for the PWM signal
+- A function `start_servo()` that starts the PWM generation
+- A function `set_servo_angle(int angle)` that moves the servo to the specified angle
 
 ### 4. Implementing Servo functions
 
@@ -156,23 +159,29 @@ and some jumper cables to check your PWM signals. If you think the PWM signals a
 your code on a servo. If you are unsure, just ask for help!
 
 #### Logic Analyzer
+
 The simplest method for debugging a digital signal is often to use a logic analyzer. Please install [Logic](https://www.saleae.com/downloads/) on your laptop.
 
 To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
 Play around with Logic:
 
-* Zoom in and out
-* Pause the display
-* Mouse over the different parts of the signal
-* Try to understand what all the different numbers mean
-
+- Zoom in and out
+- Pause the display
+- Mouse over the different parts of the signal
+- Try to understand what all the different numbers mean
 
 #### Wiring the Servo
+
 In order to properly wire the servo, first consult the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf).
 
-* How much voltage does the servo need?
-* Which wires are signal, power, and ground?
+- How much voltage does the servo need?
+- Which wires are signal, power, and ground?
+
+#### Using a Breadboard
+A breadboard is broken into two sets of long rails on the outside edges of the board and multiple shorter rails on the inner part of the board. These rails allow for easy connections between wires on the same rail. Below is a picture depicting these rails. 
+
+![breadboard](breadboard_diagram.webp)
 
 In order for the signal to work, the servo and the Nucleo must have a common ground. Connect the servo's ground wire to one of the ground pins on the Nucleo, the power to the appropriate power pin on the Nucleo, and the signal wire to PC0.
 
-If you have any questions, don't be afraid to reach out to the ESW lead, SAM(s), or Embedded lead.
+If you have any questions, don't be afraid to reach out to an ESW lead or SAM(s).
