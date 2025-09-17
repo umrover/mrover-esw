@@ -30,3 +30,8 @@ nav:
       - STM32 Boot: info/stm32-boot.md
   - Headers:
       - hardware.hpp: headers/hardware.md
+
+# ignoring README.md satisfies mkdocs build --strict error
+exclude_docs: |
+  README.md
+
