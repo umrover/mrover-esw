@@ -63,6 +63,8 @@ void HAL_PostInit();
 #define LIMIT_A_GPIO_Port GPIOC
 #define LIMIT_B_Pin GPIO_PIN_14
 #define LIMIT_B_GPIO_Port GPIOC
+#define MOTOR_CURRENT_Pin GPIO_PIN_0
+#define MOTOR_CURRENT_GPIO_Port GPIOA
 #define LPUART_TX_Pin GPIO_PIN_2
 #define LPUART_TX_GPIO_Port GPIOA
 #define LPUART_RX_Pin GPIO_PIN_3
