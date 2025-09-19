@@ -9,11 +9,12 @@ NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
 SRC=""
+DIR=""
 PRESET="Debug"
 
 usage() {
-    echo -e "${BLUE}Usage: $0 -s <src> -p <preset>${NC}"
-    echo -e "${BLUE}       $0 --src <src> --preset <preset>${NC}"
+    echo -e "${BLUE}Usage: $0 -s <src> | -d <dir> -p <preset>${NC}"
+    echo -e "${BLUE}       $0 --src <src> | --dir <dir> --preset <preset>${NC}"
     exit 1
 }
 
@@ -35,6 +36,10 @@ while [[ $# -gt 0 ]]; do
             SRC="$2"
             shift 2
             ;;
+        -d|--dir)
+            DIR="$2"
+            shift 2
+            ;;
         -p|--preset)
             PRESET="$2"
             shift 2
@@ -49,18 +54,22 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$SRC" ]]; then
-    echo -e "${RED}✗ Error: -s/--src required${NC}"
+if [[ -z "$SRC" && -z "$DIR" ]]; then
+    echo -e "${RED}✗ Error: one of -s/--src ir -d/--dir required${NC}"
     usage
 fi
 
-SRC_DIR="$ESW_ROOT/src/$SRC"
+if [[ -z "$DIR" ]]; then
+    DIR="src/$SRC"
+fi
+
+SRC_DIR="$ESW_ROOT/$DIR"
 if [ ! -d "$SRC_DIR" ]; then
     echo -e "${RED}✗ Build failed: $SRC_DIR does not exist${NC}"
     exit 1
 fi
 
-echo -e "${BLUE}Building project $SRC target build/$PRESET...${NC}"
+echo -e "${BLUE}Building project $(basename "$DIR") target build/$PRESET...${NC}"
 
 pushd "$SRC_DIR"
 
@@ -69,7 +78,7 @@ if [ ! -f "$SRC_DIR/build/$PRESET/build.ninja" ]; then
     run_step "Configure build" cmake --preset "$PRESET"
 fi
 
-run_step "Execute build" cmake --build --target $SRC --preset $PRESET
+run_step "Execute build" cmake --build --target $(basename "$DIR") --preset $PRESET
 
 echo -e "${GREEN}===== BUILD SUCCESSFUL =====${NC}"
 
