@@ -28,5 +28,6 @@ nav:
       - Science: info/science.md
       - Nucleo Information: info/nucleos.md
       - STM32 Boot: info/stm32-boot.md
+      - CMake Toolchain: info/cmake-tools.md
   - Headers:
       - hardware.hpp: headers/hardware.md
