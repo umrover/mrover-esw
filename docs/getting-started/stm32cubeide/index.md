@@ -17,7 +17,7 @@ have that code show up automatically in the main file.
    ![get software](get-software.webp)
 
 2. **_For this walkthrough, we will be using the <em>Debian</em> Linux installer for UBUNTU USERS._**
-   Click on "Select Version &rarr; **1.16.0**" for the **_correct OS you are running!!!_**
+   Click on "Select Version", then select the **newest version** for the **_correct OS you are running!!!_**
 
 3. Click on Accept for the License Agreement pop up.
 
@@ -27,10 +27,13 @@ have that code show up automatically in the main file.
 5. After logging in and being brought back to the download page, scroll back down to "Get Software".
    It may take a while for the "Get Software" section to load.
 
-6. Download version 1.16.0 of the OS you are running. Again, this tutorial will be using the <em>Debian</em>
-   Linux installer.
+6. Download the newest version of the OS you are running. Again, this tutorial will be using the
+   <em>Debian Linux</em> installer.
 
-### Install
+## Install
+
+**Note**: This install guide is for **Linux**. Please make sure to install the correct version
+for the OS you are running.
 
 1\. Open a new terminal ([guide](https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/)).
 
@@ -97,7 +100,7 @@ will be developing on.
 
 ### Prerequisites
 
-- STM32CubeIDE [installed](../stm32cubeide/index.md)
+-   STM32CubeIDE [installed](../stm32cubeide/index.md)
 
 ### Guide
 
@@ -151,8 +154,8 @@ This quick guide will teach you how to open an existing STM32 project in your ST
 
 ### Prerequisites
 
-- STM32CubeIDE [installed](#install)
-- Any existing STM32 project downloaded
+-   STM32CubeIDE [installed](#install)
+-   Any existing STM32 project downloaded
 
 ### Guide
 
