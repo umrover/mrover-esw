@@ -2,29 +2,48 @@ import os
 import re
 
 # Global variables
+message_dict = {}   # Key: message_id
+
+# Class Objects
+class message:
+    name: str
+    byte_length: int
+    signal_dict = {}    # Key: signal_id
+    def __init__(self, name, byte_length, signal_dict):
+        self.name = name
+        self.byte_length = byte_length
+        self.signal_dict = signal_dict
+    
+class signal:
+    data_type: str
+    start_bit: int
+    bit_length: int
+    def __init__(self, data_type, start_bit, bit_length):
+        self.data_type = data_type
+        self.start_bit = start_bit
+        self.bit_length = bit_length
 
 # TODO: add some type hints
 
 #
 def parse_message(line):
     id = line[1]
-    msg_name = line[2][:-1]
-    msg_byte_length = line[3]
+    name = line[2][:-1]
+    byte_length = line[3]
     sender = line[4]
 
-    # print(line)
-    # print(id)
-    # print(msg_name)
-    # print(msg_byte_length)
-    # print(sender)
+    signal_dict = {}
+
+    msg = message(name, byte_length, signal_dict)
+
+    message_dict[id] = msg
 
 #
 def parse_signal(line):
-    # print(line)
-    sg_name = line[1]
+    name = line[1]
 
-    bits_section = re.split(r'[|@]', line[3])    # I'm sorry
-    bit_start = bits_section[0]
+    bits_section = re.split(r'[|@]', line[3])
+    start_bit = bits_section[0]
     bit_length = bits_section[1]
     isLittleEndian = bool(bits_section[2][0])
     isSigned = True if bits_section[2][1] == "-" else False
@@ -41,7 +60,19 @@ def parse_signal(line):
 
     unit = line[6][1:-1]
     receiver = line[7]
-    
+
+    # Determine data_type
+    data_type = ""
+    if bit_length == 1:
+        data_type = "bool"
+    else:
+        data_type = "int"
+    # TODO: if supporting scale check scale to see if it's a float
+
+    sig = signal(data_type, start_bit, bit_length)
+    msg_id = list(message_dict.keys())[-1]
+    msg = message_dict[msg_id]
+    msg.signal_dict[name] = sig
 
 #
 def parse_file(file_handle):
@@ -53,6 +84,8 @@ def parse_file(file_handle):
                 parse_message(split_line)
             elif split_line[0] == "SG_":
                 parse_signal(split_line)
+            print(message_dict)
+       
 
 # Get path of current script
 path = os.path.dirname(os.path.realpath(__file__))
