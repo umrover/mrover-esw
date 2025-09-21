@@ -72,7 +72,8 @@ if [ ! -d "$SRC_DIR" ]; then
     exit 1
 fi
 
-echo -e "${BLUE}Flashing project $(basename "$DIR")...${NC}"
+SRC="$(basename "$DIR")"
+echo -e "${BLUE}Flashing project $SRC...${NC}"
 
 pushd "$SRC_DIR"
 
