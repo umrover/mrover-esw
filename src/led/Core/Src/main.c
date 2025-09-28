@@ -87,11 +87,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_PostInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_Loop();
   while (1)
   {
       const GPIO_PinState state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
