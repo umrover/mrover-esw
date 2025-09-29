@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>STM32CubeIDE - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "STM32CubeIDE";
+        var mkdocs_page_input_path = "getting-started/stm32cubeide/index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">STM32CubeIDE</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#about">About</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#downloading-and-installing">Downloading and Installing</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#download">Download</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#install">Install</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#creating-a-new-project">Creating a New Project</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#guide">Guide</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#opening-an-existing-project">Opening an Existing Project</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#prerequisites_1">Prerequisites</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#guide_1">Guide</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/cmake-tools/">CMake Toolchain</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Headers</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../headers/hardware/">hardware.hpp</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Getting Started</li>
+      <li class="breadcrumb-item active">STM32CubeIDE</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/getting-started/stm32cubeide/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="stm32cubeide">STM32CubeIDE</h1>
+<h2 id="about">About</h2>
+<p>STM32CubeIDE allows the user to write, compile, and flash code to the STM32 microcontroller! The IDE
+is based on the Eclipse framework and contains the GCC compiler and GDB debugging tool for in
+program compilation and debugging. The IDE also has flashing functionality for easy and quick
+programming of the STM32 microcontroller. The IDE provides a very powerful interface for automatic
+code generation, allowing the user to initialize an entire module with a few clicks of a button, and
+have that code show up automatically in the main file.</p>
+<h2 id="downloading-and-installing">Downloading and Installing</h2>
+<h3 id="download">Download</h3>
+<ol>
+<li>
+<p>Go to the CubeIDE <a href="https://www.st.com/en/development-tools/stm32cubeide.html">download page</a> and scroll down to "Get Software."
+   <img alt="get software" src="get-software.webp" /></p>
+</li>
+<li>
+<p><strong><em>For this walkthrough, we will be using the <em>Debian</em> Linux installer for UBUNTU USERS.</em></strong>
+   Click on "Select Version", then select the <strong>newest version</strong> for the <strong><em>correct OS you are running!!!</em></strong></p>
+</li>
+<li>
+<p>Click on Accept for the License Agreement pop up.</p>
+</li>
+<li>
+<p>You will then be prompted to log in, create an account, or continue as a guest. You will need a
+   MyST account in the future, so it is best to create one now. You may use any email address.</p>
+</li>
+<li>
+<p>After logging in and being brought back to the download page, scroll back down to "Get Software".
+   It may take a while for the "Get Software" section to load.</p>
+</li>
+<li>
+<p>Download the newest version of the OS you are running. Again, this tutorial will be using the
+   <em>Debian Linux</em> installer.</p>
+</li>
+</ol>
+<h2 id="install">Install</h2>
+<p><strong>Note</strong>: This install guide is for <strong>Linux</strong>. Please make sure to install the correct version
+for the OS you are running.</p>
+<p>1. Open a new terminal (<a href="https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/">guide</a>).</p>
+<p>2. The downloaded installer zip file should be in your <code>Downloads</code> folder. You can navigate to this
+folder by entering the following command in your terminal:</p>
+<pre><code class="language-sh">cd ~/Downloads
+</code></pre>
+<p>3. You should now be able to see the installer <code>.zip</code> file, if you run the following command:</p>
+<pre><code class="language-sh">ls
+</code></pre>
+<p>4. To unzip the installer, run the following command (this may take a second):</p>
+<pre><code class="language-sh">unzip &lt;zip_file_name&gt;
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-sh">unzip en.st-stm32cubeide_1.16.0_21983_20240628_1741_amd64.deb_bundle.sh.zip
+</code></pre>
+<p>5. You should now be able to see the installer <code>.zip</code> file along with the installer <code>.sh</code> file if
+you repeat the <code>ls</code> command in step 3.</p>
+<p>6. Run the installer by running the following (you may be prompted to enter your password):</p>
+<pre><code class="language-sh">sudo sh &lt;sh_file_name&gt;
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-sh">sudo sh st-stm32cubeide_1.16.0_21983_20240628_1741_amd64.deb_bundle.sh
+</code></pre>
+<p>7. Accept the installer license agreement by entering <code>s</code> until you are given the option to accept.
+Then, enter <code>y</code> and then the <code>Enter</code> key.</p>
+<p>8. Install the Segger J-Link udev rules by clicking <code>y</code> and then the <code>Enter</code> key.</p>
+<p>9. Accept the Segger J-Link license agreement by entering <code>s</code> until you are given the option to accept.
+Then, click <code>y</code> and then the <code>Enter</code> key.</p>
+<p>10. It may take a while to install. You are done once you have seen the following:</p>
+<pre><code>STM32CubeIDE installed successfully
+</code></pre>
+<p>11. You should now be able to launch STM32CubeIDE from the Ubuntu Applications menu (<a href="https://help.ubuntu.com/stable/ubuntu-help/shell-apps-open.html.en">guide</a>).</p>
+<h2 id="creating-a-new-project">Creating a New Project</h2>
+<p>This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
+will be developing on.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>STM32CubeIDE <a href="./">installed</a></li>
+</ul>
+<h3 id="guide">Guide</h3>
+<p>Open STM32CubeIDE, select the desired workspace, and click <code>Launch</code> (the default is fine for now).</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/186999707-e8a45808-e55b-4859-a797-41e1fe225b05.png" /></p>
+<p>In the top left, go to <code>File</code>&#8594;<code>New</code>&#8594;<code>STM32 Project</code>.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/186999816-2f289e9c-ebd2-4c3b-ae86-8a29d061ab75.png" /></p>
+<p>You may experience some lag after the previous step. Eventually, you will be prompted with the following window:</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/186999915-d8197e0a-cf00-43e0-a8ce-7c13c3039615.png" /></p>
+<p>At the top, select the <code>Board Selector</code> option.
+Then on the left, in the text box next to <code>Commercial Part Number</code>, type <code>G431RB</code>.
+There should only be one option in the <code>Boards List</code> Section, click that and press <code>Next</code>:</p>
+<p><img alt="board selector window with g431rb selected" src="board-select.webp" /></p>
+<p>Now you will be prompted with the following window:</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187000137-4465eb7f-d7b6-4ec2-8986-57e7c16f9a14.png" /></p>
+<p>Here you can name your project whatever you want, but we can just call it "tutorial". Leave everything else as default and click Finish.</p>
+<p>You will then be prompted with this window to configure this board. Make sure to uncheck all the
+boxes by clicking <code>Unselect All</code>. Then select <code>OK</code>.</p>
+<p><img alt="board configuration window to select software components" src="board-config.webp" /></p>
+<p>It may also ask about changing perspective. Here, it comes down to preference, but you can just click <code>Yes</code>.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187000255-967961b9-7b45-4d6f-b0ca-4bb18dbb7210.png" /></p>
+<p>You should now see the following screen, which means that you have successfully created the project!
+Notice the graphical interface of the chip on the right (which we may call the <code>.ioc</code> file) and the
+files on the left that fall under the tutorial project (most importantly, <code>Src/main.c</code> and
+<code>tutorial.ioc</code>). Cool things to know is the graphical interface is used to make changes to the chip
+settings. If changes are made, then once the project is saved, code will be auto-generated for the
+user. The <code>main.c</code> file is where you will want to write your code.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187000579-18856eed-e151-4cc7-a5d3-f419b2eff41e.png" /></p>
+<p><strong>Congratulations! You have successfully created a new project in CubeIDE!</strong></p>
+<h2 id="opening-an-existing-project">Opening an Existing Project</h2>
+<p>This quick guide will teach you how to open an existing STM32 project in your STM32CubeIDE workspace.</p>
+<h3 id="prerequisites_1">Prerequisites</h3>
+<ul>
+<li>STM32CubeIDE <a href="#install">installed</a></li>
+<li>Any existing STM32 project downloaded</li>
+</ul>
+<h3 id="guide_1">Guide</h3>
+<p>Open up STM32CubeIDE.</p>
+<p>Then, select the desired workspace that you want to open the project in and click <code>Launch</code>.</p>
+<p>In the top left, go to <code>File</code>&#8594;<code>Open Projects from File System</code>.</p>
+<p>Open the project directory in <code>Import source</code>.</p>
+<p>Click <code>Finish</code>.</p>
+<p><strong>Congratulations! You have successfully opened an existing project in CubeIDE!</strong></p>
+<p><strong><em>Note:</em></strong> Your project files will remain in the original directory that you opened
+and any changes you make in STM32CubeIDE will reflect in the original directory.
+All that you have done is added the project to the workspace, allowing you to
+open it in STM32CubeIDE.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../intro/" class="btn btn-neutral float-left" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../starter/led/" class="btn btn-neutral float-right" title="LED">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../intro/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../starter/led/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
