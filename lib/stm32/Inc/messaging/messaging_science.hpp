@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <variant>
 
-#include <units.hpp>
-
 namespace mrover {
 
 #pragma pack(push, 1)
