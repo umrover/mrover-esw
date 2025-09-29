@@ -11,3 +11,22 @@
 7. `./scripts/flash.sh --src <PROJECT>` will flash the project to the MCU connected to the STLINK
 
 There is an example CMake project that depends on `fwlib` in `src/led`.
+
+## Adding CMake Dependencies to Projects
+
+To add `lib/` dependencies to a CubeMX project, add the following to `CMakeLists.txt`.
+
+```cmake
+# Add fwlib dependency
+add_subdirectory(../../lib fwlib)
+
+# Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    stm32cubemx
+
+    # Add user defined libraries
+    stm32
+    units
+    util
+)
+```
