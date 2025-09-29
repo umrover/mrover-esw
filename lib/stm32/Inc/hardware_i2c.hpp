@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <optional>
 
-#include "../inc/hardware.hpp"
+#include "hardware.hpp"
 
 
 namespace mrover {

@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <units/units.hpp>
+#include <units.hpp>
 
 // TODO(eric) most of the stuff here is going to vary by project, so should break up into specific headers
 // e.g. in the LED example, there are no CAN headers since that project does not use CAN, and it would be a
