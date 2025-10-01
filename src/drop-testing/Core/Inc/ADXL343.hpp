@@ -1,4 +1,5 @@
 #include "main.h"
+#include "stdio.h"
 
 #define DATA_REGS 0x32 // Data registers starting address, x = 0x32, y = 0x34, z = 0x36
 #define PWR_CTL_REG 0x2D // Power control register, needed to start measurements
@@ -49,6 +50,13 @@ namespace mrover {
         	accel_data.x = (int16_t)(accel_buffer[1] << 8 | accel_buffer[0]) / 256.00;
         	accel_data.y = (int16_t)(accel_buffer[3] << 8 | accel_buffer[2]) / 256.00;
         	accel_data.z = (int16_t)(accel_buffer[5] << 8 | accel_buffer[4]) / 256.00;
+        	//For proof of concept, not final code structure
+        	//printf("x: \n\r");
+        	//printf("%f \n\r", accel_data.x);
+        	//printf("y: \n\r");
+			//printf("%f \n\r", accel_data.y);
+			//printf("z: \n\r");
+			//printf("%f \n\r",  accel_data.z);
         }
 
         // starts measurements for an accelerometer
