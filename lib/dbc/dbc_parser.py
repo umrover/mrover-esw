@@ -25,7 +25,6 @@ class signal:
 
 # TODO: add some type hints
 
-#
 def parse_message(line):
     id = line[1]
     name = line[2][:-1]
@@ -38,7 +37,6 @@ def parse_message(line):
 
     message_dict[id] = msg
 
-#
 def parse_signal(line):
     name = line[1]
 
@@ -74,7 +72,6 @@ def parse_signal(line):
     msg = message_dict[msg_id]
     msg.signal_dict[name] = sig
 
-#
 def parse_file(file_handle):
     with open(file_handle) as file:
         for line in file:
@@ -84,15 +81,20 @@ def parse_file(file_handle):
                 parse_message(split_line)
             elif split_line[0] == "SG_":
                 parse_signal(split_line)
-            print(message_dict)
+            # print(message_dict)
        
 
 # Get path of current script
-path = os.path.dirname(os.path.realpath(__file__))
-# Look through directory for .dbc files
-for root, dirs, files in os.walk(path):
+script_path = os.path.dirname(os.path.realpath(__file__))
+os.chdir("../../dbc")
+dbc_files_path = os.getcwd()
+
+for root, dirs, files in os.walk(dbc_files_path):
+    # Go to the dbc/ directory with the .dbc files
     for file in files:
         # Open the .dbc file
         if file.endswith(".dbc"):
+            # Go back to original directory
+            os.chdir(script_path)
             # Helper function to parse .dbc file
-            parse_file(file)
+            parse_file(dbc_files_path + "/" + file)
