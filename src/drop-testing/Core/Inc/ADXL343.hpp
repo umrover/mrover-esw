@@ -59,6 +59,23 @@ namespace mrover {
 			//printf("%f \n\r",  accel_data.z);
         }
 
+
+        AccelData getData(){
+        	return accel_data;
+        }
+
+        /*float getX(){
+        	return accel_data.x;
+        }
+
+        float getY(){
+			return accel_data.y;
+		}
+
+        float getZ(){
+			return accel_data.z;
+		}*/
+
         // starts measurements for an accelerometer
         HAL_StatusTypeDef start_accel() {
         	HAL_StatusTypeDef status;
@@ -87,5 +104,5 @@ namespace mrover {
         const AccelData& get_accel_data() const {
         	return accel_data;
         }
-    }; // class TempHumiditySensor
+    }; // class ADXL343
 } // namespace mrover
