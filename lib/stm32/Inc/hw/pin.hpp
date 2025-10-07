@@ -11,14 +11,14 @@ namespace mrover {
     public:
         Pin() = default;
 
-        Pin(GPIO_TypeDef* port, const std::uint16_t pin)
+        Pin(GPIO_TypeDef* port, std::uint16_t const pin)
             : m_port{port}, m_pin{pin} {}
 
         [[nodiscard]] auto read() const -> GPIO_PinState {
             return HAL_GPIO_ReadPin(m_port, m_pin);
         }
 
-        auto write(const GPIO_PinState val) const -> void {
+        auto write(GPIO_PinState const val) const -> void {
             HAL_GPIO_WritePin(m_port, m_pin, val);
         }
 
@@ -44,3 +44,4 @@ namespace mrover {
     };
 
 } // namespace mrover
+
