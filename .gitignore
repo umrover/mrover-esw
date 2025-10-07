@@ -8,6 +8,8 @@ Release/
 .metadata/
 .settings/
 RemoteSystemsTempFiles/
+Drivers/
+src/**/cmake/stm32cubemx/
 
 *.chm
 *.settings.xml
