@@ -1,0 +1,26 @@
+logger_bus_size: 4
+
+loggers:
+  - name: can0
+    valid_ids: []
+    log_all: false 
+    log_specify: []
+    file_path: /log/can0.log
+
+  - name: can1
+    valid_ids: []
+    log_all: false
+    log_specify: []
+    file_path: /log/can1.log
+
+  - name: can2
+    valid_ids: []
+    log_all: false 
+    log_specify: []
+    file_path: /log/can2.log
+
+  - name: can3
+    valid_ids: []
+    log_all: false
+    log_specify: []
+    file_path: /log/can3.log
