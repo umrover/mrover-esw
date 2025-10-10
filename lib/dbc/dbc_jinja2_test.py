@@ -5,9 +5,12 @@ env = Environment(loader=FileSystemLoader("."))
 template = env.get_template("dbc_header.h.j2")
 
 libs = ["cstdlib"]
+
+# TODO: fix this up omg
 data = {
+    "dbc_name": dbc_parser.dbc_arr[0].name,
     "libs": libs,
-    "messages": dbc_parser.message_dict
+    "message_dict": dbc_parser.dbc_arr[0].message_dict
 }
 
 # Pass message_dict and library list

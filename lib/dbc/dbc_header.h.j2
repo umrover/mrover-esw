@@ -1,28 +1,19 @@
-{# Python script should input message_dict #}
+{# Python script should input message_dict -#}
 /* {{dbc_name}} */
-
 {# Include C libraries #}
-{% for lib in libs -%}
-
+{%- for lib in libs %}
 #include <{{ lib }}>
-
 {% endfor %}
-
 #ifndef {{dbc_name}}_H
 #define {{dbc_name}}_H
-
-{# Struct definitions #}
-{% for msg in message_dict -%}
-
+{#- Struct definitions #}
+{% for msg in message_dict %}
 typedef struct {
-    {% set signals = message_dict[msg].signal_dict %}
-    {% for signal in signals %}
-
+    {%- set signals = message_dict[msg].signal_dict %}
+    {%- for signal in signals %}
     {{signals[signal].data_type}} {{signal}};
-
-    {% endfor %}
-} {{ msg_name }};
-
+    {%- endfor %}
+} {{ message_dict[msg].name }};
 {% endfor %}
 
 #endif /* {{dbc_name}} */
