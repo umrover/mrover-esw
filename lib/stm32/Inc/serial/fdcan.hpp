@@ -1,22 +1,17 @@
 #pragma once
 
 #include <algorithm>
-#include <concepts>
 #include <cstdint>
 #include <span>
 #include <string_view>
+
+#include <util.hpp>
 
 #include "main.h"
 
 namespace mrover {
 
     constexpr static std::size_t FDCAN_MAX_FRAME_SIZE = 64;
-
-    static auto check(bool cond, std::invocable auto handler) -> void {
-        if (cond) return;
-
-        handler();
-    }
 
     class FDCan {
     public:

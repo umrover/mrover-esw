@@ -1,5 +1,7 @@
 #include <cstdint>
 
+#include "hbridge.hpp"
+
 #include "main.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
@@ -29,14 +31,28 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
+    HBridge hbridge{}; // TODO stuff goes here too probably
+    // NOTE this is for EHW's hbridge circuit, might not be a bad idea to write a separate header for the LN298 hbridges laying around too
+
+    auto init() -> void {
+        // TODO test hbridge
+    }
+
+    auto loop() -> void {
+        // TODO test hbridge
+    }
+
 
 } // namespace mrover
 
-// TOOD: is this really necesssary?
 extern "C" {
 
-void HAL_PostInit() {
-    // mrover::init();
+void PostInit() {
+    mrover::init();
+}
+
+void Loop() {
+    mrover::loop();
 }
 
 /**

@@ -135,17 +135,15 @@ int main(void)
   MX_SPI1_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_PostInit();
+  PostInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+  Loop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
   /* USER CODE END 3 */
 }
 

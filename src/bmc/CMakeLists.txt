@@ -32,13 +32,13 @@ project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Enable CMake support for ASM and C languages
-enable_language(C ASM)
+enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
 # Add STM32CubeMX generated sources
-add_subdirectory(cmake/stm32cubemx)
+add_subdirectory(cmake/stm32cubemx_extern)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -55,7 +55,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    Core/Inc
+    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc"
 )
 
 # Add project symbols (macros)
@@ -66,9 +66,18 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
+# Add fwlib dependency
+add_subdirectory(../../lib fwlib)
+
+#target_include_directories(hw PUBLIC
+#    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc"
+#)
+
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+    stm32
+    hw
 )
