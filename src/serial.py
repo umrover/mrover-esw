@@ -4,9 +4,6 @@
 import serial
 import csv
 
-ready = True
-#py file creates csv at the end of what it does
-
 def read(serial_handle):
     if (ser.Serial.in_waiting > 0):
         line = serial_handle.readline()
@@ -17,6 +14,9 @@ def read(serial_handle):
 def write(serial_handle, data):
     serial_handle.write(data.encode('utf-8'))
 
+# data must be in the following format (otherwise the function will need to be updated):
+# no extra commas or colons
+# sensor_id timestamp x_val y_val z_val
 def fileWrite(line):
     temp = []
     for word in line:
@@ -30,8 +30,7 @@ if __name__ == "__main__":
 
 header = ['sensor','timestamp','x', 'y', 'z']
 with open('accelData.csv', 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)#, delimiter=' ',
-                            #quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    writer = csv.writer(csvfile)
     writer.writerow(header)
 
 
