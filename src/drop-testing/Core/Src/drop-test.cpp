@@ -58,7 +58,8 @@ namespace mrover {
 extern "C" {
 
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-	int sensor_id = 0;
+	uint32_t sensor_id = 0;
+	uint32_t timestamp = HAL_GetTick();
 	mrover::AccelData data;
 
 	if(hi2c == &hi2c1){
@@ -81,7 +82,7 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
 
 	}
 
-	printf("%d: x: %f	y: %f	z: %f\n", sensor_id, data.x, data.y, data.z);
+	printf("%u %u %f %f %f\n", sensor_id, timestamp, data.x, data.y, data.z);
 }
 
 void HAL_PostInit() {
