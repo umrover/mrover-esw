@@ -15,9 +15,9 @@ class dbc:
 class message:
     name: str
     byte_length: int
-    def __init__(self, name, byte_length):
+    def __init__(self, name):
         self.name = name
-        self.byte_length = byte_length
+        self.bit_length = 0
         self.signal_dict = {}
         
     
@@ -49,11 +49,14 @@ def parse_message(line):
     byte_length = line[3]
     sender = line[4]
 
-    msg = message(name, byte_length)
-
+    # TODO: make parse_signal() a helper for parse_message
+    # if int(byte_length):
+    msg = message(name)
     # Append to most recent dbc object's message dict
     dbc_arr[-1].message_dict[id] = msg
 
+# TODO: order the message signals by size (descending)
+# Currently we assume they are already ordered :)
 def parse_signal(line):
     name = line[1]
 
@@ -91,10 +94,11 @@ def parse_signal(line):
     sig = signal(data_type, start_bit, bit_length)
 
     msg_id = list(dbc_arr[-1].message_dict.keys())[-1]
-    # print(list(dbc_arr[-1].message_dict.keys())[-1])
     msg = dbc_arr[-1].message_dict[msg_id]
     msg.signal_dict[name] = sig
-    # print(f"{msg.signal_dict}\n")
+
+    # Update size of message
+    msg.bit_length += int(bit_length)
 
 def parse_file(file_handle):
     ns_flag = False
@@ -111,6 +115,12 @@ def parse_file(file_handle):
                 parse_signal(split_line)
             elif split_line[0] == "SIG_VALTYPE_":
                 update_type(split_line)
+
+        # Once all messages are parsed, get byte values
+        for msg in dbc_arr[-1].message_dict.values():
+            # Use bit length to get byte length
+            msg.byte_length = msg.bit_length // 8
+            msg.byte_length += 1 if msg.bit_length % 8 else 0
 
 # The main script code (make it more OOP!)
 # Get path of current script

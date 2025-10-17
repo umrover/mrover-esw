@@ -8,12 +8,17 @@
 #define {{dbc_name}}_H
 {#- Struct definitions #}
 {% for msg in message_dict %}
-typedef struct {
+class {{ message_dict[msg].name }} {
+    public:
+    // Signals
     {%- set signals = message_dict[msg].signal_dict %}
     {%- for signal in signals %}
     {{signals[signal].data_type}} {{signal}};
     {%- endfor %}
-} {{ message_dict[msg].name }};
+
+    // TODO: Byte array
+    uint8_t arr[]
+}
 {% endfor %}
 
 #endif /* {{dbc_name}} */
