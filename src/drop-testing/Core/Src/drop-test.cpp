@@ -9,13 +9,14 @@ extern I2C_HandleTypeDef hi2c3;
 
 #define ACCEL_ADDR1 0x1D // Default address when SDO is connected to VCC
 #define ACCEL_ADDR2 0x53 // Alternate address when SDO is connected to GND
-#define NUM_ADXL 3
+#define NUM_ADXL 4
 
 namespace mrover {
 	ADXL343 accel_array[NUM_ADXL] = {
-			{&hi2c1, ACCEL_ADDR1},
-			{&hi2c2, ACCEL_ADDR1},
-			{&hi2c3, ACCEL_ADDR1}
+			{&hi2c1, ACCEL_ADDR1, 1},
+			{&hi2c1, ACCEL_ADDR2, 2},
+			{&hi2c2, ACCEL_ADDR1, 3},
+			{&hi2c3, ACCEL_ADDR1, 4},
 	};
 
 //	struct queueData{
@@ -58,29 +59,12 @@ namespace mrover {
 extern "C" {
 
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
-	uint32_t sensor_id = 0;
+	uint32_t sensor_id = mrover::current_sensor;
 	uint32_t timestamp = HAL_GetTick();
 	mrover::AccelData data;
 
-	if(hi2c == &hi2c1){
-		sensor_id = 1;
-		mrover::accel_array[0].update_accel(); // update the data read from the accelerometer
-		data = mrover::accel_array[0].getData();
-//		mrover::printQueue.push({1, timestamp, data});
-
-	} else if (hi2c == &hi2c2){
-		sensor_id = 2;
-		mrover::accel_array[1].update_accel(); // update the data read from the accelerometer
-		data = mrover::accel_array[1].getData();
-//		mrover::printQueue.push({2, timestamp, data});
-
-	} else if (hi2c == &hi2c3){
-		sensor_id = 3;
-		mrover::accel_array[2].update_accel(); // update the data read from the accelerometer
-		data = mrover::accel_array[2].getData();
-//		mrover::printQueue.push({3, timestamp, data});
-
-	}
+	mrover::accel_array[sensor_id - 1].update_accel(); // update the data read from the accelerometer
+	data = mrover::accel_array[sensor_id - 1].getData();
 
 	printf("%u %u %f %f %f\n", sensor_id, timestamp, data.x, data.y, data.z);
 }

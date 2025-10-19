@@ -19,10 +19,13 @@ namespace mrover {
 		Z_AXIS = 2,
 	};
 
+	uint8_t current_sensor;
+
     class ADXL343 {
     private:
         I2C_HandleTypeDef* i2c; // pointer to i2c handle
         uint8_t dev_addr; // i2c address of the accelerometer, either 0x1D (SDO high) or 0x53 (SDO low)
+        uint8_t accel_id; // id of the accelerometer 1 to number of accelerometers
         AccelData accel_data; // accelerometer data
         uint8_t accel_buffer[6]; // buffer for reading from sensor
 
@@ -30,12 +33,13 @@ namespace mrover {
         ADXL343() = default;
 
         // initialize accelerometer
-        ADXL343(I2C_HandleTypeDef* i2c_in, uint8_t addr_in)
-            : i2c(i2c_in), dev_addr(addr_in), accel_data({0, 0, 0}) {
+        ADXL343(I2C_HandleTypeDef* i2c_in, uint8_t addr_in, uint8_t id_in)
+            : i2c(i2c_in), dev_addr(addr_in), accel_id(id_in), accel_data({0, 0, 0}) {
               };
 
         // read data from data register on accelerometer asynchronously
         void read_data() {
+        	current_sensor = accel_id;
             HAL_StatusTypeDef status;
             status = HAL_I2C_Mem_Read_IT(i2c, (dev_addr << 1), DATA_REGS, I2C_MEMADD_SIZE_8BIT, accel_buffer, 6);
             if (status != HAL_OK) {
