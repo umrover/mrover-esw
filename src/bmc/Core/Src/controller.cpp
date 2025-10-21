@@ -36,7 +36,10 @@ namespace mrover {
     HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}}; // TODO stuff goes here too probably
     // NOTE this is for EHW's hbridge circuit, might not be a bad idea to write a separate header for the LN298 hbridges laying around too
 
+    Pin can_tx{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
+
     auto init() -> void {
+        can_tx.set();
         hbridge.write(0);
         hbridge.change_max_pwm(100);
     }
@@ -44,9 +47,11 @@ namespace mrover {
     auto loop() -> void {
 
         while(1) {
+            can_tx.set();
             hbridge.write(-50);
 
             HAL_Delay(1000);
+            can_tx.reset();
 
             hbridge.write(50);
 

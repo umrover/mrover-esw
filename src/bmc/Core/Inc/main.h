@@ -84,6 +84,8 @@ void Loop();
 #define CAN_TX_LED_GPIO_Port GPIOB
 #define MOTOR_DIR_Pin GPIO_PIN_13
 #define MOTOR_DIR_GPIO_Port GPIOB
+#define MOTOR_PWM_Pin GPIO_PIN_8
+#define MOTOR_PWM_GPIO_Port GPIOA
 #define FDCAN_RX_Pin GPIO_PIN_11
 #define FDCAN_RX_GPIO_Port GPIOA
 #define FDCAN_TX_Pin GPIO_PIN_12
