@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <unordered_set>
 #include "influxdb.hpp"
 #include <linux/can.h>
@@ -33,7 +34,7 @@ struct Auth {
 
 class Logger {
     private:
-        int bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        int bus_socket;
         std::string can_bus_name;
         std::string file_path;
         influxdb_cpp::server_info si;
@@ -47,12 +48,12 @@ class Logger {
 
 
         void init_bus() {
+            bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
             struct ifreq ifr;
             struct sockaddr_can addr;
-            const char *c_can_id = can_bus_name.c_str();
-            strcpy(ifr.ifr_name, c_can_id);
+            strcpy(ifr.ifr_name, can_bus_name.c_str());
 
-            if (ioctl(bus_socket, SIOGIFINDEX, &ifr) < 0) {
+            if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
                 std::cerr << "ioctl broke" << std::endl;
                 //blow up exit(1)?
             }
@@ -70,6 +71,15 @@ class Logger {
                 //blow up exit(1)?
             }
         }
+        
+        void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
+            std::cout << "file_status in" << name << ": " << outputFile.is_open() << "\n";
+            
+            for(size_t i = 0; i < CANFD_MAX_DLEN; i++) {
+                outputFile << static_cast<int>(arr[i]) << " ";
+            }
+            outputFile << "\n";
+        }
 
     public:
         Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path/*, std::istream &is*/) : can_bus_name(bus_name), 
@@ -85,6 +95,7 @@ class Logger {
         void start() {
             init_bus();
             struct canfd_frame cfd;
+            std::ofstream file(file_path);
             while (true) {                                                              //catch an interupt instead?
 
                 //read a vcan message from bus (can_id)
@@ -93,26 +104,20 @@ class Logger {
                 //push to influx and logger (asci)
                 //done
 
-                ssize_t bytes_read;
-                while (bytes_read = read(bus_socket, &cfd, CANFD_MTU)) {                //CANFD_MTU is macro for sizeof(canfd_frame)
-                    if (bytes_read != CANFD_MTU) {
-                        std::cerr << "read a can frame of different size than canfd, expected: " 
-                        << CANFD_MTU << " got: " << bytes_read << std::endl;
-                        exit(1);
-                    }
-                    /*if (valid_ids.find(cfd.can_id) == valid_ids.end()) {
-                        std::cerr << "read a canid that is not part of the valid set" << std::endl;
-                        //probably should log here
-                    }*/
+                ssize_t bytes_read = read(bus_socket, &cfd, CANFD_MTU);               //CANFD_MTU is macro for sizeof(canfd_frame)
+                if (bytes_read == CANFD_MTU) {
                     buffer.emplace(cfd);
                 }
                 cfd = buffer.front();
                 std::string resp;
 
                 
-                std::string decoded_message = decode(cfd.can_id);                      //calling decode
+                //std::string decoded_message = decode(cfd.can_id);                      //calling decode
+                std::string decoded_message = "";
+                _log_ascii(cfd.data, can_bus_name, file);
                 long long ts = now_ns();
                 
+                /*
                 int ret = influxdb_cpp::builder()
                     .meas("message")
                     .tag("message", "can id")
@@ -120,6 +125,7 @@ class Logger {
                     .field("can id", static_cast<int>(cfd.can_id))
                     .timestamp(ts)
                     .post_http(si, &resp);
+                */
             }
         }
         
