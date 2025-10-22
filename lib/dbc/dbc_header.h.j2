@@ -16,8 +16,42 @@ class {{ message_dict[msg].name }} {
     {{signals[signal].data_type}} {{signal}};
     {%- endfor %}
 
-    // TODO: Byte array
-    uint8_t arr[]
+    // Byte array representation of message
+    uint8_t msg_arr[{{ message_dict[msg].bit_length }}];
+
+    // Constructors serve as our encode/decode functions
+    
+    // Decode into message class format
+    {{ message_dict[msg].name }}(uint8_t * byte_arr) {
+        {#- For each signal, extract the value byte by byte #}
+        {%- set byte_arr_counter = 0 %}
+        {%- set bool_counter = 0 %}
+        {%- for signal in signals %}
+        {#- Need special logic for bools #}
+        {% if signal.bit_length == 1 %}
+        {{signal}} = byte_arr[byte_arr_counter] >> bool_counter;
+        {%- set bool_counter = bool_counter + 1 %}
+        {% else %}
+        // TODO: oh lawd
+        {# {%- for i in range(signal.bit_length / 8) %} #}
+
+        {# {%- endfor %} #}
+        {% endif %}
+        {%- endfor %}
+    }
+
+    // Encode into byte array format
+    {{ message_dict[msg].name }}(
+    {%- for signal in signals %}
+        {%- if loop.last %}
+        {{signals[signal].data_type}} {{signal}}
+        {%- else %}
+        {{signals[signal].data_type}} {{signal}},
+        {%- endif %}
+    {%- endfor%}
+    ) {
+
+    }
 }
 {% endfor %}
 
