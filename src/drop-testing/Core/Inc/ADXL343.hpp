@@ -1,6 +1,7 @@
 #include "main.h"
 #include "stdio.h"
 
+#define FORMAT_REG 0x31 // Data format register
 #define DATA_REGS 0x32 // Data registers starting address, x = 0x32, y = 0x34, z = 0x36
 #define PWR_CTL_REG 0x2D // Power control register, needed to start measurements
 
@@ -83,7 +84,17 @@ namespace mrover {
         // starts measurements for an accelerometer
         HAL_StatusTypeDef start_accel() {
         	HAL_StatusTypeDef status;
-        	uint8_t meas_cmd[1] = {0x08};
+
+        	// configure format register to measure up to 16g
+        	uint8_t meas_cmd[1] = {0x0B};
+        	status = HAL_I2C_Mem_Write(i2c, (dev_addr << 1), FORMAT_REG, I2C_MEMADD_SIZE_8BIT, meas_cmd, 1, HAL_MAX_DELAY);
+			if (status != HAL_OK) {
+				HAL_I2C_DeInit(i2c);
+				HAL_I2C_Init(i2c);
+			}
+
+			// start measurements
+			meas_cmd[1] = {0x08};
         	status = HAL_I2C_Mem_Write(i2c, (dev_addr << 1), PWR_CTL_REG, I2C_MEMADD_SIZE_8BIT, meas_cmd, 1, HAL_MAX_DELAY);
         	if (status != HAL_OK) {
 				HAL_I2C_DeInit(i2c);

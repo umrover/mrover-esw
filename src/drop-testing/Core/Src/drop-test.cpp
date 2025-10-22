@@ -45,9 +45,10 @@ namespace mrover {
     void init() {
     	for(int i = 0; i < NUM_ADXL; i++){
     		while (mrover::accel_array[i].start_accel() != HAL_OK) {
-    			printf("failed to start accelerometer %d\n", i);
+    			printf("failed to start accelerometer %d\n", (i + 1));
     			HAL_Delay(100);
     		} // start measurements on accelerometer
+    		printf("successfully started accelerometer %d\n", (i + 1));
     	}
 
     	//accelerometer = ADXL343(&hi2c1, ACCEL_ADDR1); //same thing for each bus, alternating addr
