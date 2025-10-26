@@ -43,11 +43,12 @@ services:
 
   can_logger:
     build:
-      context: ./socket_can.out
+      context: ./can_code
       dockerfile: Dockerfile
     volumes:
       - ./influxdb_data:/var/lib/influxdb
       - ./grafana_data:/var/lib/grafana
+      - ./logger_start.yaml:/can_code/logger_start.yaml:ro
     depends_on:
       influxdb:
         condition: service_healthy
