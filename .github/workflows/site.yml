@@ -39,7 +39,7 @@ jobs:
           python-version: 3.x
 
       - name: Install MkDocs
-        run: pip install mkdocs
+        run: pip install mkdocs pymdown-extensions
 
       # PRs & manual runs: build only (no deploy)
       - name: MkDocs build
