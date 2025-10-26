@@ -3,7 +3,7 @@
 
 int main() {
     std::vector<logger::Logger> loggers;
-    logger::logger_factory(loggers, "../logger_start.yaml");
+    logger::logger_factory(loggers, "./logger_start.yaml");
     for (size_t i = 0; i < loggers.size(); ++i) {
         loggers[i].print(std::cout);
     }
