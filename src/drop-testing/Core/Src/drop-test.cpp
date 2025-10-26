@@ -14,7 +14,7 @@ extern I2C_HandleTypeDef hi2c3;
 namespace mrover {
 	ADXL343 accel_array[NUM_ADXL] = {
 			{&hi2c1, ACCEL_ADDR1, 1},
-			{&hi2c1, ACCEL_ADDR2, 2},
+			{&hi2c3, ACCEL_ADDR2, 2},
 			{&hi2c2, ACCEL_ADDR1, 3},
 			{&hi2c3, ACCEL_ADDR1, 4},
 	};
