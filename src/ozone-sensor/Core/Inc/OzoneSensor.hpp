@@ -35,7 +35,7 @@ namespace mrover {
 		void i2cWrite(uint8_t reg, uint8_t pData) {
 			HAL_StatusTypeDef status;
 			uint8_t cmd[2] = {reg, pData};
-			status = HAL_I2C_Master_Transmit_IT(i2c, (dev_addr << 1), command, 2);
+			status = HAL_I2C_Master_Transmit_IT(i2c, (dev_addr << 1), cmd, 2);
             if (status != HAL_OK) {
             	HAL_I2C_DeInit(i2c);
 				HAL_I2C_Init(i2c);
@@ -59,7 +59,7 @@ namespace mrover {
 
 		void set_collect_num(int n) {
 			if (n <= 0 || n > OCOUNT) {
-				throw invalid_argument("n must be between 1 and 100, inclusive.");
+				collect_num = std::numeric_limits<double>::quiet_NaN();
 			}
 			collect_num = n;
 		}
@@ -86,7 +86,7 @@ namespace mrover {
 		void receive_buf() {
 			HAL_StatusTypeDef status;
 			uint8_t reg;
-			switch (M_flag) {
+			switch (M_Flag) {
 			case 0:
 				reg = AUTO_DATA_HIGE_REGISTER;
 				break;
@@ -99,7 +99,7 @@ namespace mrover {
 			if (status != HAL_OK) {
 				HAL_I2C_DeInit(i2c);
 				HAL_I2C_Init(i2c);
-				ozone = std::numeric_limits<double>::quiet_NAN();
+				ozone = std::numeric_limits<double>::quiet_NaN();
 				return;
 			}
 
@@ -109,7 +109,19 @@ namespace mrover {
 			if (status != HAL_OK) {
 				HAL_I2C_DeInit(i2c);
 				HAL_I2C_Init(i2c);
-				ozone = std::numeric_limits<double>::quiet_NAN();
+				ozone = std::numeric_limits<double>::quiet_NaN();
+				return;
+			}
+		}
+
+		void setModes(uint8_t mode) {
+			if(mode == MEASURE_MODE_AUTOMATIC){
+				i2cWrite(MODE_REGISTER , MEASURE_MODE_AUTOMATIC);
+				M_Flag = 0;
+			} else if(mode == MEASURE_MODE_PASSIVE){
+				i2cWrite(MODE_REGISTER , MEASURE_MODE_PASSIVE);
+				M_Flag = 1;
+			} else {
 				return;
 			}
 		}
@@ -117,6 +129,10 @@ namespace mrover {
 		void calculate_ozone() {
 			ozone_buf[0] = ((int16_t)rx_buf[0] << 8) + rx_buf[1];
 			ozone = get_average_num(ozone_buf, num_samples_collected);
+		}
+
+		double get_ozone() {
+			return ozone;
 		}
 	};
 
