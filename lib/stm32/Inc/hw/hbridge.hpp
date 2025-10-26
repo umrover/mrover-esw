@@ -4,11 +4,11 @@
 #include <algorithm>
 #include <cmath>
 
-#include <hw/pin.hpp>
 #include <units.hpp>
 #include <util.hpp>
 
 #include "main.h"
+#include "pin.hpp"
 
 namespace mrover {
 

@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include "hbridge.hpp"
+#include <hw/hbridge.hpp>
 
 #include "main.h"
 #include "stm32g431xx.h"
@@ -33,7 +33,7 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}}; // TODO stuff goes here too probably
+    HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}};
     // NOTE this is for EHW's hbridge circuit, might not be a bad idea to write a separate header for the LN298 hbridges laying around too
 
     Pin can_tx{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};

@@ -69,15 +69,12 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add fwlib dependency
 add_subdirectory(../../lib fwlib)
 
-#target_include_directories(hw PUBLIC
-#    "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc"
-#)
-
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
     stm32
-    hw
+    util
+    units
 )

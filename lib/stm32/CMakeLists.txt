@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-file(GLOB STM32_SOURCES
+file(GLOB_RECURSE STM32_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/Src/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/Src/*.cpp"
 )
@@ -13,10 +13,11 @@ else()
     set(stm32_scope INTERFACE)
 endif()
 
-target_include_directories(stm32 INTERFACE
+target_include_directories(stm32 ${stm32_scope}
     "${CMAKE_CURRENT_SOURCE_DIR}/Inc"
 )
 
 target_link_libraries(stm32 ${stm32_scope}
+    stm32cubemx
     util
 )
