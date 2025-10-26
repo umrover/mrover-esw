@@ -19,8 +19,10 @@
 4. Navigate to the `Project Manager` tab.
 5. Give your project a name and set the `Project Location` to the desired directory.
 6. Set the `Toolchain / IDE` dropdown to `CMake`.
-7. Save the project by navigating to `File`&#8594;`Save Project` or by pressing `Ctrl + S`.
-8. Click `Generate Code` in the top right. CubeMX will generate the project files in the specified directory.
+7. Now, still in the `Project Manager` tab, navigate to the `Code Generator` settings on the left menu.
+8. Select `Copy only the necessary library files`. This will reduce bloat on your computer by only bringing in the necessary HAL files for your specific project instead of all 900+.
+9. Save the project by navigating to `File`&#8594;`Save Project` or by pressing `Ctrl + S`.
+10. Click `Generate Code` in the top right. CubeMX will generate the project files in the specified directory.
    For example, if the project name is `myproject` and the location is `/home/user/mrover-esw/src/`,
    the generated files will be in `/home/user/mrover-esw/src/myproject/`.
 
