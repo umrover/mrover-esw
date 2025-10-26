@@ -1,6 +1,6 @@
 FROM gcc:latest
 
-WORKDIR /logger
+WORKDIR /can_code
 
 COPY Yaml.cpp .
 COPY Yaml.hpp .
@@ -11,4 +11,4 @@ COPY logger.hpp .
 
 RUN g++ -Wall -Werror driver.cpp logger.cpp Yaml.cpp -o socketcan.out
 
-ENTRYPOINT [ "socketcan.out" ]
+ENTRYPOINT [ "/can_code/socketcan.out" ]
