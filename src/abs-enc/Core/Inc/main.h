@@ -73,6 +73,8 @@ void Error_Handler(void);
 #define CAN_RX_LED_GPIO_Port GPIOB
 #define CAN_TX_LED_Pin GPIO_PIN_12
 #define CAN_TX_LED_GPIO_Port GPIOB
+#define CAN_STB_Pin GPIO_PIN_13
+#define CAN_STB_GPIO_Port GPIOB
 #define CAN_RX_Pin GPIO_PIN_11
 #define CAN_RX_GPIO_Port GPIOA
 #define CAN_TX_Pin GPIO_PIN_12
