@@ -1,4 +1,4 @@
-#include "as5047u.h.c.bak"
+#include "as5047u.h"
 
 // ---------- Internal helpers ----------
 static uint16_t addParity(uint16_t value) {

@@ -74,6 +74,8 @@ void Loop();
 #define T_SWDIO_GPIO_Port GPIOA
 #define T_SWCLK_Pin GPIO_PIN_14
 #define T_SWCLK_GPIO_Port GPIOA
+#define CS_Pin GPIO_PIN_2
+#define CS_GPIO_Port GPIOD
 #define T_SWO_Pin GPIO_PIN_3
 #define T_SWO_GPIO_Port GPIOB
 
