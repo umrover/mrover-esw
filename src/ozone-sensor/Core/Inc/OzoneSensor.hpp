@@ -55,7 +55,7 @@ namespace mrover {
 	public:
 		OzoneSensor() = default;
 
-		OzoneSensor(I2C_HandleTypeDef* i2c_in) : ozone(0.0), dev_addr(OZONE_ADDRESS_0), i2c(i2c_in) {}
+		OzoneSensor(I2C_HandleTypeDef* i2c_in) : ozone(0.0), dev_addr(OZONE_ADDRESS_3), i2c(i2c_in) {}
 
 		void set_collect_num(int n) {
 			if (n <= 0 || n > OCOUNT) {
