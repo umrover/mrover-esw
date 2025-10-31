@@ -7,10 +7,8 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
-#include <utility>
 
 #define BUFFER_SIZE 128
-
 
 class SerialPort
 {
@@ -31,21 +29,24 @@ public:
     port.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
 
     // make sure port is open
-    if (port.is_open())
+    if (!port.is_open())
     {
-      std::cout << "Opened serial port with baud rate: " << baud_rate << "!\n";
-    }
-    else {
-      std::cout << "Failed to open serial port!\n";
+      std::cerr << "Failed to open serial port!\n";
     }
   }
 
+  /**
+   * Begins receiving data from device
+   */
   void beginReceiving()
   {
     receiving = true;
     receive();
   }
-
+  
+  /**
+   * Stops recieving data from device
+   */
   void stopReceiving()
   {
     // will stop receiving after last receive
@@ -59,6 +60,11 @@ public:
   size_t write(uint8_t* data, size_t size)
   {
     return boost::asio::write(port, boost::asio::buffer(data, size));
+  }
+
+  ~SerialPort()
+  {
+    port.close();
   }
 
 private:
@@ -86,8 +92,6 @@ private:
     }
   }
 
-private:
-
   static constexpr int maxMessageLength = BUFFER_SIZE;
   boost::asio::serial_port port;
   boost::asio::io_context& ctx;
@@ -97,3 +101,5 @@ private:
   std::function<void(uint8_t*, size_t)>& callback;
 
 };
+
+#undef BUFFER_SIZE

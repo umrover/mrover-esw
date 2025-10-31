@@ -29,9 +29,7 @@ int main()
   port.beginReceiving();
 
   std::thread io_thread([&io]() {
-    std::cout << "IO thread started\n";
     io.run();
-    std::cout << "IO thread finished\n";
   });
 
   uint8_t data[] = {'\r', '\n', 'P', 'I', 'N', 'G', '\r', '\n'};
@@ -42,8 +40,7 @@ int main()
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
-
-
+  port.stopReceiving();
 
   return 1; 
 }
