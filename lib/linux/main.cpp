@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
+#include <unistd.h>
 
 
 void receive(uint8_t* data, size_t size)
@@ -24,7 +25,7 @@ int main()
   std::function<void(uint8_t*, size_t)> callback = receive;
   SerialPort port(io, "/dev/ttyACM0", 9600, callback);
 
-  
+  usleep(2000000);
   // begins receiving
   port.beginReceiving();
 
