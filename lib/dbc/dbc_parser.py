@@ -19,16 +19,17 @@ class message:
         self.name = name
         self.bit_length = 0
         self.signal_dict = {}
-        
     
 class signal:
     data_type: str
     start_bit: int
     bit_length: int
+    byte_length: int
     def __init__(self, data_type, start_bit, bit_length):
         self.data_type = data_type
         self.start_bit = start_bit
         self.bit_length = bit_length
+        self.byte_length = bit_length // 8
 
 # TODO: add some type hints
 
@@ -62,7 +63,7 @@ def parse_signal(line):
 
     bits_section = re.split(r'[|@]', line[3])
     start_bit = bits_section[0]
-    bit_length = bits_section[1]
+    bit_length = int(bits_section[1])
     isLittleEndian = bool(bits_section[2][0])
     isSigned = True if bits_section[2][1] == "-" else False
 
@@ -81,14 +82,14 @@ def parse_signal(line):
 
     # Determine data_type
     data_type = ""
-    if bit_length == "1":
+    if bit_length == 1:
         data_type = "bool"
     else:
         if isSigned:
             data_type = "int"
         else:
             data_type = "uint"
-        data_type += bit_length + "_t"
+        data_type += str(bit_length) + "_t"
 
     # TODO: if supporting scale check scale to see if it's a float
     sig = signal(data_type, start_bit, bit_length)
@@ -98,7 +99,7 @@ def parse_signal(line):
     msg.signal_dict[name] = sig
 
     # Update size of message
-    msg.bit_length += int(bit_length)
+    msg.bit_length += bit_length
 
 def parse_file(file_handle):
     ns_flag = False

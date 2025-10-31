@@ -3,7 +3,8 @@
 {# Include C libraries #}
 {%- for lib in libs %}
 #include <{{ lib }}>
-{% endfor %}
+{%- endfor %}
+
 #ifndef {{dbc_name}}_H
 #define {{dbc_name}}_H
 {#- Struct definitions #}
@@ -17,27 +18,23 @@ class {{ message_dict[msg].name }} {
     {%- endfor %}
 
     // Byte array representation of message
-    uint8_t msg_arr[{{ message_dict[msg].bit_length }}];
+    uint8_t msg_arr[{{ message_dict[msg].byte_length }}];
 
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
     {{ message_dict[msg].name }}(uint8_t * byte_arr) {
-        {#- For each signal, extract the value byte by byte #}
-        {%- set byte_arr_counter = 0 %}
-        {%- set bool_counter = 0 %}
-        {%- for signal in signals %}
-        {#- Need special logic for bools #}
-        {% if signal.bit_length == 1 %}
-        {{signal}} = byte_arr[byte_arr_counter] >> bool_counter;
-        {%- set bool_counter = bool_counter + 1 %}
-        {% else %}
-        // TODO: oh lawd
-        {# {%- for i in range(signal.bit_length / 8) %} #}
+    {%- for signal in signals %}
+    {%- if signals[signal].bit_length == 1 %}
+    {%- else %}
 
-        {# {%- endfor %} #}
-        {% endif %}
-        {%- endfor %}
+        uint{{ signals[signal].bit_length }}_t temp_{{ signal }} = 0;
+        for (uint8_t i = 0; i < {{ signals[signal].byte_length }}; ++i) {
+            temp_{{ signal }}  |= byte_arr[i] << 8*i;
+        }
+        {{ signal }} = std::bit_cast<{{ signals[signal].data_type }}>(temp_{{ signal }});
+    {%- endif %}
+    {%- endfor %}
     }
 
     // Encode into byte array format
@@ -48,11 +45,19 @@ class {{ message_dict[msg].name }} {
         {%- else %}
         {{signals[signal].data_type}} {{signal}},
         {%- endif %}
-    {%- endfor%}
+    {%- endfor %}
     ) {
-
+        uint32_t i = 0;
+    {%- for signal in signals %}
+    {%- if signals[signal].bit_length == 1 %}
+    {%- else %}
+        for (uint8_t j = 0; j < {{ signals[signal].byte_length }}; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint{{ signals[signal].bit_length }}_t>({{ signal }}) >> 8*j) & 0xFF;
+        }
+    {%- endif %}
+    {%- endfor %}
     }
-}
+};
 {% endfor %}
 
 #endif /* {{dbc_name}} */

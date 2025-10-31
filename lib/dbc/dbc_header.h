@@ -1,6 +1,8 @@
 /* science_test */
 
 #include <cstdlib>
+#include <cstdint>
+#include <bit>
 
 #ifndef science_test_H
 #define science_test_H
@@ -16,48 +18,12 @@ class VECTOR__INDEPENDENT_SIG_MSG {
     bool ISH_EnableHeater1AS;
 
     // Byte array representation of message
-    uint8_t msg_arr[6];
+    uint8_t msg_arr[1];
 
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
     VECTOR__INDEPENDENT_SIG_MSG(uint8_t * byte_arr) {
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
     }
 
     // Encode into byte array format
@@ -69,9 +35,8 @@ class VECTOR__INDEPENDENT_SIG_MSG {
         bool ISH_EnableHeater2AS,
         bool ISH_EnableHeater1AS
     ) {
-
     }
-}
+};
 
 class Science_Sensors {
     public:
@@ -82,36 +47,40 @@ class Science_Sensors {
     float Sensors_Oxygen;
 
     // Byte array representation of message
-    uint8_t msg_arr[128];
+    uint8_t msg_arr[16];
 
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
     Science_Sensors(uint8_t * byte_arr) {
-        
-        // TODO: oh lawd
-        
 
         
-        
-        
-        // TODO: oh lawd
-        
+        uint32_t temp_Sensors_Temperature = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_Sensors_Temperature  |= byte_arr[i] << 8*i;
+        }
+        Sensors_Temperature = bit_cast<float>(temp_Sensors_Temperature);
 
         
-        
-        
-        // TODO: oh lawd
-        
+        uint32_t temp_Sensors_Humidity = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_Sensors_Humidity  |= byte_arr[i] << 8*i;
+        }
+        Sensors_Humidity = std::bit_cast<float>(temp_Sensors_Humidity);
 
         
-        
-        
-        // TODO: oh lawd
-        
+        uint32_t temp_Sensors_UV = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_Sensors_UV  |= byte_arr[i] << 8*i;
+        }
+        Sensors_UV = std::bit_cast<float>(temp_Sensors_UV);
 
         
-        
+        uint32_t temp_Sensors_Oxygen = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_Sensors_Oxygen  |= byte_arr[i] << 8*i;
+        }
+        Sensors_Oxygen = std::bit_cast<float>(temp_Sensors_Oxygen);
     }
 
     // Encode into byte array format
@@ -121,9 +90,20 @@ class Science_Sensors {
         float Sensors_UV,
         float Sensors_Oxygen
     ) {
-
+        for (uint8_t i = 0; i < ; ++i) {
+            Sensors_Temperature[i] = 
+        }
+        for (uint8_t i = 0; i < ; ++i) {
+            Sensors_Humidity[i] = 
+        }
+        for (uint8_t i = 0; i < ; ++i) {
+            Sensors_UV[i] = 
+        }
+        for (uint8_t i = 0; i < ; ++i) {
+            Sensors_Oxygen[i] = 
+        }
     }
-}
+};
 
 class Science_ISHOutbound {
     public:
@@ -136,48 +116,26 @@ class Science_ISHOutbound {
     bool ISH_WLED2State;
 
     // Byte array representation of message
-    uint8_t msg_arr[68];
+    uint8_t msg_arr[9];
 
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
     Science_ISHOutbound(uint8_t * byte_arr) {
-        
-        // TODO: oh lawd
-        
 
         
-        
-        
-        // TODO: oh lawd
-        
+        uint32_t temp_ISH_Heater1Temp = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_ISH_Heater1Temp  |= byte_arr[i] << 8*i;
+        }
+        ISH_Heater1Temp = std::bit_cast<float>(temp_ISH_Heater1Temp);
 
         
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
+        uint32_t temp_ISH_Heater2Temp = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            temp_ISH_Heater2Temp  |= byte_arr[i] << 8*i;
+        }
+        ISH_Heater2Temp = std::bit_cast<float>(temp_ISH_Heater2Temp);
     }
 
     // Encode into byte array format
@@ -189,9 +147,14 @@ class Science_ISHOutbound {
         bool ISH_WLED1State,
         bool ISH_WLED2State
     ) {
-
+        for (uint8_t i = 0; i < ; ++i) {
+            ISH_Heater1Temp[i] = 
+        }
+        for (uint8_t i = 0; i < ; ++i) {
+            ISH_Heater2Temp[i] = 
+        }
     }
-}
+};
 
 class Science_ISHInbound {
     public:
@@ -204,48 +167,12 @@ class Science_ISHInbound {
     bool ISH_WLED2Enable;
 
     // Byte array representation of message
-    uint8_t msg_arr[6];
+    uint8_t msg_arr[1];
 
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
     Science_ISHInbound(uint8_t * byte_arr) {
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
-        
-        // TODO: oh lawd
-        
-
-        
-        
     }
 
     // Encode into byte array format
@@ -257,9 +184,8 @@ class Science_ISHInbound {
         bool ISH_WLED1Enable,
         bool ISH_WLED2Enable
     ) {
-
     }
-}
+};
 
 
 #endif /* science_test */

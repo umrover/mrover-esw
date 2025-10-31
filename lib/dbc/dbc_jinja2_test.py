@@ -4,7 +4,7 @@ from jinja2 import Environment, FileSystemLoader
 env = Environment(loader=FileSystemLoader("."))
 template = env.get_template("dbc_header.h.j2")
 
-libs = ["cstdlib"]
+libs = ["cstdlib", "cstdint", "bit"]
 
 # TODO: fix this up omg
 data = {
