@@ -26,13 +26,17 @@ namespace mrover {
     }
 
     [[nodiscard]] auto QuadratureEncoderReader::read() const -> std::optional<QuadratureEncoderReading> {
-        return std::make_optional<QuadratureEncoderReader>(m_position, m_velocity_filter.get_filtered());
+        return std::make_optional(QuadratureEncoderReading {
+            .position = m_position,
+            .velocity = m_velocity_filter.get_filtered()
+        });
     }
 
     auto QuadratureEncoderReader::update() -> void {
         Seconds const elapsed_time = m_elapsed_timer.get_time_since_last_read();
         std::int16_t const delta_ticks = count_delta_and_update(m_counts_unwrapped_prev, m_tick_timer);
-        Radians const delta_angle = m_multiplier * Ticks{delta_ticks} / m_cpr;
+        // TODO(eric) fix this monstrosity
+        auto const delta_angle = Radians{m_multiplier.get() * static_cast<float>(delta_ticks) / m_cpr.get()};
 
         m_position += delta_angle;
         m_velocity_filter.add_reading(delta_angle / elapsed_time);
