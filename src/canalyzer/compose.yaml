@@ -45,10 +45,17 @@ services:
     build:
       context: ./can_code
       dockerfile: Dockerfile
+    privileged: true    #change later???
+    network_mode : host
+    devices:
+      - /dev/vcan0:/dev/vcan0
+      - /dev/vcan1:/dev/vcan1
+      - /dev/vcan2:/dev/vcan2
+      - /dev/vcan3:/dev/vcan3
     volumes:
+      - ./logs:/var/log/can_logger 
       - ./influxdb_data:/var/lib/influxdb
       - ./grafana_data:/var/lib/grafana
-      - ./logger_start.yaml:/can_code/logger_start.yaml:ro
     depends_on:
       influxdb:
         condition: service_healthy
