@@ -55,8 +55,18 @@ logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_s
 
 void logger::Logger::start() {
     logger::Logger::_init_bus();
+
+    std::filesystem::path dir = std::filesystem::path(file_path).parent_path();
+    if (!std::filesystem::exists(dir)) {
+        std::filesystem::create_directories(dir);
+        std::cout << "Created directory: " << dir << std::endl;
+    }
+
+    // Open log file (ofstream will create it if it doesn't exist)
+    std::ofstream file(file_path, std::ios::app); // use app to append
+
+
     struct canfd_frame cfd;
-    std::ofstream file(file_path);
     while (true) {                                                              //catch an interupt instead?
 
         //read a vcan message from bus (can_id)
@@ -70,6 +80,7 @@ void logger::Logger::start() {
             buffer.emplace(cfd);
         }
         cfd = buffer.front();
+        buffer.pop();
         std::string resp;
 
         
@@ -118,12 +129,14 @@ void logger::logger_factory(std::vector<Logger> &loggers, std::string path, bool
     //will init a vector of configured Loggers from a yaml found at path
 
     int size = 0;
+    if (debug) std::cout << "parsing" << std::endl;
     Yaml::Node root;
     try {
         Yaml::Parse(root, path.c_str());
     } catch (const Yaml::Exception &e) {
-        std::cerr << "cautch YAML error while parsing: " << e.what() << std::endl;
+        std::cerr << "caught YAML error while parsing: " << e.what() << std::endl;
     }
+    if (debug) std::cout << "parsing 1" << std::endl;
     size = root["logger_bus_size"].As<int>();
     if (size > 4) {
         std::cerr << "cannot support more than 4 can busses, recieved bus size of: " << size << std::endl;
@@ -143,6 +156,7 @@ void logger::logger_factory(std::vector<Logger> &loggers, std::string path, bool
     Yaml::Node loggers_node = root["loggers"];
     loggers.reserve(size);   
     for (int i = 0; i < size; ++i) {
+        std::cout << "in logger factory, iteration:" << i << "\n";
         std::string name = loggers_node[i]["name"].As<std::string>();
         bool log_all = loggers_node[i]["log_all"].As<bool>();
         std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
