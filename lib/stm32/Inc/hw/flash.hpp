@@ -6,8 +6,8 @@ namespace mrover {
 
   class Flash {
   public:
-    Flash();
-    ~Flash();
+    Flash() = default;
+    ~Flash() = default;
    
     struct Info {
       char* start = nullptr;
