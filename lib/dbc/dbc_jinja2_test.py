@@ -6,16 +6,16 @@ template = env.get_template("dbc_header.h.j2")
 
 libs = ["cstdlib", "cstdint", "bit"]
 
-# TODO: fix this up omg
-data = {
-    "dbc_name": dbc_parser.dbc_arr[0].name,
-    "libs": libs,
-    "message_dict": dbc_parser.dbc_arr[0].message_dict
-}
+for dbc in dbc_parser.dbc_arr:
+    data = {
+        "dbc_name": dbc.name,
+        "libs": libs,
+        "message_dict": dbc.message_dict
+    }
 
-# Pass message_dict and library list
-rendered = template.render(data)
+    # Pass message_dict and library list
+    rendered = template.render(data)
 
-# Write to new header file
-with open("dbc_header.h", "w") as f:
-    f.write(rendered)
+    # Write to new header file
+    with open(f"{dbc.name}.h", "w") as f:
+        f.write(rendered)

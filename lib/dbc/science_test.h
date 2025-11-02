@@ -1,0 +1,251 @@
+/* science_test */
+
+#include <cstdlib>
+#include <cstdint>
+#include <bit>
+
+#ifndef SCIENCE_TEST_H
+#define SCIENCE_TEST_H
+
+class VECTOR__INDEPENDENT_SIG_MSG {
+    public:
+    // Signals
+    bool ISH_EnableWLED2;
+    bool ISH_EnableWLED1;
+    bool ISH_EnableHeater2;
+    bool ISH_EnableHeater1;
+    bool ISH_EnableHeater2AS;
+    bool ISH_EnableHeater1AS;
+
+    // Byte array representation of message
+    uint8_t msg_arr[1];
+
+    // Constructors serve as our encode/decode functions
+    
+    // Decode into message class format
+    VECTOR__INDEPENDENT_SIG_MSG(uint8_t * byte_arr) {
+        uint32_t i = 0;
+        ISH_EnableWLED2 = (byte_arr[i] >> 0) & 0b1;
+        ISH_EnableWLED1 = (byte_arr[i] >> 1) & 0b1;
+        ISH_EnableHeater2 = (byte_arr[i] >> 2) & 0b1;
+        ISH_EnableHeater1 = (byte_arr[i] >> 3) & 0b1;
+        ISH_EnableHeater2AS = (byte_arr[i] >> 4) & 0b1;
+        ISH_EnableHeater1AS = (byte_arr[i] >> 5) & 0b1;
+    }
+
+    // Encode into byte array format
+    VECTOR__INDEPENDENT_SIG_MSG(
+        bool ISH_EnableWLED2,
+        bool ISH_EnableWLED1,
+        bool ISH_EnableHeater2,
+        bool ISH_EnableHeater1,
+        bool ISH_EnableHeater2AS,
+        bool ISH_EnableHeater1AS
+    ) :
+        ISH_EnableWLED2(ISH_EnableWLED2),
+        ISH_EnableWLED1(ISH_EnableWLED1),
+        ISH_EnableHeater2(ISH_EnableHeater2),
+        ISH_EnableHeater1(ISH_EnableHeater1),
+        ISH_EnableHeater2AS(ISH_EnableHeater2AS),
+        ISH_EnableHeater1AS(ISH_EnableHeater1AS)
+     {
+        uint32_t i = 0;
+        msg_arr[i] = ISH_EnableWLED2 ? msg_arr[i] | (1 << 0) : msg_arr[i] & ~(1 << 0);
+        msg_arr[i] = ISH_EnableWLED1 ? msg_arr[i] | (1 << 1) : msg_arr[i] & ~(1 << 1);
+        msg_arr[i] = ISH_EnableHeater2 ? msg_arr[i] | (1 << 2) : msg_arr[i] & ~(1 << 2);
+        msg_arr[i] = ISH_EnableHeater1 ? msg_arr[i] | (1 << 3) : msg_arr[i] & ~(1 << 3);
+        msg_arr[i] = ISH_EnableHeater2AS ? msg_arr[i] | (1 << 4) : msg_arr[i] & ~(1 << 4);
+        msg_arr[i] = ISH_EnableHeater1AS ? msg_arr[i] | (1 << 5) : msg_arr[i] & ~(1 << 5);
+    }
+};
+
+class Science_Sensors {
+    public:
+    // Signals
+    float Sensors_Temperature;
+    float Sensors_Humidity;
+    float Sensors_UV;
+    float Sensors_Oxygen;
+
+    // Byte array representation of message
+    uint8_t msg_arr[16];
+
+    // Constructors serve as our encode/decode functions
+    
+    // Decode into message class format
+    Science_Sensors(uint8_t * byte_arr) {
+        uint32_t i = 0;
+
+        uint32_t temp_Sensors_Temperature = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_Sensors_Temperature |= byte_arr[i] << 8*j;
+        }
+        Sensors_Temperature = std::bit_cast<float>(temp_Sensors_Temperature);
+
+        uint32_t temp_Sensors_Humidity = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_Sensors_Humidity |= byte_arr[i] << 8*j;
+        }
+        Sensors_Humidity = std::bit_cast<float>(temp_Sensors_Humidity);
+
+        uint32_t temp_Sensors_UV = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_Sensors_UV |= byte_arr[i] << 8*j;
+        }
+        Sensors_UV = std::bit_cast<float>(temp_Sensors_UV);
+
+        uint32_t temp_Sensors_Oxygen = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_Sensors_Oxygen |= byte_arr[i] << 8*j;
+        }
+        Sensors_Oxygen = std::bit_cast<float>(temp_Sensors_Oxygen);
+    }
+
+    // Encode into byte array format
+    Science_Sensors(
+        float Sensors_Temperature,
+        float Sensors_Humidity,
+        float Sensors_UV,
+        float Sensors_Oxygen
+    ) :
+        Sensors_Temperature(Sensors_Temperature),
+        Sensors_Humidity(Sensors_Humidity),
+        Sensors_UV(Sensors_UV),
+        Sensors_Oxygen(Sensors_Oxygen)
+     {
+        uint32_t i = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(Sensors_Temperature) >> 8*j) & 0xFF;
+        }
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(Sensors_Humidity) >> 8*j) & 0xFF;
+        }
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(Sensors_UV) >> 8*j) & 0xFF;
+        }
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(Sensors_Oxygen) >> 8*j) & 0xFF;
+        }
+    }
+};
+
+class Science_ISHOutbound {
+    public:
+    // Signals
+    float ISH_Heater1Temp;
+    float ISH_Heater2Temp;
+    bool ISH_Heater1State;
+    bool ISH_Heater2State;
+    bool ISH_WLED1State;
+    bool ISH_WLED2State;
+
+    // Byte array representation of message
+    uint8_t msg_arr[9];
+
+    // Constructors serve as our encode/decode functions
+    
+    // Decode into message class format
+    Science_ISHOutbound(uint8_t * byte_arr) {
+        uint32_t i = 0;
+
+        uint32_t temp_ISH_Heater1Temp = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_ISH_Heater1Temp |= byte_arr[i] << 8*j;
+        }
+        ISH_Heater1Temp = std::bit_cast<float>(temp_ISH_Heater1Temp);
+
+        uint32_t temp_ISH_Heater2Temp = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            temp_ISH_Heater2Temp |= byte_arr[i] << 8*j;
+        }
+        ISH_Heater2Temp = std::bit_cast<float>(temp_ISH_Heater2Temp);
+        ISH_Heater1State = (byte_arr[i] >> 0) & 0b1;
+        ISH_Heater2State = (byte_arr[i] >> 1) & 0b1;
+        ISH_WLED1State = (byte_arr[i] >> 2) & 0b1;
+        ISH_WLED2State = (byte_arr[i] >> 3) & 0b1;
+    }
+
+    // Encode into byte array format
+    Science_ISHOutbound(
+        float ISH_Heater1Temp,
+        float ISH_Heater2Temp,
+        bool ISH_Heater1State,
+        bool ISH_Heater2State,
+        bool ISH_WLED1State,
+        bool ISH_WLED2State
+    ) :
+        ISH_Heater1Temp(ISH_Heater1Temp),
+        ISH_Heater2Temp(ISH_Heater2Temp),
+        ISH_Heater1State(ISH_Heater1State),
+        ISH_Heater2State(ISH_Heater2State),
+        ISH_WLED1State(ISH_WLED1State),
+        ISH_WLED2State(ISH_WLED2State)
+     {
+        uint32_t i = 0;
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(ISH_Heater1Temp) >> 8*j) & 0xFF;
+        }
+        for (uint8_t j = 0; j < 4; ++i, ++j) {
+            msg_arr[i] = (std::bit_cast<uint32_t>(ISH_Heater2Temp) >> 8*j) & 0xFF;
+        }
+        msg_arr[i] = ISH_Heater1State ? msg_arr[i] | (1 << 0) : msg_arr[i] & ~(1 << 0);
+        msg_arr[i] = ISH_Heater2State ? msg_arr[i] | (1 << 1) : msg_arr[i] & ~(1 << 1);
+        msg_arr[i] = ISH_WLED1State ? msg_arr[i] | (1 << 2) : msg_arr[i] & ~(1 << 2);
+        msg_arr[i] = ISH_WLED2State ? msg_arr[i] | (1 << 3) : msg_arr[i] & ~(1 << 3);
+    }
+};
+
+class Science_ISHInbound {
+    public:
+    // Signals
+    bool ISH_Heater1Enable;
+    bool ISH_Heater2Enable;
+    bool ISH_Heater1EnableAS;
+    bool ISH_Heater2EnableAS;
+    bool ISH_WLED1Enable;
+    bool ISH_WLED2Enable;
+
+    // Byte array representation of message
+    uint8_t msg_arr[1];
+
+    // Constructors serve as our encode/decode functions
+    
+    // Decode into message class format
+    Science_ISHInbound(uint8_t * byte_arr) {
+        uint32_t i = 0;
+        ISH_Heater1Enable = (byte_arr[i] >> 0) & 0b1;
+        ISH_Heater2Enable = (byte_arr[i] >> 1) & 0b1;
+        ISH_Heater1EnableAS = (byte_arr[i] >> 2) & 0b1;
+        ISH_Heater2EnableAS = (byte_arr[i] >> 3) & 0b1;
+        ISH_WLED1Enable = (byte_arr[i] >> 4) & 0b1;
+        ISH_WLED2Enable = (byte_arr[i] >> 5) & 0b1;
+    }
+
+    // Encode into byte array format
+    Science_ISHInbound(
+        bool ISH_Heater1Enable,
+        bool ISH_Heater2Enable,
+        bool ISH_Heater1EnableAS,
+        bool ISH_Heater2EnableAS,
+        bool ISH_WLED1Enable,
+        bool ISH_WLED2Enable
+    ) :
+        ISH_Heater1Enable(ISH_Heater1Enable),
+        ISH_Heater2Enable(ISH_Heater2Enable),
+        ISH_Heater1EnableAS(ISH_Heater1EnableAS),
+        ISH_Heater2EnableAS(ISH_Heater2EnableAS),
+        ISH_WLED1Enable(ISH_WLED1Enable),
+        ISH_WLED2Enable(ISH_WLED2Enable)
+     {
+        uint32_t i = 0;
+        msg_arr[i] = ISH_Heater1Enable ? msg_arr[i] | (1 << 0) : msg_arr[i] & ~(1 << 0);
+        msg_arr[i] = ISH_Heater2Enable ? msg_arr[i] | (1 << 1) : msg_arr[i] & ~(1 << 1);
+        msg_arr[i] = ISH_Heater1EnableAS ? msg_arr[i] | (1 << 2) : msg_arr[i] & ~(1 << 2);
+        msg_arr[i] = ISH_Heater2EnableAS ? msg_arr[i] | (1 << 3) : msg_arr[i] & ~(1 << 3);
+        msg_arr[i] = ISH_WLED1Enable ? msg_arr[i] | (1 << 4) : msg_arr[i] & ~(1 << 4);
+        msg_arr[i] = ISH_WLED2Enable ? msg_arr[i] | (1 << 5) : msg_arr[i] & ~(1 << 5);
+    }
+};
+
+
+#endif /* science_test */
