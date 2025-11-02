@@ -16,6 +16,10 @@
 #include <chrono>
 #include "Yaml.hpp"
 
+#include <sys/stat.h>   // for mkdir
+#include <sys/types.h>
+#include <filesystem>   
+
 namespace logger {
 
 std::string decode(canid_t can_id);
