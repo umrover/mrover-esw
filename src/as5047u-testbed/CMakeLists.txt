@@ -49,6 +49,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
     Core/Src/*.cpp
+    Core/Src/as5047u.c
 )
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${USER_SOURCES}
