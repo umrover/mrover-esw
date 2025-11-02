@@ -11,19 +11,19 @@ static uint16_t addParity(uint16_t value) {
 }
 
 static void cs_low(AS5047U_HandleTypeDef *hdev) {
-    HAL_GPIO_WritePin(hdev->CS_Port, hdev->CS_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(hdev->cs_port, hdev->cs_pin, GPIO_PIN_RESET);
 }
 
 static void cs_high(AS5047U_HandleTypeDef *hdev) {
-    HAL_GPIO_WritePin(hdev->CS_Port, hdev->CS_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(hdev->cs_port, hdev->cs_pin, GPIO_PIN_SET);
 }
 
 // ---------- Public API ----------
 void AS5047U_Init(AS5047U_HandleTypeDef *hdev, SPI_HandleTypeDef *hspi,
                   GPIO_TypeDef *CS_Port, uint16_t CS_Pin) {
     hdev->hspi = hspi;
-    hdev->CS_Port = CS_Port;
-    hdev->CS_Pin = CS_Pin;
+    hdev->cs_port = CS_Port;
+    hdev->cs_pin = CS_Pin;
     HAL_GPIO_WritePin(CS_Port, CS_Pin, GPIO_PIN_SET);
 }
 

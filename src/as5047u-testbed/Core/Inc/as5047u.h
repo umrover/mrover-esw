@@ -12,12 +12,12 @@
 
 typedef struct {
     SPI_HandleTypeDef *hspi;
-    GPIO_TypeDef *CS_Port;
-    uint16_t CS_Pin;
+    GPIO_TypeDef *cs_port;
+    uint16_t cs_pin;
 } AS5047U_HandleTypeDef;
 
 void AS5047U_Init(AS5047U_HandleTypeDef *hdev, SPI_HandleTypeDef *hspi,
-                  GPIO_TypeDef *CS_Port, uint16_t CS_Pin);
+                  GPIO_TypeDef *cs_port, uint16_t cs_pin);
 
 uint16_t AS5047U_ReadReg(AS5047U_HandleTypeDef *hdev, uint16_t reg);
 float AS5047U_ReadAngle(AS5047U_HandleTypeDef *hdev);
