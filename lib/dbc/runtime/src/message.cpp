@@ -10,6 +10,7 @@ namespace mrover::dbc {
 
     [[nodiscard]] auto CanSignalDescription::get_name() const -> std::string { return m_name; }
     void CanSignalDescription::set_name(std::string const& name) { m_name = name; }
+    void CanSignalDescription::set_name(std::string_view name) { m_name = std::string(name); }
 
     [[nodiscard]] auto CanSignalDescription::get_bit_start() const -> uint16_t { return m_bit_start; }
     void CanSignalDescription::set_bit_start(uint16_t bit) { m_bit_start = bit; }
@@ -29,9 +30,22 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanSignalDescription::get_offset() const -> double { return m_offset; }
     void CanSignalDescription::set_offset(double offset) { m_offset = offset; }
 
+    [[nodiscard]] auto CanSignalDescription::get_minimum() const -> double { return m_minimum; }
+    void CanSignalDescription::set_minimum(double minimum) { m_minimum = minimum; }
+
+    [[nodiscard]] auto CanSignalDescription::get_maximum() const -> double { return m_maximum; }
+    void CanSignalDescription::set_maximum(double maximum) { m_maximum = maximum; }
+
+    [[nodiscard]] auto CanSignalDescription::get_unit() const -> std::string { return m_unit; }
+    void CanSignalDescription::set_unit(std::string const& unit) { m_unit = unit; }
+    void CanSignalDescription::set_unit(std::string_view unit) { m_unit = std::string(unit); }
+
+    [[nodiscard]] auto CanSignalDescription::get_receiver() const -> std::string { return m_receiver; }
+    void CanSignalDescription::set_receiver(std::string const& receiver) { m_receiver = receiver; }
+    void CanSignalDescription::set_receiver(std::string_view receiver) { m_receiver = std::string(receiver); }
+
     [[nodiscard]] auto CanSignalDescription::get_multiplex_state() const -> MultiplexState { return m_multiplex_state; }
     void CanSignalDescription::set_multiplex_state(MultiplexState state) { m_multiplex_state = state; }
-
 
     [[nodiscard]] auto CanSignalDescription::is_valid() const -> bool {
         if (m_name.empty() ||
@@ -72,10 +86,14 @@ namespace mrover::dbc {
     void CanMessageDescription::clear_signal_descriptions() {
         m_signals.clear();
     }
-    void CanMessageDescription::add_signal_description(CanSignalDescription const& signal) {
-        m_signals.push_back(signal);
+
+    void CanMessageDescription::add_signal_description(CanSignalDescription&& signal) {
+        m_signals.push_back(std::move(signal));
     }
 
+    void CanMessageDescription::add_signal_description(CanSignalDescription signal) {
+        m_signals.push_back(std::move(signal));
+    }
 
     [[nodiscard]] auto CanMessageDescription::is_valid() const -> bool {
         if (m_name.empty() ||

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -18,11 +19,28 @@
 
 namespace mrover::dbc {
     class CanDbcFileParser {
+
+#define FOREACH_ERROR(ERROR)         \
+    ERROR(None)                      \
+    ERROR(FileRead)                  \
+    ERROR(InvalidMessageFormat)      \
+    ERROR(InvalidMessageName)        \
+    ERROR(InvalidMessageId)          \
+    ERROR(InvalidMessageLength)      \
+    ERROR(InvalidMessageTransmitter) \
+    ERROR(InvalidSignalFormat)       \
+    ERROR(InvalidSignalName)         \
+    ERROR(InvalidSignalBitInfo)      \
+    ERROR(InvalidSignalFactorOffset) \
+    ERROR(InvalidSignalMinMax)       \
+    ERROR(InvalidSignalUnit)
+
+#define GENERATE_ENUM(e) e,
+#define GENERATE_STRING(e) #e,
+
     public:
         enum class Error {
-            None,
-            InvalidMessage, 
-            InvalidSignal
+            FOREACH_ERROR(GENERATE_ENUM)
         };
 
         CanDbcFileParser() = default;
@@ -32,7 +50,19 @@ namespace mrover::dbc {
         [[nodiscard]] auto is_error() const -> bool;
         [[nodiscard]] auto get_error() const -> Error;
 
+        [[nodiscard]] auto get_messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
+
         auto parse(std::string const& filename) -> bool;
+
+        static constexpr auto to_string(Error e) -> std::string_view {
+            constexpr std::string_view names[] = {
+                    FOREACH_ERROR(GENERATE_STRING)};
+            return names[static_cast<int>(e)];
+        }
+
+        friend auto operator<<(std::ostream& os, Error e) -> std::ostream& {
+            return os << to_string(e);
+        }
 
     private:
         std::unordered_map<uint32_t, CanMessageDescription> m_messages{};
@@ -42,8 +72,13 @@ namespace mrover::dbc {
         Error m_error = Error::None;
 
         auto process_line(std::string_view line) -> bool;
-        auto parse_message(std::string_view line) -> bool;
-        auto parse_signal(std::string_view line) -> bool;
+        static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
+        static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
         auto add_current_message() -> bool;
+
+#undef GENERATE_ENUM
+#undef GENERATE_STRING
+#undef FOREACH_ERROR
     };
+
 } // namespace mrover::dbc

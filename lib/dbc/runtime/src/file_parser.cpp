@@ -11,9 +11,11 @@
 namespace mrover::dbc {
     using std::string_view;
 
-    static constexpr auto MESSAGE_HEADER = "BO_";
-    static constexpr auto SIGNAL_HEADER = "SG_";
-    static constexpr auto SIGNAL_TYPE_HEADER = "SIG_VAL_TYPE_";
+    static constexpr auto MESSAGE_HEADER = "BO_ ";
+    static constexpr auto SIGNAL_HEADER = "SG_ ";
+    static constexpr auto SIGNAL_TYPE_HEADER = "SIG_VAL_TYPE_ ";
+    static constexpr auto COMMENT_HEADER = "CM_ ";
+    static constexpr auto SYMBOLS_HEADER = "NS_ ";
 
     namespace {
         inline auto trimmed(std::string_view str) -> std::string_view {
@@ -85,6 +87,20 @@ namespace mrover::dbc {
             return std::expected<T, std::errc>(std::in_place, value);
         }
 
+        template<std::floating_point T>
+        [[nodiscard]] auto to_floating_point(string_view sv) noexcept -> std::expected<T, std::errc> {
+            T value{};
+            char const* first = sv.data();
+            char const* last = sv.data() + sv.length();
+
+            std::from_chars_result res = std::from_chars(first, last, value);
+
+            if (res.ec != std::errc()) return std::unexpected(res.ec);
+            if (res.ptr != last) return std::unexpected(std::errc::invalid_argument);
+
+            return std::expected<T, std::errc>(std::in_place, value);
+        }
+
     } // namespace
 
     [[nodiscard]] auto CanDbcFileParser::get_lines_parsed() const -> std::size_t { return m_lines_parsed; }
@@ -92,9 +108,12 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanDbcFileParser::is_error() const -> bool { return m_error != CanDbcFileParser::Error::None; }
     [[nodiscard]] auto CanDbcFileParser::get_error() const -> Error { return m_error; }
 
+    [[nodiscard]] auto CanDbcFileParser::get_messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const& { return m_messages; }
+
     auto CanDbcFileParser::parse(std::string const& filename) -> bool {
         std::ifstream file(filename);
         if (!file.is_open()) {
+            m_error = CanDbcFileParser::Error::FileRead;
             return false;
         }
 
@@ -113,10 +132,12 @@ namespace mrover::dbc {
         }
 
         if (file.bad()) {
+            m_error = CanDbcFileParser::Error::FileRead;
             return false;
         }
 
         if (file.fail() && !file.eof()) {
+            m_error = CanDbcFileParser::Error::FileRead;
             return false;
         }
 
@@ -137,91 +158,102 @@ namespace mrover::dbc {
         } else if (line.starts_with(MESSAGE_HEADER)) {
             if (m_is_processing_message) {
                 if (!add_current_message()) {
-                    m_error = CanDbcFileParser::Error::InvalidMessage;
+                    m_error = CanDbcFileParser::Error::InvalidMessageFormat;
                     return false;
                 }
             }
             m_is_processing_message = true;
 
-            if (!parse_message(line)) {
-                m_error = CanDbcFileParser::Error::InvalidMessage;
+            auto message = parse_message(line);
+            if (!message.has_value()) {
+                m_error = message.error();
                 return false;
             }
+            m_current_message = std::move(message.value());
 
             return true;
 
         } else if (line.starts_with(SIGNAL_HEADER)) {
             if (!m_is_processing_message) {
-                m_error = CanDbcFileParser::Error::InvalidSignal;
+                m_error = CanDbcFileParser::Error::InvalidSignalFormat;
                 return false;
             }
 
-            if (!parse_signal(line)) {
-                m_error = CanDbcFileParser::Error::InvalidSignal;
+            auto signal = parse_signal(line);
+            if (!signal.has_value()) {
+                m_error = signal.error();
                 return false;
             }
+            m_current_message.add_signal_description(signal.value());
 
             return true;
-        }
-
-        return false;
-    }
-
-    auto CanDbcFileParser::parse_message(string_view line) -> bool {
-        if (!line.starts_with(MESSAGE_HEADER)) {
-            return false;
-        }
-
-        line.remove_prefix(std::string_view(MESSAGE_HEADER).size());
-
-        string_view id = next_word(line);
-        auto id_result = to_int<uint32_t>(id);
-        if (!id_result.has_value()) {
-            return false;
-        }
-        m_current_message.set_id(id_result.value());
-
-        string_view name = next_word(line);
-        if (!name.ends_with(':')) {
-            return false;
-        }
-        name.remove_suffix(1);
-        m_current_message.set_name(name);
-
-        string_view length = next_word(line);
-        auto length_result = to_int<uint8_t>(length);
-        if (!length_result.has_value()) {
-        }
-        m_current_message.set_length(length_result.value());
-
-        string_view transmitter = next_word(line);
-        if (transmitter.empty()) {
-            return false;
-        }
-        m_current_message.set_transmitter(transmitter);
-
-        if (!line.empty()) {
-            return false;
         }
 
         return true;
     }
 
-    auto CanDbcFileParser::parse_signal(string_view line) -> bool {
+    auto CanDbcFileParser::parse_message(string_view line) -> std::expected<CanMessageDescription, Error> {
+        if (!line.starts_with(MESSAGE_HEADER)) {
+            return std::unexpected(Error::InvalidMessageFormat);
+        }
+
+        line.remove_prefix(std::string_view(MESSAGE_HEADER).size());
+
+        CanMessageDescription message;
+        // ===== ID =====
+        string_view id = next_word(line);
+        auto id_result = to_int<uint32_t>(id);
+        if (!id_result.has_value()) {
+            return std::unexpected(Error::InvalidMessageId);
+        }
+        message.set_id(id_result.value());
+
+        // ===== NAME =====
+        string_view name = next_word(line);
+        if (!name.ends_with(':')) {
+            return std::unexpected(Error::InvalidMessageName);
+        }
+        name.remove_suffix(1);
+        message.set_name(name);
+
+        // ===== LENGTH =====
+        string_view length = next_word(line);
+        auto length_result = to_int<uint8_t>(length);
+        if (!length_result.has_value()) {
+            return std::unexpected(Error::InvalidMessageLength);
+        }
+        message.set_length(length_result.value());
+
+        // ===== TRANSMITTER =====
+        string_view transmitter = next_word(line);
+        if (transmitter.empty()) {
+            return std::unexpected(Error::InvalidMessageTransmitter);
+        }
+        message.set_transmitter(transmitter);
+
+        if (!line.empty()) {
+            return std::unexpected(Error::InvalidMessageFormat);
+        }
+
+        return std::expected<CanMessageDescription, Error>(std::in_place, message);
+    }
+
+     auto CanDbcFileParser::parse_signal(string_view line) -> std::expected<CanSignalDescription, Error> {
         if (!line.starts_with(SIGNAL_HEADER)) {
-            return false;
+            return std::unexpected(Error::InvalidSignalFormat);
         }
 
         line.remove_prefix(std::string_view(SIGNAL_HEADER).size());
 
+        // ===== SIGNAL NAME =====
         CanSignalDescription signal;
         string_view name = next_word(line);
         if (name.empty()) {
-            return false;
+            return std::unexpected(Error::InvalidSignalName);
         }
-
         signal.set_name(name);
 
+        // ===== MULTIPLEX =====
         string_view colon_or_multiplex = next_word(line);
         if (colon_or_multiplex == ":") {
             signal.set_multiplex_state(MultiplexState::None);
@@ -229,26 +261,27 @@ namespace mrover::dbc {
             signal.set_multiplex_state(MultiplexState::MultiplexorSwitch);
             string_view colon = next_word(line);
             if (colon != ":") {
-                return false;
+                return std::unexpected(Error::InvalidSignalFormat);
             }
         } else if (colon_or_multiplex.starts_with("m")) {
             signal.set_multiplex_state(MultiplexState::MultiplexedSignal);
             string_view colon = next_word(line);
             if (colon != ":") {
-                return false;
+                return std::unexpected(Error::InvalidSignalFormat);
             }
         } else {
-            return false;
+            return std::unexpected(Error::InvalidSignalFormat);
         }
 
+        // ===== BIT INFO =====
         string_view bit_info = next_word(line);
         size_t sep_pos = bit_info.find('@');
         if (sep_pos == std::string_view::npos) {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         string_view endianess_and_format = bit_info.substr(sep_pos + 1);
         if (endianess_and_format.size() != 2) {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         char endianess_char = endianess_and_format[0];
         if (endianess_char == '0') {
@@ -256,7 +289,7 @@ namespace mrover::dbc {
         } else if (endianess_char == '1') {
             signal.set_endianness(Endianness::LittleEndian);
         } else {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         char format_char = endianess_and_format[1];
         if (format_char == '+') {
@@ -264,30 +297,94 @@ namespace mrover::dbc {
         } else if (format_char == '-') {
             signal.set_data_format(DataFormat::SignedInteger);
         }
-
-
         string_view bit_start_end = bit_info.substr(0, sep_pos);
         string_view bit_start_str;
         string_view bit_length_str;
         sep_pos = bit_start_end.find('|');
         if (sep_pos == std::string_view::npos) {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         bit_start_str = bit_start_end.substr(0, sep_pos);
         bit_length_str = bit_start_end.substr(sep_pos + 1);
         auto bit_start_result = to_int<uint16_t>(bit_start_str);
         if (!bit_start_result.has_value()) {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         signal.set_bit_start(bit_start_result.value());
         auto bit_length_result = to_int<uint16_t>(bit_length_str);
         if (!bit_length_result.has_value()) {
-            return false;
+            return std::unexpected(Error::InvalidSignalBitInfo);
         }
         signal.set_bit_length(bit_length_result.value());
 
+        // ===== FACTOR & OFFSET =====
+        string_view factor_and_offset = next_word(line);
+        if (!factor_and_offset.starts_with('(') || !factor_and_offset.ends_with(')')) {
+            return std::unexpected(Error::InvalidSignalFactorOffset);
+        }
+        factor_and_offset.remove_prefix(1);
+        factor_and_offset.remove_suffix(1);
+        sep_pos = factor_and_offset.find(',');
+        if (sep_pos == std::string_view::npos) {
+            return std::unexpected(Error::InvalidSignalFactorOffset);
+        }
+        string_view factor_str = factor_and_offset.substr(0, sep_pos);
+        string_view offset_str = factor_and_offset.substr(sep_pos + 1);
+        auto factor = to_floating_point<double>(factor_str);
+        if (!factor.has_value()) {
+            return std::unexpected(Error::InvalidSignalFactorOffset);
+        }
+        signal.set_factor(factor.value());
+        auto offset = to_floating_point<double>(offset_str);
+        if (!offset.has_value()) {
+            return std::unexpected(Error::InvalidSignalFactorOffset);
+        }
+        signal.set_offset(offset.value());
 
-        return true;
+        // ===== MIN & MAX =====
+        string_view min_and_max = next_word(line);
+        if (!min_and_max.starts_with('[') || !min_and_max.ends_with(']')) {
+            return std::unexpected(Error::InvalidSignalMinMax);
+        }
+        min_and_max.remove_prefix(1);
+        min_and_max.remove_suffix(1);
+        sep_pos = min_and_max.find('|');
+        if (sep_pos == std::string_view::npos) {
+            return std::unexpected(Error::InvalidSignalMinMax);
+        }
+        string_view min_str = min_and_max.substr(0, sep_pos);
+        string_view max_str = min_and_max.substr(sep_pos + 1);
+        auto min = to_floating_point<double>(min_str);
+        if (!min.has_value()) {
+            return std::unexpected(Error::InvalidSignalMinMax);
+        }
+        signal.set_minimum(min.value());
+        auto max = to_floating_point<double>(max_str);
+        if (!max.has_value()) {
+            return std::unexpected(Error::InvalidSignalMinMax);
+        }
+        signal.set_maximum(max.value());
+
+        // ===== UNIT =====
+        string_view unit = next_word(line);
+        if (unit.front() != '"' || unit.back() != '"') {
+            return std::unexpected(Error::InvalidSignalUnit);
+        }
+        unit.remove_prefix(1);
+        unit.remove_suffix(1);
+        signal.set_unit(unit);
+
+        // ===== RECEIVER =====
+        string_view receiver = next_word(line);
+        if (!receiver.empty()) {
+            signal.set_receiver(receiver);
+        }
+
+        if (!line.empty() || !signal.is_valid()) {
+            return std::unexpected(Error::InvalidSignalFormat);
+        }
+
+        return std::expected<CanSignalDescription, Error>(std::in_place, signal);
     }
 
     auto CanDbcFileParser::add_current_message() -> bool {
