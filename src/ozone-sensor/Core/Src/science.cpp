@@ -10,21 +10,16 @@ OzoneSensor ozone_sensor;
 double ozone;
 
 void eventLoop() {
-	// TODO: implement main loop
 	while (true) {
 		ozone_sensor.update_ozone1();
-		HAL_Delay(100); //needs 100 milliseconds between these
-		ozone_sensor.update_ozone2();
-		HAL_Delay(100);
+		HAL_Delay(200);
 	}
 }
 
 void init() {
 	ozone_sensor = OzoneSensor(&hi2c1);
-//	ozone_sensor.setModes(MEASURE_MODE_PASSIVE);
 	ozone_sensor.setPassive();
-//	HAL_Delay(180000);
-	HAL_Delay(100);
+	//needs 3 minutes to warm up
 	eventLoop();
 }
 
@@ -36,8 +31,8 @@ extern "C" {
 		mrover::init();
 	}
 
-	// TODO: implement transmit callback
-	void HAL_I2C_MasterTxCpltCallback (I2C_HandleTypeDef* hi2c) {
+
+	void HAL_I2C_MemTxCpltCallback (I2C_HandleTypeDef* hi2c) {
 		if (hi2c == &hi2c1) {
 			if(mrover::ozone_sensor.read == true){
 				mrover::ozone_sensor.receive_buf();
@@ -47,8 +42,8 @@ extern "C" {
 
 	}
 
-	// TODO: implement receive callback
-	void HAL_I2C_MasterRxCpltCallback (I2C_HandleTypeDef* hi2c) {
+
+	void HAL_I2C_MemRxCpltCallback (I2C_HandleTypeDef* hi2c) {
 		if (hi2c == &hi2c1) {
 			mrover::ozone_sensor.calculate_ozone();
 			mrover::ozone = mrover::ozone_sensor.get_ozone();
