@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <ostream>
 #include <string>
 #include <vector>
-#include <ostream>
 
 namespace mrover::dbc {
 
@@ -40,50 +40,55 @@ namespace mrover::dbc {
         std::string m_unit{};
         std::string m_receiver{};
         MultiplexState m_multiplex_state = MultiplexState::None;
+        std::string m_comment{};
 
     public:
         friend class CanMessageDescription;
 
         CanSignalDescription() = default;
 
-        [[nodiscard]] auto get_name() const -> std::string;
-        void set_name(std::string const& name);
+        [[nodiscard]] auto name() const -> std::string;
+        void set_name(std::string&& name);
         void set_name(std::string_view name);
 
-        [[nodiscard]] auto get_bit_start() const -> uint16_t;
+        [[nodiscard]] auto bit_start() const -> uint16_t;
         void set_bit_start(uint16_t bit);
 
-        [[nodiscard]] auto get_bit_length() const -> uint16_t;
+        [[nodiscard]] auto bit_length() const -> uint16_t;
         void set_bit_length(uint16_t length);
 
-        [[nodiscard]] auto get_endianness() const -> Endianness;
+        [[nodiscard]] auto endianness() const -> Endianness;
         void set_endianness(Endianness endianness);
 
-        [[nodiscard]] auto get_data_format() const -> DataFormat;
+        [[nodiscard]] auto data_format() const -> DataFormat;
         void set_data_format(DataFormat format);
 
-        [[nodiscard]] auto get_factor() const -> double;
+        [[nodiscard]] auto factor() const -> double;
         void set_factor(double factor);
 
-        [[nodiscard]] auto get_offset() const -> double;
+        [[nodiscard]] auto offset() const -> double;
         void set_offset(double offset);
 
-        [[nodiscard]] auto get_minimum() const -> double;
+        [[nodiscard]] auto minimum() const -> double;
         void set_minimum(double minimum);
 
-        [[nodiscard]] auto get_maximum() const -> double;
+        [[nodiscard]] auto maximum() const -> double;
         void set_maximum(double maximum);
 
-        [[nodiscard]] auto get_unit() const -> std::string;
-        void set_unit(std::string const& unit);
+        [[nodiscard]] auto unit() const -> std::string;
+        void set_unit(std::string&& unit);
         void set_unit(std::string_view unit);
 
-        [[nodiscard]] auto get_receiver() const -> std::string;
-        void set_receiver(std::string const& receiver);
+        [[nodiscard]] auto receiver() const -> std::string;
+        void set_receiver(std::string&& receiver);
         void set_receiver(std::string_view receiver);
 
-        [[nodiscard]] auto get_multiplex_state() const -> MultiplexState;
+        [[nodiscard]] auto multiplex_state() const -> MultiplexState;
         void set_multiplex_state(MultiplexState state);
+
+        [[nodiscard]] auto comment() const -> std::string;
+        void set_comment(std::string&& comment);
+        void set_comment(std::string_view comment);
 
         [[nodiscard]] auto is_valid() const -> bool;
 
@@ -94,11 +99,21 @@ namespace mrover::dbc {
             os << "  Endianness: " << (signal.m_endianness == Endianness::BigEndian ? "Big Endian" : "Little Endian") << "\n";
             os << "  Data Format: ";
             switch (signal.m_data_format) {
-                case DataFormat::SignedInteger: os << "Signed Integer"; break;
-                case DataFormat::UnsignedInteger: os << "Unsigned Integer"; break;
-                case DataFormat::Float: os << "Float"; break;
-                case DataFormat::Double: os << "Double"; break;
-                case DataFormat::AsciiString: os << "ASCII String"; break;
+                case DataFormat::SignedInteger:
+                    os << "Signed Integer";
+                    break;
+                case DataFormat::UnsignedInteger:
+                    os << "Unsigned Integer";
+                    break;
+                case DataFormat::Float:
+                    os << "Float";
+                    break;
+                case DataFormat::Double:
+                    os << "Double";
+                    break;
+                case DataFormat::AsciiString:
+                    os << "ASCII String";
+                    break;
             }
             os << "\n";
             os << "  Factor: " << signal.m_factor << "\n";
@@ -109,12 +124,21 @@ namespace mrover::dbc {
             os << "  Receiver: \"" << signal.m_receiver << "\"\n";
             os << "  Multiplex State: ";
             switch (signal.m_multiplex_state) {
-                case MultiplexState::None: os << "None"; break;
-                case MultiplexState::MultiplexorSwitch: os << "Multiplexor Switch"; break;
-                case MultiplexState::MultiplexedSignal: os << "Multiplexed Signal"; break;
-                case MultiplexState::SwitchAndSignal: os << "Switch and Signal"; break;
+                case MultiplexState::None:
+                    os << "None";
+                    break;
+                case MultiplexState::MultiplexorSwitch:
+                    os << "Multiplexor Switch";
+                    break;
+                case MultiplexState::MultiplexedSignal:
+                    os << "Multiplexed Signal";
+                    break;
+                case MultiplexState::SwitchAndSignal:
+                    os << "Switch and Signal";
+                    break;
             }
             os << "\n";
+            os << "  Comment: \"" << signal.m_comment << "\"\n";
             return os;
         }
 
@@ -127,27 +151,33 @@ namespace mrover::dbc {
         uint8_t m_length; // in bytes
         std::string m_transmitter;
         std::vector<CanSignalDescription> m_signals;
+        std::string m_comment;
 
     public:
-        [[nodiscard]] auto get_name() const -> std::string;
-        void set_name(std::string const& name);
+        [[nodiscard]] auto name() const -> std::string;
+        void set_name(std::string&& name);
         void set_name(std::string_view name);
 
-        [[nodiscard]] auto get_id() const -> uint32_t;
+        [[nodiscard]] auto id() const -> uint32_t;
         void set_id(uint32_t id);
 
-        [[nodiscard]] auto get_length() const -> uint8_t;
+        [[nodiscard]] auto length() const -> uint8_t;
         void set_length(uint8_t length);
 
-        [[nodiscard]] auto get_transmitter() const -> std::string;
-        void set_transmitter(std::string const& transmitter);
+        [[nodiscard]] auto transmitter() const -> std::string;
+        void set_transmitter(std::string&& transmitter);
         void set_transmitter(std::string_view transmitter);
 
-        [[nodiscard]] auto get_signal_descriptions() const -> std::vector<CanSignalDescription>;
-        [[nodiscard]] auto get_signal_description_by_name(std::string const& name) const -> CanSignalDescription;
+        [[nodiscard]] auto signal_descriptions() const -> std::vector<CanSignalDescription>;
+        [[nodiscard]] auto signal_description(std::string_view name) -> CanSignalDescription*;
+        [[nodiscard]] auto signal_description(std::string_view name) const -> CanSignalDescription const*;
+
         void clear_signal_descriptions();
-        void add_signal_description(CanSignalDescription&& signal);
         void add_signal_description(CanSignalDescription signal);
+
+        [[nodiscard]] auto comment() const -> std::string;
+        void set_comment(std::string&& comment);
+        void set_comment(std::string_view comment);
 
         [[nodiscard]] auto is_valid() const -> bool;
 
@@ -156,8 +186,9 @@ namespace mrover::dbc {
             os << "Message ID: " << message.m_id << "\n";
             os << "Message Length: " << static_cast<uint32_t>(message.m_length) << " bytes\n";
             os << "Transmitter: " << message.m_transmitter << "\n";
+            os << "Comment: \"" << message.m_comment << "\"\n";
             os << "Signals:\n";
-            for (auto const& signal : message.m_signals) {
+            for (auto const& signal: message.m_signals) {
                 os << signal;
             }
             return os;

@@ -18,7 +18,7 @@ namespace mrover::dbc {
     static constexpr auto SYMBOLS_HEADER = "NS_ ";
 
     namespace {
-        inline auto trimmed(std::string_view str) -> std::string_view {
+        constexpr inline auto trimmed(std::string_view str) -> std::string_view {
             auto const is_space = [](unsigned char c) { return std::isspace(c); };
 
             auto start = str.find_first_not_of(" \t\n\r\f\v");
@@ -103,12 +103,12 @@ namespace mrover::dbc {
 
     } // namespace
 
-    [[nodiscard]] auto CanDbcFileParser::get_lines_parsed() const -> std::size_t { return m_lines_parsed; }
+    [[nodiscard]] auto CanDbcFileParser::lines_parsed() const -> std::size_t { return m_lines_parsed; }
 
     [[nodiscard]] auto CanDbcFileParser::is_error() const -> bool { return m_error != CanDbcFileParser::Error::None; }
-    [[nodiscard]] auto CanDbcFileParser::get_error() const -> Error { return m_error; }
+    [[nodiscard]] auto CanDbcFileParser::error() const -> Error { return m_error; }
 
-    [[nodiscard]] auto CanDbcFileParser::get_messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const& { return m_messages; }
+    [[nodiscard]] auto CanDbcFileParser::messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const& { return m_messages; }
 
     auto CanDbcFileParser::parse(std::string const& filename) -> bool {
         std::ifstream file(filename);
@@ -187,6 +187,43 @@ namespace mrover::dbc {
             m_current_message.add_signal_description(signal.value());
 
             return true;
+        } else if (line.starts_with(COMMENT_HEADER)) {
+            auto comment_info = parse_comment(line);
+            if (!comment_info.has_value()) {
+                m_error = comment_info.error();
+                return false;
+            }
+
+            uint32_t message_id = std::get<0>(comment_info.value());
+            CanMessageDescription* message_desc = nullptr;
+
+            if (auto message_it = m_messages.find(message_id); message_it != m_messages.end()) {
+                message_desc = &message_it->second;
+            } else if (m_is_processing_message && m_current_message.id() == message_id) {
+                message_desc = &m_current_message;
+            }
+
+            if (message_desc == nullptr) {
+                m_error = CanDbcFileParser::Error::InvalidCommentMessageId;
+                return false;
+            }
+
+            auto& signal_comment = std::get<1>(comment_info.value());
+            std::string_view comment = std::get<2>(comment_info.value());
+
+            if (signal_comment.has_value()) {
+                auto const& signal_name = signal_comment.value();
+                auto* signal_desc = message_desc->signal_description(signal_name);
+                if (signal_desc == nullptr) {
+                    m_error = CanDbcFileParser::Error::InvalidCommentSignalName;
+                    return false;
+                }
+                signal_desc->set_comment(comment);
+            } else {
+                message_desc->set_comment(comment);
+            }
+
+            return true;
         }
 
         return true;
@@ -238,7 +275,7 @@ namespace mrover::dbc {
         return std::expected<CanMessageDescription, Error>(std::in_place, message);
     }
 
-     auto CanDbcFileParser::parse_signal(string_view line) -> std::expected<CanSignalDescription, Error> {
+    auto CanDbcFileParser::parse_signal(string_view line) -> std::expected<CanSignalDescription, Error> {
         if (!line.starts_with(SIGNAL_HEADER)) {
             return std::unexpected(Error::InvalidSignalFormat);
         }
@@ -387,12 +424,62 @@ namespace mrover::dbc {
         return std::expected<CanSignalDescription, Error>(std::in_place, signal);
     }
 
+
+    auto CanDbcFileParser::parse_comment(std::string_view line) -> std::expected<std::tuple<uint32_t, std::optional<std::string>, std::string>, Error> {
+        if (!line.starts_with(COMMENT_HEADER)) {
+            return std::unexpected(Error::InvalidCommentFormat);
+        }
+
+        line.remove_prefix(std::string_view(COMMENT_HEADER).size());
+
+        string_view target_type = next_word(line);
+        if (target_type != "BO_" && target_type != "SG_") {
+            return std::unexpected(Error::InvalidCommentType);
+        }
+
+        // ===== ID =====
+        string_view id_str = next_word(line);
+        auto id_result = to_int<uint32_t>(id_str);
+        if (!id_result.has_value()) {
+            return std::unexpected(Error::InvalidCommentMessageId);
+        }
+        uint32_t id = id_result.value();
+
+        std::optional<std::string> signal_name;
+        if (target_type == "SG_") {
+            string_view signal_name_str = next_word(line);
+            if (signal_name_str.empty()) {
+                return std::unexpected(Error::InvalidCommentSignalName);
+            }
+            signal_name = std::string(signal_name_str);
+        }
+
+        // ===== COMMENT =====
+        string_view comment_str = trimmed(line);
+        if (comment_str.front() != '"') {
+            return std::unexpected(Error::InvalidCommentText);
+        }
+        comment_str.remove_prefix(1);
+
+        if (comment_str.back() == ';') {
+            comment_str.remove_suffix(1);
+            comment_str = trimmed(comment_str);
+        }
+
+        if (comment_str.back() != '"') {
+            return std::unexpected(Error::InvalidCommentText);
+        }
+        comment_str.remove_suffix(1);
+
+        return std::expected<std::tuple<uint32_t, std::optional<std::string>, std::string>, Error>(std::in_place, id, signal_name, comment_str);
+    }
+
     auto CanDbcFileParser::add_current_message() -> bool {
         if (m_is_processing_message) {
             if (!m_current_message.is_valid()) {
                 return false;
             }
-            uint32_t const id = m_current_message.get_id();
+            uint32_t const id = m_current_message.id();
             m_messages.emplace(id, std::move(m_current_message));
             m_current_message = {};
             return true;

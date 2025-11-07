@@ -13,7 +13,7 @@
         {SG_} - signal description.
         {SIG_VALTYPE_} - signal type description.
         {SG_MUL_VAL_} - extended multiplexing description.
-        {CM_} - comments (only for message and signal descriptions).
+        {CM_} - comments (only for message and signal descriptions) - single line only.
         {VAL_} - textual descriptions for raw signal values.
 */
 
@@ -33,7 +33,12 @@ namespace mrover::dbc {
     ERROR(InvalidSignalBitInfo)      \
     ERROR(InvalidSignalFactorOffset) \
     ERROR(InvalidSignalMinMax)       \
-    ERROR(InvalidSignalUnit)
+    ERROR(InvalidSignalUnit)         \
+    ERROR(InvalidCommentFormat)      \
+    ERROR(InvalidCommentType)        \
+    ERROR(InvalidCommentMessageId)   \
+    ERROR(InvalidCommentSignalName)  \
+    ERROR(InvalidCommentText)
 
 #define GENERATE_ENUM(e) e,
 #define GENERATE_STRING(e) #e,
@@ -45,12 +50,12 @@ namespace mrover::dbc {
 
         CanDbcFileParser() = default;
 
-        [[nodiscard]] auto get_lines_parsed() const -> std::size_t;
+        [[nodiscard]] auto lines_parsed() const -> std::size_t;
 
         [[nodiscard]] auto is_error() const -> bool;
-        [[nodiscard]] auto get_error() const -> Error;
+        [[nodiscard]] auto error() const -> Error;
 
-        [[nodiscard]] auto get_messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
+        [[nodiscard]] auto messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
 
         auto parse(std::string const& filename) -> bool;
 
@@ -74,6 +79,20 @@ namespace mrover::dbc {
         auto process_line(std::string_view line) -> bool;
         static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
         static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
+
+        /**
+         * @brief Parses a DBC comment line.
+         *
+         * Extracts the message ID, optional signal name, and the comment string from a line.
+         *
+         * @param line The line to parse, expected to follow the DBC comment format.
+         * @return std::expected containing a tuple of:
+         *         - uint32_t: the message ID
+         *         - std::optional<std::string>: the signal name if it's a signal comment (nullopt for message comments)
+         *         - std::string: the actual comment text
+         *         or an Error if parsing fails.
+         */
+        static auto parse_comment(std::string_view line) -> std::expected<std::tuple<uint32_t, std::optional<std::string>, std::string>, Error>;
         auto add_current_message() -> bool;
 
 #undef GENERATE_ENUM
