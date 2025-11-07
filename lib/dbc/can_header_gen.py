@@ -1,47 +1,36 @@
 import dbc_parser
+import argparse
+from jinja2 import Environment, FileSystemLoader
 
-output = ""
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse dbc files to generate C header files.")
+    parser.add_argument(
+        "files",
+        nargs="+", # One or more files
+        type=str,
+        help="List of dbc files"
+    )
+    args = parser.parse_args()
 
-# Include libraries
-def gen_libs():
-    global output
-    libraries = "#include <cstdint>\n\n"
-    output += libraries
+    env = Environment(loader=FileSystemLoader("."))
+    template = env.get_template("templates/dbc_header.h.j2")
 
-# Generate MSG structs
-def gen_struct(msg):
-    global output
-    struct = "struct " + msg.name + " {\n"
-    sig_list = list(msg.signal_dict.keys())
-    for sig_name in sig_list:
-        sig = msg.signal_dict[sig_name]
-        struct += "\t" + sig.data_type + " " + sig_name + ";\n"
-    struct += "};\n\n"
-    output += struct
+    libs = ["cstdlib", "cstdint", "bit"]
 
+    for f in args.files:
+        # Call dbc_parser.py to parse dbc file
+        dbc = dbc_parser.parse_file(f)
 
-def gen_structs():
-    msg_list = list(dbc_parser.message_dict.values())
+        # Declare data object to pass into jinja2 template
+        data = {
+            "dbc_name": dbc.name,
+            "libs": libs,
+            "message_dict": dbc.message_dict
+        }
 
-    for msg in msg_list:
-        gen_struct(msg)
+        # Pass message_dict and library list
+        rendered = template.render(data)
 
-# Generate Encoding Func
-
-def gen_encode(msg):
-    global output
-
-    # Generate function header
-    funct = "uint8_t* " + msg.name + "_encode(" + msg.name + " msg) {\n"
-    
-    # Determine array length
-    
-
-    output += funct
-
-# Generate Decoding Func
-gen_libs()
-gen_structs()
-
-with open("can_science_test.hpp", "w") as file:
-    file.write(output)
+        # Write to new header file
+        with open(f"gen/{dbc.name}.h", "w") as f:
+            f.write(rendered)

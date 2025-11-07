@@ -1,18 +1,14 @@
 import os
 import re
 
-# Global variables
-dbc_arr = []        # Holds all .dbc files
-
 # Class Objects
-class dbc:
+class DBC:
     name: str
-
     def __init__(self, name):
         self.name = name
         self.message_dict = {}
 
-class message:
+class Message:
     name: str
     byte_length: int
     def __init__(self, name):
@@ -20,7 +16,7 @@ class message:
         self.bit_length = 0
         self.signal_dict = {}
     
-class signal:
+class Signal:
     data_type: str
     start_bit: int
     bit_length: int
@@ -33,9 +29,9 @@ class signal:
 
 # TODO: add some type hints
 
-def update_type(line):
+def update_type(line, dbc_file):
     msg_id = line[1]
-    msg = dbc_arr[-1].message_dict[msg_id]
+    msg = dbc_file.message_dict[msg_id]
     sig_name = line[2]
     sig = msg.signal_dict[sig_name]
     if line[4][0:-1] == "1":
@@ -43,7 +39,7 @@ def update_type(line):
     elif line[4][0:-1] == "2":
         sig.data_type = "double"
 
-def parse_message(line):
+def parse_message(line, dbc_file):
 
     id = line[1]
     name = line[2][:-1]
@@ -52,13 +48,13 @@ def parse_message(line):
 
     # TODO: make parse_signal() a helper for parse_message
     # if int(byte_length):
-    msg = message(name)
+    msg = Message(name)
     # Append to most recent dbc object's message dict
-    dbc_arr[-1].message_dict[id] = msg
+    dbc_file.message_dict[id] = msg
 
 # TODO: order the message signals by size (descending)
 # Currently we assume they are already ordered :)
-def parse_signal(line):
+def parse_signal(line, dbc_file):
     name = line[1]
 
     bits_section = re.split(r'[|@]', line[3])
@@ -92,18 +88,19 @@ def parse_signal(line):
         data_type += str(bit_length) + "_t"
 
     # TODO: if supporting scale check scale to see if it's a float
-    sig = signal(data_type, start_bit, bit_length)
+    sig = Signal(data_type, start_bit, bit_length)
 
-    msg_id = list(dbc_arr[-1].message_dict.keys())[-1]
-    msg = dbc_arr[-1].message_dict[msg_id]
+    msg_id = list(dbc_file.message_dict.keys())[-1]
+    msg = dbc_file.message_dict[msg_id]
     msg.signal_dict[name] = sig
 
     # Update size of message
     msg.bit_length += bit_length
 
-def parse_file(file_handle):
+def parse_file(filepath):
+    dbc_file = DBC(os.path.basename(filepath)[:-4])
     ns_flag = False
-    with open(file_handle) as file:
+    with open(filepath) as file:
         for line in file:
             trimmed_line = line.strip()
             split_line = trimmed_line.split(" ")
@@ -111,36 +108,15 @@ def parse_file(file_handle):
                 if split_line[0] == "NS_" or split_line[0] == "":
                     ns_flag = not ns_flag
             elif split_line[0] == "BO_":
-                parse_message(split_line)
+                parse_message(split_line, dbc_file)
             elif split_line[0] == "SG_":
-                parse_signal(split_line)
+                parse_signal(split_line, dbc_file)
             elif split_line[0] == "SIG_VALTYPE_":
-                update_type(split_line)
+                update_type(split_line, dbc_file)
 
         # Once all messages are parsed, get byte values
-        for msg in dbc_arr[-1].message_dict.values():
+        for msg in dbc_file.message_dict.values():
             # Use bit length to get byte length
             msg.byte_length = msg.bit_length // 8
             msg.byte_length += 1 if msg.bit_length % 8 else 0
-
-# The main script code (make it more OOP!)
-# Get path of current script
-script_path = os.path.dirname(os.path.realpath(__file__))
-os.chdir("../../dbc")
-dbc_files_path = os.getcwd()
-
-for root, dirs, files in os.walk(dbc_files_path):
-    # Go to the dbc/ directory with the .dbc files
-    for file in files:
-        # Open the .dbc file
-        if file.endswith(".dbc"):
-            # Go back to original directory
-            os.chdir(script_path)
-
-            # Get name of dbc file (remove .dbc extension)
-            dbc_name = file[:-4]
-            # Add dbc file to dbc array
-            dbc_arr.append(dbc(dbc_name))
-
-            # Helper function to parse .dbc file
-            parse_file(dbc_files_path + "/" + file)
+        return dbc_file
