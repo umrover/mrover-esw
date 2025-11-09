@@ -81,3 +81,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         util
         units
 )
+
+# Enable printf float
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)

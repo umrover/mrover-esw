@@ -18,8 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "as5047u.h"
-#include <stdio.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -42,7 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef hlpuart1;
-AS5047U_HandleTypeDef henc;
+
 SPI_HandleTypeDef hspi3;
 
 /* USER CODE BEGIN PV */
@@ -97,19 +96,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
     PostInit();
     Loop();
-    AS5047U_Init(&henc, &hspi3, GPIOD, GPIO_PIN_2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    float angle_deg = AS5047U_ReadAngle(&henc);
-	  float vel_dps   = AS5047U_ReadVelocity(&henc);
-
-	  printf("Angle: %.2f deg, Velocity: %.2f deg/s\r\n", angle_deg, vel_dps);
-
-	  HAL_Delay(1000);
+ 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -179,7 +172,7 @@ static void MX_LPUART1_UART_Init(void)
 
   /* USER CODE END LPUART1_Init 1 */
   hlpuart1.Instance = LPUART1;
-  hlpuart1.Init.BaudRate = 209700;
+  hlpuart1.Init.BaudRate = 115200;
   hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
   hlpuart1.Init.StopBits = UART_STOPBITS_1;
   hlpuart1.Init.Parity = UART_PARITY_NONE;
