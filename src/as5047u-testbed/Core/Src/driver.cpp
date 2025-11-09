@@ -1,22 +1,24 @@
 #include "main.h"
 #include <cstdio>
+#include "as5047u.hpp"
 
 extern "C" {
     // reference the HAL SPI handle defined in main.c
-    #include "as5047u.h"
+    // #include "as5047u.h"
     extern SPI_HandleTypeDef hspi3;
 }
 
 namespace mrover {
 
     // TODO instantiate your class here to test
-    static AS5047U_HandleTypeDef s_enc;
+    //static AS5047U_HandleTypeDef s_enc;
+    static AS5047U s_enc(&hspi3, {CS_GPIO_Port, CS_Pin});
     static bool s_initialized = false;
 
     auto init() -> void {
         // TODO initialization logic here
-        AS5047U_Init(&s_enc, &hspi3, CS_GPIO_Port, CS_Pin);
-
+        // AS5047U_Init(&s_enc, &hspi3, CS_GPIO_Port, CS_Pin);
+        s_enc.init();
         s_initialized = true;
     }
 
@@ -24,10 +26,15 @@ namespace mrover {
 
         for ( ;; ) {
             // TODO infinite loop logic here
-            float angle_deg = AS5047U_ReadAngle(&s_enc);
-            float vel_dps   = AS5047U_ReadVelocity(&s_enc);
+            s_enc.update_position();
+            s_enc.update_velocity();
 
-            printf("Angle: %.2f deg, Velocity: %.2f deg/s\r\n", angle_deg, vel_dps);
+            const uint16_t raw = s_enc.get_position();         // 0..16383
+            const float deg = static_cast<float>(raw) * 360.0f / 16384.0f;
+            // const float  deg = raw * 360.0f / 16384.0f;    
+            const float  dps = s_enc.get_velocity();         
+
+            std::printf("Angle: %.2f deg, Velocity: %.2f deg/s\r\n", deg, dps);
             HAL_Delay(1000);
         }
 
