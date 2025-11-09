@@ -58,8 +58,13 @@ BO_ 82 Science_ISHInbound: 1 jetson
  SG_ ISH_WLED1Enable : 4|1@1+ (1,0) [0|0] "" science
  SG_ ISH_WLED2Enable : 5|1@1+ (1,0) [0|0] "" science
 
-CM_ BO_ 80 "sensor information from the science board"
-CM_ SG_ 80 Sensors_Humidity "percent relative humidity"
+CM_ BO_ 80 "sensor information from the
+science
+
+board
+"
+
+CM_ SG_ 80 Sensors_Humidity "percent relative humidity";
 
 
 BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";

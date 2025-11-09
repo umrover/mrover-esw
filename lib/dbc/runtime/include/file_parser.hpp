@@ -76,23 +76,28 @@ namespace mrover::dbc {
         std::size_t m_lines_parsed = 0;
         Error m_error = Error::None;
 
+        struct CommentAttribute {
+            uint32_t message_id;
+            std::optional<std::string> signal_name; // nullopt for message comments
+            std::string text;
+        };
+
         auto process_file(std::string_view file_view) -> bool;
         static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
         static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
-
         /**
-         * @brief Parses a DBC comment line.
+         * @brief Parses DBC comment lines from an entire file.
          *
-         * Extracts the message ID, optional signal name, and the comment string from a line.
+         * Extracts the message ID, optional signal name, and the comment strings from a file.
          *
-         * @param line The line to parse, expected to follow the DBC comment format.
-         * @return std::expected containing a tuple of:
-         *         - uint32_t: the message ID
+         * @param file_view the DBC file to parse.
+         * @return std::expected containing an unordered_map of uint32_t (message ID) to tuples of:
          *         - std::optional<std::string>: the signal name if it's a signal comment (nullopt for message comments)
          *         - std::string: the actual comment text
          *         or an Error if parsing fails.
          */
-        static auto parse_comment(std::string_view line) -> std::expected<std::tuple<uint32_t, std::optional<std::string>, std::string>, Error>;
+        static auto parse_comments(std::string_view file_view) -> std::expected<std::unordered_map<uint32_t, std::tuple<std::optional<std::string>, std::string>>, Error>;
+
         auto add_current_message() -> bool;
 
 #undef GENERATE_ENUM

@@ -23,7 +23,6 @@ auto main(int argc, char** argv) -> int {
 
     for (auto const& [id, message]: parser.messages()) {
         std::cout << message << "\n";
-        std::cout << "==================================================" << std::endl;
     }
 
     assert(parser.messages().size() == 3);
@@ -38,6 +37,7 @@ auto main(int argc, char** argv) -> int {
         assert(science_message.length() == 16);
         assert(science_message.transmitter() == "science");
         assert(science_message.signal_descriptions().size() == 4);
+        assert(science_message.comment() == "sensor information from the\nscience\n\nboard\n");
 
         CanSignalDescription const* temp_signal = science_message.signal_description("Sensors_Temperature");
         assert(temp_signal != nullptr);
@@ -64,6 +64,7 @@ auto main(int argc, char** argv) -> int {
         assert(humidity_signal->maximum() == 0.0);
         assert(humidity_signal->unit() == "percent");
         assert(humidity_signal->receiver() == "jetson");
+        assert(humidity_signal->comment() == "percent relative humidity");
 
         CanSignalDescription const* uv_signal = science_message.signal_description("Sensors_UV");
         assert(uv_signal != nullptr);

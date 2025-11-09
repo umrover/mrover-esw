@@ -189,7 +189,7 @@ namespace mrover::dbc {
             os << "Comment: \"" << message.m_comment << "\"\n";
             os << "Signals:\n";
             for (auto const& signal: message.m_signals) {
-                os << signal;
+                os << signal << "\n";
             }
             return os;
         }
