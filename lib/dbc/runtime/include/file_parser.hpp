@@ -20,24 +20,28 @@
 namespace mrover::dbc {
     class CanDbcFileParser {
 
-#define FOREACH_ERROR(ERROR)         \
-    ERROR(None)                      \
-    ERROR(FileRead)                  \
-    ERROR(InvalidMessageFormat)      \
-    ERROR(InvalidMessageName)        \
-    ERROR(InvalidMessageId)          \
-    ERROR(InvalidMessageLength)      \
-    ERROR(InvalidMessageTransmitter) \
-    ERROR(InvalidSignalFormat)       \
-    ERROR(InvalidSignalName)         \
-    ERROR(InvalidSignalBitInfo)      \
-    ERROR(InvalidSignalFactorOffset) \
-    ERROR(InvalidSignalMinMax)       \
-    ERROR(InvalidSignalUnit)         \
-    ERROR(InvalidCommentFormat)      \
-    ERROR(InvalidCommentType)        \
-    ERROR(InvalidCommentMessageId)   \
-    ERROR(InvalidCommentSignalName)  \
+#define FOREACH_ERROR(ERROR)           \
+    ERROR(None)                        \
+    ERROR(FileRead)                    \
+    ERROR(InvalidMessageFormat)        \
+    ERROR(InvalidMessageName)          \
+    ERROR(InvalidMessageId)            \
+    ERROR(InvalidMessageLength)        \
+    ERROR(InvalidMessageTransmitter)   \
+    ERROR(InvalidSignalFormat)         \
+    ERROR(InvalidSignalName)           \
+    ERROR(InvalidSignalBitInfo)        \
+    ERROR(InvalidSignalFactorOffset)   \
+    ERROR(InvalidSignalMinMax)         \
+    ERROR(InvalidSignalUnit)           \
+    ERROR(InvalidSignalTypeFormat)     \
+    ERROR(InvalidSignalTypeMessageId)  \
+    ERROR(InvalidSignalTypeSignalName) \
+    ERROR(InvalidSignalTypeDataType)   \
+    ERROR(InvalidCommentFormat)        \
+    ERROR(InvalidCommentType)          \
+    ERROR(InvalidCommentMessageId)     \
+    ERROR(InvalidCommentSignalName)    \
     ERROR(InvalidCommentText)
 
 #define GENERATE_ENUM(e) e,
@@ -56,6 +60,8 @@ namespace mrover::dbc {
         [[nodiscard]] auto error() const -> Error;
 
         [[nodiscard]] auto messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
+        [[nodiscard]] auto message(uint32_t id) -> CanMessageDescription*;
+        [[nodiscard]] auto message(uint32_t id) const -> CanMessageDescription const*;
 
         auto parse(std::string const& filepath) -> bool;
 
@@ -82,21 +88,16 @@ namespace mrover::dbc {
             std::string text;
         };
 
+        struct SignalValueTypeAttribute {
+            uint32_t message_id;
+            std::string signal_name;
+            DataFormat data_format;
+        };
+
         auto process_file(std::string_view file_view) -> bool;
         static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
         static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
-        /**
-         * @brief Parses DBC comment lines from an entire file.
-         *
-         * Extracts the message ID, optional signal name, and the comment strings from a file.
-         *
-         * @param file_view the DBC file to parse.
-         * @return std::expected containing an unordered_map of uint32_t (message ID) to tuples of:
-         *         - std::optional<std::string>: the signal name if it's a signal comment (nullopt for message comments)
-         *         - std::string: the actual comment text
-         *         or an Error if parsing fails.
-         */
-        static auto parse_comments(std::string_view file_view) -> std::expected<std::unordered_map<uint32_t, std::tuple<std::optional<std::string>, std::string>>, Error>;
+        static auto parse_signal_value_type(std::string_view line) -> std::expected<SignalValueTypeAttribute, Error>;
 
         auto add_current_message() -> bool;
 

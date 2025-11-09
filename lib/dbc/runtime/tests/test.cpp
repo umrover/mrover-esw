@@ -44,7 +44,7 @@ auto main(int argc, char** argv) -> int {
         assert(temp_signal->bit_start() == 0);
         assert(temp_signal->bit_length() == 32);
         assert(temp_signal->endianness() == Endianness::LittleEndian);
-        assert(temp_signal->data_format() == DataFormat::SignedInteger);
+        assert(temp_signal->data_format() == DataFormat::Float);
         assert(temp_signal->factor() == 1.0);
         assert(temp_signal->offset() == 0.0);
         assert(temp_signal->minimum() == 0.0);
@@ -57,7 +57,7 @@ auto main(int argc, char** argv) -> int {
         assert(humidity_signal->bit_start() == 32);
         assert(humidity_signal->bit_length() == 32);
         assert(humidity_signal->endianness() == Endianness::LittleEndian);
-        assert(humidity_signal->data_format() == DataFormat::SignedInteger);
+        assert(humidity_signal->data_format() == DataFormat::Float);
         assert(humidity_signal->factor() == 1.0);
         assert(humidity_signal->offset() == 0.0);
         assert(humidity_signal->minimum() == 0.0);
@@ -71,7 +71,7 @@ auto main(int argc, char** argv) -> int {
         assert(uv_signal->bit_start() == 64);
         assert(uv_signal->bit_length() == 32);
         assert(uv_signal->endianness() == Endianness::LittleEndian);
-        assert(uv_signal->data_format() == DataFormat::SignedInteger);
+        assert(uv_signal->data_format() == DataFormat::Float);
         assert(uv_signal->factor() == 1.0);
         assert(uv_signal->offset() == 0.0);
         assert(uv_signal->minimum() == 0.0);
@@ -84,7 +84,7 @@ auto main(int argc, char** argv) -> int {
         assert(oxygen_signal->bit_start() == 96);
         assert(oxygen_signal->bit_length() == 32);
         assert(oxygen_signal->endianness() == Endianness::LittleEndian);
-        assert(oxygen_signal->data_format() == DataFormat::SignedInteger);
+        assert(oxygen_signal->data_format() == DataFormat::Float);
         assert(oxygen_signal->factor() == 1.0);
         assert(oxygen_signal->offset() == 0.0);
         assert(oxygen_signal->minimum() == 0.0);
