@@ -57,7 +57,7 @@ namespace mrover::dbc {
 
         [[nodiscard]] auto messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
 
-        auto parse(std::string const& filename) -> bool;
+        auto parse(std::string const& filepath) -> bool;
 
         static constexpr auto to_string(Error e) -> std::string_view {
             constexpr std::string_view names[] = {
@@ -76,7 +76,7 @@ namespace mrover::dbc {
         std::size_t m_lines_parsed = 0;
         Error m_error = Error::None;
 
-        auto process_line(std::string_view line) -> bool;
+        auto process_file(std::string_view file_view) -> bool;
         static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
         static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
 

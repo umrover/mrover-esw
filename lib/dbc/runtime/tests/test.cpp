@@ -1,5 +1,4 @@
 #include "dbc.hpp"
-#include "message.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -20,6 +19,11 @@ auto main(int argc, char** argv) -> int {
             std::cerr << "Error: " << parser.error() << std::endl;
         }
         return 1;
+    }
+
+    for (auto const& [id, message]: parser.messages()) {
+        std::cout << message << "\n";
+        std::cout << "==================================================" << std::endl;
     }
 
     assert(parser.messages().size() == 3);
@@ -89,10 +93,6 @@ auto main(int argc, char** argv) -> int {
 
     }
 
-
-    for (auto const& [id, message]: parser.messages()) {
-        std::cout << message << std::endl;
-    }
 
     return 0;
 }

@@ -138,7 +138,7 @@ namespace mrover::dbc {
                     break;
             }
             os << "\n";
-            os << "  Comment: \"" << signal.m_comment << "\"\n";
+            os << "  Comment: \"" << signal.m_comment << "\"";
             return os;
         }
 
