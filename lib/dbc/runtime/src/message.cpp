@@ -1,6 +1,7 @@
 #include "message.hpp"
 
 #include <algorithm>
+#include <ranges>
 #include <utility>
 
 namespace mrover::dbc {
@@ -82,27 +83,41 @@ namespace mrover::dbc {
     void CanMessageDescription::set_transmitter(std::string&& transmitter) { m_transmitter = transmitter; }
     void CanMessageDescription::set_transmitter(std::string_view transmitter) { m_transmitter = std::string(transmitter); }
 
-    [[nodiscard]] auto CanMessageDescription::signal_descriptions() const -> std::vector<CanSignalDescription> { return m_signals; }
-
-    auto CanMessageDescription::signal_description(std::string_view name) -> CanSignalDescription* {
-        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
-            return s.m_name == name;
-        });
-        return it != m_signals.end() ? &(*it) : nullptr;
+    [[nodiscard]] auto CanMessageDescription::signals() noexcept {
+        namespace rv = std::views;
+        return m_signals | rv::transform([](auto& p) -> CanSignalDescription& { return *p; });
     }
-    auto CanMessageDescription::signal_description(std::string_view name) const -> CanSignalDescription const* {
-        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
-            return s.m_name == name;
-        });
-        return it != m_signals.end() ? &(*it) : nullptr;
+    [[nodiscard]] auto CanMessageDescription::signals() const noexcept {
+        namespace rv = std::views;
+        return m_signals | rv::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
     }
 
-    void CanMessageDescription::clear_signal_descriptions() {
+    [[nodiscard]] auto CanMessageDescription::signals_size() const -> std::size_t {
+        return m_signals.size();
+    }
+
+    auto CanMessageDescription::signal(std::string_view name) -> CanSignalDescription* {
+        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
+            return s->m_name == name;
+        });
+        return it != m_signals.end() ? &(**it) : nullptr;
+    }
+    auto CanMessageDescription::signal(std::string_view name) const -> CanSignalDescription const* {
+        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
+            return s->m_name == name;
+        });
+        return it != m_signals.end() ? &(**it) : nullptr;
+    }
+
+    void CanMessageDescription::clear_signals() {
         m_signals.clear();
     }
 
-    void CanMessageDescription::add_signal_description(CanSignalDescription signal) {
+    void CanMessageDescription::add_signal(std::unique_ptr<CanSignalDescription> signal) {
         m_signals.push_back(std::move(signal));
+    }
+    void CanMessageDescription::add_signal(CanSignalDescription signal) {
+        m_signals.push_back(std::make_unique<CanSignalDescription>(std::move(signal)));
     }
 
     [[nodiscard]] auto CanMessageDescription::comment() const -> std::string { return m_comment; }
@@ -113,14 +128,14 @@ namespace mrover::dbc {
         if (m_name.empty() ||
             m_signals.empty() ||
             std::ranges::none_of(m_signals, [](auto const& s) {
-                return s.is_valid();
+                return s->is_valid();
             })) {
             return false;
         }
 
         uint16_t total_signal_bits = 0;
         for (auto const& signal: m_signals) {
-            total_signal_bits += signal.bit_length();
+            total_signal_bits += signal->bit_length();
         }
         if (total_signal_bits > m_length * 8) {
             return false;

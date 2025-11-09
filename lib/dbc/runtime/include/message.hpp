@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -150,7 +151,7 @@ namespace mrover::dbc {
         uint32_t m_id;
         uint8_t m_length; // in bytes
         std::string m_transmitter;
-        std::vector<CanSignalDescription> m_signals;
+        std::vector<std::unique_ptr<CanSignalDescription>> m_signals;
         std::string m_comment;
 
     public:
@@ -168,12 +169,18 @@ namespace mrover::dbc {
         void set_transmitter(std::string&& transmitter);
         void set_transmitter(std::string_view transmitter);
 
-        [[nodiscard]] auto signal_descriptions() const -> std::vector<CanSignalDescription>;
-        [[nodiscard]] auto signal_description(std::string_view name) -> CanSignalDescription*;
-        [[nodiscard]] auto signal_description(std::string_view name) const -> CanSignalDescription const*;
+        [[nodiscard]] auto signals() noexcept;
+        [[nodiscard]] auto signals() const noexcept;
 
-        void clear_signal_descriptions();
-        void add_signal_description(CanSignalDescription signal);
+        [[nodiscard]] auto signals_size() const -> std::size_t;
+
+        [[nodiscard]] auto signal(std::string_view name) -> CanSignalDescription*;
+        [[nodiscard]] auto signal(std::string_view name) const -> CanSignalDescription const*;
+
+        void clear_signals();
+
+        void add_signal(std::unique_ptr<CanSignalDescription> signal);
+        void add_signal(CanSignalDescription signal);
 
         [[nodiscard]] auto comment() const -> std::string;
         void set_comment(std::string&& comment);
@@ -189,7 +196,7 @@ namespace mrover::dbc {
             os << "Comment: \"" << message.m_comment << "\"\n";
             os << "Signals:\n";
             for (auto const& signal: message.m_signals) {
-                os << signal << "\n";
+                os << *signal << "\n";
             }
             return os;
         }

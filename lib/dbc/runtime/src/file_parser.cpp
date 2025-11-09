@@ -238,7 +238,7 @@ namespace mrover::dbc {
                     m_error = signal.error();
                     return false;
                 }
-                m_current_message.add_signal_description(signal.value());
+                m_current_message.add_signal(signal.value());
             } else if (line.starts_with(COMMENT_HEADER)) {
                 line.remove_prefix(std::string_view(COMMENT_HEADER).size());
 
@@ -338,7 +338,7 @@ namespace mrover::dbc {
             }
 
             if (comment.signal_name.has_value()) {
-                auto* signal_desc = msg->signal_description(comment.signal_name.value());
+                auto* signal_desc = msg->signal(comment.signal_name.value());
                 if (signal_desc == nullptr) {
                     m_error = Error::InvalidCommentSignalName;
                     return false;
@@ -357,7 +357,7 @@ namespace mrover::dbc {
                 return false;
             }
 
-            auto* signal_desc = msg->signal_description(svt.signal_name);
+            auto* signal_desc = msg->signal(svt.signal_name);
             if (signal_desc == nullptr) {
                 m_error = Error::InvalidSignalTypeSignalName;
                 return false;
@@ -417,7 +417,7 @@ namespace mrover::dbc {
             return std::unexpected(Error::InvalidMessageFormat);
         }
 
-        return std::expected<CanMessageDescription, Error>(std::in_place, message);
+        return std::expected<CanMessageDescription, Error>(std::in_place, std::move(message));
     }
 
     auto CanDbcFileParser::parse_signal(string_view line) -> std::expected<CanSignalDescription, Error> {
