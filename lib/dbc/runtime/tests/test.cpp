@@ -34,9 +34,9 @@ auto main(int argc, char** argv) -> int {
         assert(science_message.is_valid());
         assert(science_message.name() == "Science_Sensors");
         assert(science_message.id() == 80);
-        assert(science_message.length() == 16);
+        assert(science_message.length() == 20);
         assert(science_message.transmitter() == "science");
-        assert(science_message.signals_size() == 4);
+        assert(science_message.signals_size() == 5);
         assert(science_message.comment() == "sensor information from the\nscience\n\nboard\n");
 
         CanSignalDescription const* temp_signal = science_message.signal("Sensors_Temperature");
@@ -45,10 +45,9 @@ auto main(int argc, char** argv) -> int {
         assert(temp_signal->bit_length() == 32);
         assert(temp_signal->endianness() == Endianness::LittleEndian);
         assert(temp_signal->data_format() == DataFormat::Float);
-        assert(temp_signal->factor() == 1.0);
-        assert(temp_signal->offset() == 0.0);
-        assert(temp_signal->minimum() == 0.0);
-        assert(temp_signal->maximum() == 0.0);
+        assert(temp_signal->factor_offset_used() == false);
+        assert(temp_signal->minimum() == -3.4e+38);
+        assert(temp_signal->maximum() == 3.4e+38);
         assert(temp_signal->unit() == "celsius");
         assert(temp_signal->receiver() == "jetson");
 
@@ -58,10 +57,9 @@ auto main(int argc, char** argv) -> int {
         assert(humidity_signal->bit_length() == 32);
         assert(humidity_signal->endianness() == Endianness::LittleEndian);
         assert(humidity_signal->data_format() == DataFormat::Float);
-        assert(humidity_signal->factor() == 1.0);
-        assert(humidity_signal->offset() == 0.0);
-        assert(humidity_signal->minimum() == 0.0);
-        assert(humidity_signal->maximum() == 0.0);
+        assert(humidity_signal->factor_offset_used() == false);
+        assert(humidity_signal->minimum() == -3.4e+38);
+        assert(humidity_signal->maximum() == 3.4e+38);
         assert(humidity_signal->unit() == "percent");
         assert(humidity_signal->receiver() == "jetson");
         assert(humidity_signal->comment() == "percent relative humidity");
@@ -72,11 +70,9 @@ auto main(int argc, char** argv) -> int {
         assert(uv_signal->bit_length() == 32);
         assert(uv_signal->endianness() == Endianness::LittleEndian);
         assert(uv_signal->data_format() == DataFormat::Float);
-        assert(uv_signal->factor() == 1.0);
-        assert(uv_signal->offset() == 0.0);
-        assert(uv_signal->minimum() == 0.0);
-        assert(uv_signal->maximum() == 0.0);
-        assert(uv_signal->unit() == "index");
+        assert(uv_signal->factor_offset_used() == false);
+        assert(uv_signal->minimum_maximum_used() == false);
+        assert(uv_signal->unit() == "");
         assert(uv_signal->receiver() == "jetson");
 
         CanSignalDescription const* oxygen_signal = science_message.signal("Sensors_Oxygen");
@@ -85,12 +81,21 @@ auto main(int argc, char** argv) -> int {
         assert(oxygen_signal->bit_length() == 32);
         assert(oxygen_signal->endianness() == Endianness::LittleEndian);
         assert(oxygen_signal->data_format() == DataFormat::Float);
-        assert(oxygen_signal->factor() == 1.0);
-        assert(oxygen_signal->offset() == 0.0);
-        assert(oxygen_signal->minimum() == 0.0);
-        assert(oxygen_signal->maximum() == 0.0);
-        assert(oxygen_signal->unit() == "ppm");
+        assert(oxygen_signal->factor_offset_used() == false);
+        assert(oxygen_signal->minimum_maximum_used() == false);
+        assert(oxygen_signal->unit() == "");
         assert(oxygen_signal->receiver() == "jetson");
+
+        CanSignalDescription const* co2_signal = science_message.signal("Sensors_CO2");
+        assert(co2_signal != nullptr);
+        assert(co2_signal->bit_start() == 128);
+        assert(co2_signal->bit_length() == 32);
+        assert(co2_signal->endianness() == Endianness::LittleEndian);
+        assert(co2_signal->data_format() == DataFormat::Float);
+        assert(co2_signal->factor_offset_used() == false);
+        assert(co2_signal->minimum_maximum_used() == false);
+        assert(co2_signal->unit() == "");
+        assert(co2_signal->receiver() == "");
     }
 
 

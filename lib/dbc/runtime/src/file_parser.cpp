@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 namespace mrover::dbc {
     using std::string_view;
@@ -502,63 +503,83 @@ namespace mrover::dbc {
 
         // ===== FACTOR & OFFSET =====
         string_view factor_and_offset = next_word(line);
-        if (!factor_and_offset.starts_with('(') || !factor_and_offset.ends_with(')')) {
-            return std::unexpected(Error::InvalidSignalFactorOffset);
+        string_view min_and_max;
+        string_view unit;
+        string_view receiver;
+        if (factor_and_offset.starts_with('(') && factor_and_offset.ends_with(')')) {
+            factor_and_offset.remove_prefix(1);
+            factor_and_offset.remove_suffix(1);
+            sep_pos = factor_and_offset.find(',');
+            if (sep_pos == std::string_view::npos) {
+                return std::unexpected(Error::InvalidSignalFactorOffset);
+            }
+            string_view factor_str = factor_and_offset.substr(0, sep_pos);
+            string_view offset_str = factor_and_offset.substr(sep_pos + 1);
+            auto factor = to_floating_point<double>(factor_str);
+            if (!factor.has_value()) {
+                return std::unexpected(Error::InvalidSignalFactorOffset);
+            }
+            auto offset = to_floating_point<double>(offset_str);
+            if (!offset.has_value()) {
+                return std::unexpected(Error::InvalidSignalFactorOffset);
+            }
+            if (factor.value() == 1.0 && offset.value() == 0.0) {
+                signal.clear_factor_offset();
+            } else {
+                signal.set_factor(factor.value());
+                signal.set_offset(offset.value());
+            }
+
+            min_and_max = next_word(line);
+        } else {
+            signal.clear_factor_offset();
+            min_and_max = factor_and_offset;
         }
-        factor_and_offset.remove_prefix(1);
-        factor_and_offset.remove_suffix(1);
-        sep_pos = factor_and_offset.find(',');
-        if (sep_pos == std::string_view::npos) {
-            return std::unexpected(Error::InvalidSignalFactorOffset);
-        }
-        string_view factor_str = factor_and_offset.substr(0, sep_pos);
-        string_view offset_str = factor_and_offset.substr(sep_pos + 1);
-        auto factor = to_floating_point<double>(factor_str);
-        if (!factor.has_value()) {
-            return std::unexpected(Error::InvalidSignalFactorOffset);
-        }
-        signal.set_factor(factor.value());
-        auto offset = to_floating_point<double>(offset_str);
-        if (!offset.has_value()) {
-            return std::unexpected(Error::InvalidSignalFactorOffset);
-        }
-        signal.set_offset(offset.value());
 
         // ===== MIN & MAX =====
-        string_view min_and_max = next_word(line);
-        if (!min_and_max.starts_with('[') || !min_and_max.ends_with(']')) {
-            return std::unexpected(Error::InvalidSignalMinMax);
+        if (min_and_max.starts_with('[') && min_and_max.ends_with(']')) {
+            min_and_max.remove_prefix(1);
+            min_and_max.remove_suffix(1);
+            sep_pos = min_and_max.find('|');
+            if (sep_pos == std::string_view::npos) {
+                return std::unexpected(Error::InvalidSignalMinMax);
+            }
+            string_view min_str = min_and_max.substr(0, sep_pos);
+            string_view max_str = min_and_max.substr(sep_pos + 1);
+            auto min = to_floating_point<double>(min_str);
+            if (!min.has_value()) {
+                return std::unexpected(Error::InvalidSignalMinMax);
+            }
+            auto max = to_floating_point<double>(max_str);
+            if (!max.has_value()) {
+                return std::unexpected(Error::InvalidSignalMinMax);
+            }
+
+            if (min.value() == 0.0 && max.value() == 0.0) {
+                signal.clear_minimum_maximum();
+            } else {
+                signal.set_minimum(min.value());
+                signal.set_maximum(max.value());
+            }
+
+            unit = next_word(line);
+        } else {
+            signal.clear_minimum_maximum();
+            unit = min_and_max;
         }
-        min_and_max.remove_prefix(1);
-        min_and_max.remove_suffix(1);
-        sep_pos = min_and_max.find('|');
-        if (sep_pos == std::string_view::npos) {
-            return std::unexpected(Error::InvalidSignalMinMax);
-        }
-        string_view min_str = min_and_max.substr(0, sep_pos);
-        string_view max_str = min_and_max.substr(sep_pos + 1);
-        auto min = to_floating_point<double>(min_str);
-        if (!min.has_value()) {
-            return std::unexpected(Error::InvalidSignalMinMax);
-        }
-        signal.set_minimum(min.value());
-        auto max = to_floating_point<double>(max_str);
-        if (!max.has_value()) {
-            return std::unexpected(Error::InvalidSignalMinMax);
-        }
-        signal.set_maximum(max.value());
 
         // ===== UNIT =====
-        string_view unit = next_word(line);
-        if (unit.size() < 2 || unit.front() != '"' || unit.back() != '"') {
-            return std::unexpected(Error::InvalidSignalUnit);
+        if (unit.starts_with('"') && unit.ends_with('"')) {
+            unit.remove_prefix(1);
+            unit.remove_suffix(1);
+            signal.set_unit(unit);
+
+            receiver = next_word(line);
+        } else {
+            receiver = unit;
         }
-        unit.remove_prefix(1);
-        unit.remove_suffix(1);
-        signal.set_unit(unit);
 
         // ===== RECEIVER =====
-        string_view receiver = next_word(line);
         if (!receiver.empty()) {
             signal.set_receiver(receiver);
         }

@@ -32,11 +32,27 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanSignalDescription::offset() const -> double { return m_offset; }
     void CanSignalDescription::set_offset(double offset) { m_offset = offset; }
 
+    [[nodiscard]] auto CanSignalDescription::factor_offset_used() const -> bool {
+        return m_factor != 1.0 || m_offset != 0.0;
+    }
+    void CanSignalDescription::clear_factor_offset() {
+        m_factor = 1.0;
+        m_offset = 0.0;
+    }
+
     [[nodiscard]] auto CanSignalDescription::minimum() const -> double { return m_minimum; }
     void CanSignalDescription::set_minimum(double minimum) { m_minimum = minimum; }
 
     [[nodiscard]] auto CanSignalDescription::maximum() const -> double { return m_maximum; }
     void CanSignalDescription::set_maximum(double maximum) { m_maximum = maximum; }
+
+    [[nodiscard]] auto CanSignalDescription::minimum_maximum_used() const -> bool {
+        return m_minimum != 0.0 || m_maximum != 0.0;
+    }
+    void CanSignalDescription::clear_minimum_maximum() {
+        m_minimum = 0.0;
+        m_maximum = 0.0;
+    }
 
     [[nodiscard]] auto CanSignalDescription::unit() const -> std::string { return m_unit; }
     void CanSignalDescription::set_unit(std::string&& unit) { m_unit = std::move(unit); }
@@ -56,6 +72,8 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanSignalDescription::is_valid() const -> bool {
         if (m_name.empty() ||
             !(m_bit_length > 0 && m_bit_length <= 512) ||
+            (m_data_format == DataFormat::SignedInteger && m_bit_length > 64) ||
+            (m_data_format == DataFormat::UnsignedInteger && m_bit_length > 64) ||
             (m_data_format == DataFormat::Float && m_bit_length != 32) ||
             (m_data_format == DataFormat::Double && m_bit_length != 64) ||
             (m_data_format == DataFormat::AsciiString && (m_bit_length % 8 != 0))) {
@@ -135,11 +153,14 @@ namespace mrover::dbc {
 
     [[nodiscard]] auto CanMessageDescription::signals() noexcept {
         namespace rv = std::views;
-        return m_signals | rv::transform([](auto& p) -> CanSignalDescription& { return *p; });
+        // range: unordered_map<...>& -> view of unique_ptr<CanSignalDescription>& ->
+        //       view of CanSignalDescription&
+        return m_signals | rv::values | rv::transform([](auto& p) -> CanSignalDescription& { return *p; });
     }
+
     [[nodiscard]] auto CanMessageDescription::signals() const noexcept {
         namespace rv = std::views;
-        return m_signals | rv::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
+        return m_signals | rv::values | rv::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
     }
 
     [[nodiscard]] auto CanMessageDescription::signals_size() const -> std::size_t {
@@ -147,27 +168,40 @@ namespace mrover::dbc {
     }
 
     auto CanMessageDescription::signal(std::string_view name) -> CanSignalDescription* {
-        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
-            return s->m_name == name;
-        });
-        return it != m_signals.end() ? &(**it) : nullptr;
+        auto it = m_signals.find(name);
+        if (it == m_signals.end()) {
+            return nullptr;
+        }
+        return it->second.get();
     }
     auto CanMessageDescription::signal(std::string_view name) const -> CanSignalDescription const* {
-        auto it = std::find_if(m_signals.begin(), m_signals.end(), [&name](auto const& s) {
-            return s->m_name == name;
-        });
-        return it != m_signals.end() ? &(**it) : nullptr;
+        auto it = m_signals.find(name);
+        if (it == m_signals.end()) {
+            return nullptr;
+        }
+        return it->second.get();
     }
 
     void CanMessageDescription::clear_signals() {
         m_signals.clear();
     }
 
-    void CanMessageDescription::add_signal(std::unique_ptr<CanSignalDescription> signal) {
-        m_signals.push_back(std::move(signal));
+    auto CanMessageDescription::add_signal(std::unique_ptr<CanSignalDescription> signal) -> CanSignalDescription* {
+        if (!signal) return nullptr;
+
+        std::string key = signal->name();
+        signal->set_name(key);
+
+        auto [it, _] = m_signals.insert_or_assign(std::move(key), std::move(signal));
+        return it->second.get();
     }
-    void CanMessageDescription::add_signal(CanSignalDescription signal) {
-        m_signals.push_back(std::make_unique<CanSignalDescription>(std::move(signal)));
+    auto CanMessageDescription::add_signal(CanSignalDescription signal) -> CanSignalDescription* {
+        std::string key = signal.name();
+        auto up = std::make_unique<CanSignalDescription>(std::move(signal));
+        up->set_name(key);
+
+        auto [it, _] = m_signals.insert_or_assign(std::move(key), std::move(up));
+        return it->second.get();
     }
 
     [[nodiscard]] auto CanMessageDescription::comment() const -> std::string { return m_comment; }
@@ -177,14 +211,14 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanMessageDescription::is_valid() const -> bool {
         if (m_name.empty() ||
             m_signals.empty() ||
-            std::ranges::none_of(m_signals, [](auto const& s) {
-                return s->is_valid();
+            std::ranges::none_of(signals(), [](auto const& s) {
+                return s.is_valid();
             })) {
             return false;
         }
 
         uint16_t total_signal_bits = 0;
-        for (auto const& signal: m_signals) {
+        for (auto const& [_, signal]: m_signals) {
             total_signal_bits += signal->bit_length();
         }
         if (total_signal_bits > m_length * 8) {
@@ -201,8 +235,8 @@ namespace mrover::dbc {
         os << "Transmitter: " << message.m_transmitter << "\n";
         os << "Comment: \"" << message.m_comment << "\"\n";
         os << "Signals:\n";
-        for (auto const& signal: message.m_signals) {
-            os << *signal << "\n";
+        for (auto const& signal: message.signals()) {
+            os << signal << "\n";
         }
         return os;
     }
