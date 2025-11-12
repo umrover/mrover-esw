@@ -15,6 +15,7 @@
 #include <queue>
 #include <chrono>
 #include "Yaml.hpp"
+#include <iomanip>
 
 #include <sys/stat.h>   // for mkdir
 #include <sys/types.h>
@@ -43,12 +44,13 @@ class Logger {
         std::unordered_set<int> listen_ids;
         std::queue<canfd_frame> buffer;
         bool log_all = false;
+        bool debug = false;
 
         void _init_bus();
         void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile);
     
     public:
-        Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path/*, std::istream &is*/);
+        Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path, bool debug/*, std::istream &is*/);
         void start();
         void print(std::ostream &os);
 };
