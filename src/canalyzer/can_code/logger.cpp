@@ -35,16 +35,28 @@ void logger::Logger::_init_bus() {
         
 void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
     std::cout << "file_status in" << name << ": " << outputFile.is_open() << "\n";
+    outputFile << "(";
+    outputFile << now_ns() << ") " << can_bus_name << " ";
+
+    //TODO fix this! should be the proper CAN id
+
+    outputFile << "CANID##";
+
     
-    for(size_t i = 0; i < CANFD_MAX_DLEN; i++) {
-        outputFile << static_cast<int>(arr[i]) << " ";
-    }
-    outputFile << "\n";
+    for (size_t i = 0; i < CANFD_MAX_DLEN; i++) {
+    outputFile << std::hex              // switch to hex mode
+               << std::uppercase        // use uppercase letters (A–F)
+               << std::setw(2)          // pad to 2 digits
+               << std::setfill('0')     // pad with '0' if needed
+               << static_cast<int>(arr[i] & 0xFF);  // ensure unsigned
+    }   
+
+    outputFile << std::dec << "\n";
 }
 
-logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path/*, std::istream &is*/)
+logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path, bool debug/*, std::istream &is*/)
 : can_bus_name(bus_name), file_path(file_path), si(server_info.host, server_info.port, server_info.db_name, server_info.user, 
-    server_info.password), listen_ids(can_ids_listen), log_all(log_all)
+    server_info.password), listen_ids(can_ids_listen), log_all(log_all), debug(debug)
 {
     /*int id;
     while (is >> id) {
@@ -174,7 +186,7 @@ void logger::logger_factory(std::vector<Logger> &loggers, std::string path, bool
             log_ids.insert(std::stoi(num));
         }
         std::string file_path = loggers_node[i]["file_path"].As<std::string>();
-        loggers.emplace_back(name, auth, log_ids, log_all, file_path);
+        loggers.emplace_back(name, auth, log_ids, log_all, file_path, debug);
         if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << file_path << std::endl;
     }
 }
