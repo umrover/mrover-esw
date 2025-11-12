@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(dbc STATIC
     src/message.cpp
+    src/signal.cpp
     src/file_parser.cpp
 )
 add_library(dbc::dbc ALIAS dbc)

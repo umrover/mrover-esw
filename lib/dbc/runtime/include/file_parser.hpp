@@ -7,6 +7,7 @@
 #include <ranges>
 
 #include "message.hpp"
+#include "signal.hpp"
 
 /*
     The current implementation supports only a subset of keywords that you can find in a DBC file:
