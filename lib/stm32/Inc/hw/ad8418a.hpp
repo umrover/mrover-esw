@@ -114,8 +114,8 @@ namespace mrover {
 
     private:
         AnalogPin m_analog_pin;
-        bool m_valid{};
-        bool m_enabled{};
+        bool m_valid{false};
+        bool m_enabled{true};
         float m_gain{20.0f};
         float m_shunt_resistance{};
         float m_vref{3.3f};
