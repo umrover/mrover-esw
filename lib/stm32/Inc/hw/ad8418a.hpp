@@ -36,7 +36,7 @@ namespace mrover {
         * @param adc_resolution    The maximum numeric value of the ADC conversion (e.g. 4095 for 12-bit ADC,
         *                          1023 for 10-bit ADC).
         */
-        auto initialize(float shunt_resistance, float gain = 20.0f,
+        auto initialize(float shunt_resistance=0.0005, float gain = 20.0f,
                         bool enabled = true, float voltage_reference = 3.3f,
                         uint16_t adc_resolution = 4095) -> void {
             m_valid = true;
@@ -64,7 +64,7 @@ namespace mrover {
         */
         auto update_sensor() -> void {
             if (!m_enabled || !m_valid) return;
-            auto adc_value = m_analog_pin.read_analog();  // You’d define this in Pin
+            auto adc_value = m_analog_pin.read_analog();
             float v_out = (adc_value / m_adc_resolution) * m_vref;
             m_current = v_out / (m_gain * m_shunt_resistance);
         }
@@ -117,7 +117,7 @@ namespace mrover {
         bool m_valid{false};
         bool m_enabled{true};
         float m_gain{20.0f};
-        float m_shunt_resistance{};
+        float m_shunt_resistance{0.0005};
         float m_vref{3.3f};
         uint16_t m_adc_resolution{4095};
         float m_current{};
