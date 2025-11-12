@@ -5,6 +5,16 @@
 
 #include "main.h"
 
+// Brief Code Overview:
+// ---------------------------------------------------------------------------
+// The sensor measures the voltage drop accross the shunt resistor (0.5mOhms) 
+// and determines the current using Ohms law. The voltage drop is amplified by
+// the sensor by a factor of 20 (by default), which is divided out in the     
+// current calculation. `initialize` must me called to set the valid bool to  
+// true, allowing data to be read. `update_sensor` will update the current    
+// variable, and `current` will return the variable. Consider making these 
+// into one function if prefered. 
+
 
 namespace mrover {
     class ad8418a {
