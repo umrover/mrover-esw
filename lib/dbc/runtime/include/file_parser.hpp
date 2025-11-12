@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <ranges>
 
 #include "message.hpp"
 
@@ -59,7 +60,11 @@ namespace mrover::dbc {
         [[nodiscard]] auto is_error() const -> bool;
         [[nodiscard]] auto error() const -> Error;
 
-        [[nodiscard]] auto messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const&;
+        [[nodiscard]] auto messages() const noexcept {
+            namespace rv = std::views;
+            return m_messages | rv::values | rv::transform([](auto const& p) -> CanMessageDescription const& { return p; });
+        }
+
         [[nodiscard]] auto message(uint32_t id) -> CanMessageDescription*;
         [[nodiscard]] auto message(uint32_t id) const -> CanMessageDescription const*;
 

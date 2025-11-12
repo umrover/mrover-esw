@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <ostream>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -125,8 +126,15 @@ namespace mrover::dbc {
         void set_transmitter(std::string&& transmitter);
         void set_transmitter(std::string_view transmitter);
 
-        [[nodiscard]] auto signals() noexcept;
-        [[nodiscard]] auto signals() const noexcept;
+        [[nodiscard]] auto signals() noexcept {
+            // range: unordered_map<...>& -> view of unique_ptr<CanSignalDescription>& ->
+            //       view of CanSignalDescription&
+            return m_signals | std::views::values | std::views::transform([](auto& p) -> CanSignalDescription& { return *p; });
+        }
+        [[nodiscard]] auto signals() const noexcept {
+            return m_signals | std::views::values | std::views::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
+        }
+
 
         [[nodiscard]] auto signals_size() const -> std::size_t;
 

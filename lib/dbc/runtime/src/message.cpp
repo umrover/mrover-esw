@@ -151,18 +151,6 @@ namespace mrover::dbc {
     void CanMessageDescription::set_transmitter(std::string&& transmitter) { m_transmitter = transmitter; }
     void CanMessageDescription::set_transmitter(std::string_view transmitter) { m_transmitter = std::string(transmitter); }
 
-    [[nodiscard]] auto CanMessageDescription::signals() noexcept {
-        namespace rv = std::views;
-        // range: unordered_map<...>& -> view of unique_ptr<CanSignalDescription>& ->
-        //       view of CanSignalDescription&
-        return m_signals | rv::values | rv::transform([](auto& p) -> CanSignalDescription& { return *p; });
-    }
-
-    [[nodiscard]] auto CanMessageDescription::signals() const noexcept {
-        namespace rv = std::views;
-        return m_signals | rv::values | rv::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
-    }
-
     [[nodiscard]] auto CanMessageDescription::signals_size() const -> std::size_t {
         return m_signals.size();
     }
@@ -218,8 +206,11 @@ namespace mrover::dbc {
         }
 
         uint16_t total_signal_bits = 0;
-        for (auto const& [_, signal]: m_signals) {
-            total_signal_bits += signal->bit_length();
+        for (auto const& signal: signals()) {
+            if (signal.bit_start() + signal.bit_length() > m_length * 8) {
+                return false;
+            }
+            total_signal_bits += signal.bit_length();
         }
         if (total_signal_bits > m_length * 8) {
             return false;

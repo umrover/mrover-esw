@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -141,7 +142,6 @@ namespace mrover::dbc {
     [[nodiscard]] auto CanDbcFileParser::is_error() const -> bool { return m_error != Error::None; }
     [[nodiscard]] auto CanDbcFileParser::error() const -> Error { return m_error; }
 
-    [[nodiscard]] auto CanDbcFileParser::messages() const -> std::unordered_map<uint32_t, CanMessageDescription> const& { return m_messages; }
     [[nodiscard]] auto CanDbcFileParser::message(uint32_t id) -> CanMessageDescription* {
         if (auto it = m_messages.find(id); it != m_messages.end())
             return std::addressof(it->second);
