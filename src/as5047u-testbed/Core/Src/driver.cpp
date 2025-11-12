@@ -35,7 +35,7 @@ namespace mrover {
             const float  dps = s_enc.get_velocity();         
 
             std::printf("Angle: %.2f deg, Velocity: %.2f deg/s\r\n", deg, dps);
-            HAL_Delay(1000);
+            HAL_Delay(500);
         }
 
     }

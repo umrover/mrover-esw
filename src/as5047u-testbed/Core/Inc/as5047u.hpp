@@ -7,6 +7,18 @@ struct Pin {
   uint16_t      pin;
 };
 
+/**
+ * AS5047U SPI driver (CRC-less, fast 16-bit frames).
+ *
+ * Key protocol facts implemented here:
+ *  - SPI Mode 1 (CPOL=0, CPHA=1), MSB first, <= 10 MHz (set in CubeMX).     [page 16]
+ *  - Command is a 16-bit word: bit15=0, bit14=1 (READ), bits13:0 = address. [page 18]
+ *  - The device returns data on the *next* frame (pipeline read):
+ *      1) send READ <addr>
+ *      2) send READ NOP  -> receive previous data
+ *  - Returned word: bit15=Warning, bit14=Error, bits13:0=DATA (14-bit).
+ * Datasheet: “SPI Interface (Slave)”, “Frame format”, “Read timing/pipeline”.
+ */
 class AS5047U {
 public:
   AS5047U(SPI_HandleTypeDef* hspi, Pin cs_pin)
@@ -25,16 +37,15 @@ private:
   SPI_HandleTypeDef* m_hspi;
   Pin                m_cs_pin;
 
-  uint16_t m_last_position;
-  float    m_velocity;
-  uint32_t m_last_time_us;
+  uint16_t m_last_position; // cached ANGLECOM
+  float    m_velocity;      // cached deg/s
+  uint32_t m_last_time_us;  // reserved for future dt-based filters
 
+  // Manual chip-select control (active-low)
   void select()   { HAL_GPIO_WritePin(m_cs_pin.port, m_cs_pin.pin, GPIO_PIN_RESET); }
   void unselect() { HAL_GPIO_WritePin(m_cs_pin.port, m_cs_pin.pin, GPIO_PIN_SET);   }
 
-  // no copy
-  AS5047U(const AS5047U&)            = delete;
-  AS5047U& operator=(const AS5047U&) = delete;
+
 };
 
 // ----------------- AS5047U register map -----------------
