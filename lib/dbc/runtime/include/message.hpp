@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <ostream>
 #include <ranges>
 #include <string>
@@ -30,10 +29,10 @@ namespace mrover::dbc {
         [[nodiscard]] auto signals() noexcept {
             // range: unordered_map<...>& -> view of unique_ptr<CanSignalDescription>& ->
             //       view of CanSignalDescription&
-            return m_signals | std::views::values | std::views::transform([](auto& p) -> CanSignalDescription& { return *p; });
+            return m_signals | std::views::values;
         }
         [[nodiscard]] auto signals() const noexcept {
-            return m_signals | std::views::values | std::views::transform([](auto const& p) -> CanSignalDescription const& { return *p; });
+            return m_signals | std::views::values;
         }
 
 
@@ -44,7 +43,6 @@ namespace mrover::dbc {
 
         void clear_signals();
 
-        auto add_signal(std::unique_ptr<CanSignalDescription> signal) -> CanSignalDescription*;
         auto add_signal(CanSignalDescription signal) -> CanSignalDescription*;
 
         [[nodiscard]] auto comment() const -> std::string;
@@ -74,7 +72,7 @@ namespace mrover::dbc {
         uint32_t m_id;
         uint8_t m_length; // in bytes
         std::string m_transmitter;
-        std::unordered_map<std::string, std::unique_ptr<CanSignalDescription>, TransparentHash, TransparentEqual> m_signals;
+        std::unordered_map<std::string, CanSignalDescription, TransparentHash, TransparentEqual> m_signals;
         std::string m_comment;
     };
 

@@ -44,7 +44,7 @@ auto main(int argc, char** argv) -> int {
         assert(temp_signal->bit_start() == 0);
         assert(temp_signal->bit_length() == 32);
         assert(temp_signal->endianness() == Endianness::LittleEndian);
-        assert(temp_signal->data_format() == DataFormat::Float);
+        assert(temp_signal->data_format() == DataFormat::SignedInteger);
         assert(temp_signal->factor_offset_used() == false);
         assert(temp_signal->minimum() == -3.4e+38);
         assert(temp_signal->maximum() == 3.4e+38);
@@ -96,6 +96,48 @@ auto main(int argc, char** argv) -> int {
         assert(co2_signal->minimum_maximum_used() == false);
         assert(co2_signal->unit() == "");
         assert(co2_signal->receiver() == "");
+    }
+
+    {
+        struct ScienceSensorsTestMessage {
+            int32_t temperature = -22;
+            float humidity = 55.0f;
+            float uv = 3.2f;
+            float oxygen = 20.8f;
+            float co2 = 415.0f;
+        } __attribute__((packed));
+
+        ScienceSensorsTestMessage ScienceSensorsTestMessage{};
+
+        CanMessageDescription const* science_message = parser.message(80);
+        CanFrameProcessor frame_processor;
+        frame_processor.add_message_description(*science_message);
+        auto decoded_signals = frame_processor.decode(80, std::string_view(
+                                                                  reinterpret_cast<char const*>(&ScienceSensorsTestMessage),
+                                                                  sizeof(ScienceSensorsTestMessage)));
+        assert(decoded_signals.size() == 5);
+        assert(std::holds_alternative<int32_t>(decoded_signals.at("Sensors_Temperature")));
+        assert(std::get<int32_t>(decoded_signals.at("Sensors_Temperature")) == -22);
+        assert(std::holds_alternative<float>(decoded_signals.at("Sensors_Humidity")));
+        assert(std::get<float>(decoded_signals.at("Sensors_Humidity")) == 55.0f);
+        assert(std::holds_alternative<float>(decoded_signals.at("Sensors_UV")));
+        assert(std::get<float>(decoded_signals.at("Sensors_UV")) == 3.2f);
+        assert(std::holds_alternative<float>(decoded_signals.at("Sensors_Oxygen")));
+        assert(std::get<float>(decoded_signals.at("Sensors_Oxygen")) == 20.8f);
+        assert(std::holds_alternative<float>(decoded_signals.at("Sensors_CO2")));
+        assert(std::get<float>(decoded_signals.at("Sensors_CO2")) == 415.0f);
+
+        std::cout << "Decoded Signals from Science_Sensors message:\n";
+        for (auto const& [name, value]: decoded_signals) {
+            std::cout << "  " << name << ": ";
+            if (std::holds_alternative<float>(value)) {
+                std::cout << static_cast<float>(std::get<float>(value));
+            } else if (std::holds_alternative<int32_t>(value)) {
+                std::cout << static_cast<int32_t>(std::get<int32_t>(value));
+            } else {
+                std::cout << "Unknown Type";
+            }
+        }
     }
 
 

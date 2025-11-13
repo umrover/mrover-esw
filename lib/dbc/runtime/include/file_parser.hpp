@@ -1,13 +1,12 @@
 #pragma once
 
 #include <expected>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <ranges>
 
 #include "message.hpp"
-#include "signal.hpp"
 
 /*
     The current implementation supports only a subset of keywords that you can find in a DBC file:
@@ -68,6 +67,8 @@ namespace mrover::dbc {
 
         [[nodiscard]] auto message(uint32_t id) -> CanMessageDescription*;
         [[nodiscard]] auto message(uint32_t id) const -> CanMessageDescription const*;
+        [[nodiscard]] auto message(std::string_view name) -> CanMessageDescription*;
+        [[nodiscard]] auto message(std::string_view name) const -> CanMessageDescription const*;
 
         auto parse(std::string const& filepath) -> bool;
 

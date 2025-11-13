@@ -28,36 +28,23 @@ namespace mrover::dbc {
         if (it == m_signals.end()) {
             return nullptr;
         }
-        return it->second.get();
+        return &it->second;
     }
     auto CanMessageDescription::signal(std::string_view name) const -> CanSignalDescription const* {
         auto it = m_signals.find(name);
         if (it == m_signals.end()) {
             return nullptr;
         }
-        return it->second.get();
+        return &it->second;
     }
 
     void CanMessageDescription::clear_signals() {
         m_signals.clear();
     }
 
-    auto CanMessageDescription::add_signal(std::unique_ptr<CanSignalDescription> signal) -> CanSignalDescription* {
-        if (!signal) return nullptr;
-
-        std::string key = signal->name();
-        signal->set_name(key);
-
-        auto [it, _] = m_signals.insert_or_assign(std::move(key), std::move(signal));
-        return it->second.get();
-    }
     auto CanMessageDescription::add_signal(CanSignalDescription signal) -> CanSignalDescription* {
-        std::string key = signal.name();
-        auto up = std::make_unique<CanSignalDescription>(std::move(signal));
-        up->set_name(key);
-
-        auto [it, _] = m_signals.insert_or_assign(std::move(key), std::move(up));
-        return it->second.get();
+        auto [it, _] = m_signals.insert_or_assign(std::move(signal.name()), std::move(signal));
+        return &it->second;
     }
 
     [[nodiscard]] auto CanMessageDescription::comment() const -> std::string { return m_comment; }

@@ -161,6 +161,33 @@ namespace mrover::dbc {
         return nullptr;
     }
 
+    [[nodiscard]] auto CanDbcFileParser::message(std::string_view name) -> CanMessageDescription* {
+        for (auto& [_, message]: m_messages) {
+            if (message.name() == name) {
+                return std::addressof(message);
+            }
+        }
+
+        if (m_is_processing_message && m_current_message.name() == name) {
+            return std::addressof(m_current_message);
+        }
+
+        return nullptr;
+    }
+    [[nodiscard]] auto CanDbcFileParser::message(std::string_view name) const -> CanMessageDescription const* {
+        for (auto& [_, message]: m_messages) {
+            if (message.name() == name) {
+                return std::addressof(message);
+            }
+        }
+
+        if (m_is_processing_message && m_current_message.name() == name) {
+            return std::addressof(m_current_message);
+        }
+
+        return nullptr;
+    }
+
     auto CanDbcFileParser::parse(std::string const& filepath) -> bool {
         std::string file;
         std::error_code ec;

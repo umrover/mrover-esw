@@ -27,10 +27,9 @@ namespace mrover::dbc {
         SwitchAndSignal = MultiplexorSwitch | MultiplexedSignal, // if extended multiplexing is supported
     };
 
-    typedef std::variant<int8_t, uint8_t, int16_t, uint16_t,
-                         int32_t, uint32_t, int64_t, uint64_t,
-                         float, double, std::string>
-            CanSignalValue;
+    using CanSignalValue = std::variant<int8_t, uint8_t, int16_t, uint16_t,
+                                        int32_t, uint32_t, int64_t, uint64_t,
+                                        float, double, std::string>;
 
     class CanSignalDescription {
     public:

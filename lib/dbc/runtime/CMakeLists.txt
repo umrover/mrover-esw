@@ -6,9 +6,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(dbc STATIC
+    src/file_parser.cpp
+    src/frame_processor.cpp
     src/message.cpp
     src/signal.cpp
-    src/file_parser.cpp
 )
 add_library(dbc::dbc ALIAS dbc)
 

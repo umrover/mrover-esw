@@ -83,7 +83,6 @@ BA_ "VFrameFormat" BO_ 81 14;
 BA_ "CANFD_BRS" BO_ 81 1;
 BA_ "VFrameFormat" BO_ 82 14;
 BA_ "CANFD_BRS" BO_ 82 1;
-SIG_VALTYPE_ 80 Sensors_Temperature : 1;
 SIG_VALTYPE_ 80 Sensors_Humidity : 1;
 SIG_VALTYPE_ 80 Sensors_UV : 1;
 SIG_VALTYPE_ 80 Sensors_Oxygen : 1;
