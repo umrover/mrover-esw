@@ -5,6 +5,7 @@
 #include "main.h"
 #include "stm32g431xx.h"
 #include "stm32g4xx_hal_tim.h"
+#include "serial/debug.hpp"
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
@@ -33,31 +34,31 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    // HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}};
+    HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}};
     // NOTE this is for EHW's hbridge circuit, might not be a bad idea to write a separate header for the LN298 hbridges laying around too
 
     Pin can_tx{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
     Pin can_rx{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
     auto init() -> void {
+        debug("initializing");
         can_tx.set();
-        // hbridge.write(0);
-        // hbridge.change_max_pwm(100);
+        hbridge.write(0);
+        hbridge.change_max_pwm(100);
     }
 
     [[noreturn]] auto loop() -> void {
 
         for ( ;; ) {
+            debug("looping");
             can_tx.set();
             can_rx.reset();
-            // hbridge.write(-50);
-
+            hbridge.write(-25);
             HAL_Delay(1000);
+
             can_tx.reset();
             can_rx.set();
-
-            // hbridge.write(50);
-
+            hbridge.write(25);
             HAL_Delay(1000);
         }
     }
