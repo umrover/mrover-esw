@@ -22,7 +22,7 @@ class {{ message_dict[msg].name }} {
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
-    {{ message_dict[msg].name }}(uint8_t * byte_arr) {
+    {{ message_dict[msg].name }}(uint8_t const * byte_arr) {
         uint32_t i = 0;
     {%- set ns = namespace(boolIter = 0) %}
     {%- for signal in signals %}

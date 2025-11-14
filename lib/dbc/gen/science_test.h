@@ -23,7 +23,7 @@ class VECTOR__INDEPENDENT_SIG_MSG {
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
-    VECTOR__INDEPENDENT_SIG_MSG(uint8_t * byte_arr) {
+    VECTOR__INDEPENDENT_SIG_MSG(uint8_t const * byte_arr) {
         uint32_t i = 0;
         ISH_EnableWLED2 = (byte_arr[i] >> 0) & 0b1;
         ISH_EnableWLED1 = (byte_arr[i] >> 1) & 0b1;
@@ -73,7 +73,7 @@ class Science_Sensors {
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
-    Science_Sensors(uint8_t * byte_arr) {
+    Science_Sensors(uint8_t const * byte_arr) {
         uint32_t i = 0;
 
         uint32_t temp_Sensors_Temperature = 0;
@@ -145,7 +145,7 @@ class Science_ISHOutbound {
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
-    Science_ISHOutbound(uint8_t * byte_arr) {
+    Science_ISHOutbound(uint8_t const * byte_arr) {
         uint32_t i = 0;
 
         uint32_t temp_ISH_Heater1Temp = 0;
@@ -211,7 +211,7 @@ class Science_ISHInbound {
     // Constructors serve as our encode/decode functions
     
     // Decode into message class format
-    Science_ISHInbound(uint8_t * byte_arr) {
+    Science_ISHInbound(uint8_t const * byte_arr) {
         uint32_t i = 0;
         ISH_Heater1Enable = (byte_arr[i] >> 0) & 0b1;
         ISH_Heater2Enable = (byte_arr[i] >> 1) & 0b1;
