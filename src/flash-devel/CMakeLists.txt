@@ -37,6 +37,8 @@ enable_language(C CXX ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
+target_link_options(flash-devel PRIVATE -u _printf_float)
+
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx_extern)
 
