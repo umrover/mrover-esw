@@ -56,7 +56,7 @@ namespace mrover {
             
             // Format: time_ms, angle_deg, velocity_deg_per_s
             std::printf("%lu,%.3f,%.3f\n", (unsigned long)t, deg, dps);            
-            HAL_Delay(50);
+            HAL_Delay(100);
         }
 
     }
