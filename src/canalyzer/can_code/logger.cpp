@@ -1,12 +1,26 @@
 #include "logger.hpp"
 
 
-long long logger::now_ns() {
+std::string logger::make_can_timestamp() {
     using namespace std::chrono;
-    return duration_cast<milliseconds>(
-        system_clock::now().time_since_epoch()
+
+    auto now = system_clock::now();
+    auto us  = duration_cast<microseconds>(now.time_since_epoch()).count();
+
+    long long sec = us / 1'000'000;
+    long long micros = us % 1'000'000;
+    char buf[32];  // plenty for "(1234567890.123456)"
+
+    std::snprintf(buf, sizeof(buf), "(%lld.%06lld)", sec, micros);
+    return std::string(buf);
+}
+
+long long logger::now_ns() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
     ).count();
 }
+
 
 void logger::Logger::_init_bus() {
     bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -34,13 +48,12 @@ void logger::Logger::_init_bus() {
 }
         
 void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
-    std::cout << "file_status in" << name << ": " << outputFile.is_open() << "\n";
-    outputFile << "(";
-    outputFile << now_ns() << ") " << can_bus_name << " ";
+    std::cout << "file_status in " << name << ": " << outputFile.is_open() << "\n";
+    outputFile << make_can_timestamp() << can_bus_name << " ";
 
     //TODO fix this! should be the proper CAN id
 
-    outputFile << "CANID##";
+    outputFile << "123#";
 
     
     for (size_t i = 0; i < CANFD_MAX_DLEN; i++) {
@@ -109,7 +122,7 @@ void logger::Logger::start() {
             .timestamp(ts)
             .post_http(si, &resp);
         if (ret != 0) {
-            std::cerr << "Nonzero return code" << std::endl; //fix idk if return nonzero is actually bad
+            std::cerr << "Nonzero return code: " << ret << std::endl; //fix idk if return nonzero is actually bad
         }
     }
 }
