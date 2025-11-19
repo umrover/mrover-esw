@@ -1,9 +1,12 @@
 #!/bin/bash
+#runs the docker compose and other helpers to start
+
+
 set -euo pipefail
 
 # Globals
-DOCKER_LOG="docker_compose.log"
-DOCKER_STATUS_LOG="docker_status.log"
+DOCKER_LOG="logs/docker_compose.log"
+DOCKER_STATUS_LOG="logs/docker_status.log"
 RUNNING=true
 
 # Cleanup function
@@ -48,6 +51,16 @@ check_docker() {
 }
 
 main() {
+    
+    target=$(lsof -ti :8086 || true)
+
+    if [ -z "$target" ]; then
+        echo "Port 8086 is not in use."
+    else
+        echo "Killing PID $target"
+        kill "$target"
+    fi
+
     directoryExists
     # Start docker-compose in background and log output
     docker-compose up --build 2>&1 | tee -a "$DOCKER_LOG" &
