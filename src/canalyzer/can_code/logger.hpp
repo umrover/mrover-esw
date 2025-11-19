@@ -24,6 +24,7 @@
 namespace logger {
 
 std::string decode(canid_t can_id);
+std::string make_can_timestamp();
 long long now_ns();
 
 struct Auth {

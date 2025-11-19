@@ -1,4 +1,7 @@
 #!/bin/bash
+#not currently used
+
+
 directoryExists()
 cleanup()
 docker-compose up --build 2>&1 | tee -a docker_compose.log
