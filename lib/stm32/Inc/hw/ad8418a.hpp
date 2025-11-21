@@ -54,6 +54,7 @@ namespace mrover {
             m_shunt_resistance = shunt_resistance;
             m_gain = gain;
             m_vref = voltage_reference;
+            m_vcm = voltage_reference / 2;
             m_adc_resolution = adc_resolution;
             m_current = 0.0f;
         }
@@ -76,6 +77,7 @@ namespace mrover {
             if (!m_enabled || !m_valid) return;
             auto adc_value = m_analog_pin.read_analog();
             float v_out = (adc_value / m_adc_resolution) * m_vref;
+            float v_sense = v_out - m_vcm;
             m_current = v_out / (m_gain * m_shunt_resistance);
         }
 
@@ -129,6 +131,7 @@ namespace mrover {
         float m_gain{20.0f};
         float m_shunt_resistance{0.0005};
         float m_vref{3.3f};
+        float m_vcm{1.65f};
         uint16_t m_adc_resolution{4095};
         float m_current{};
     };
