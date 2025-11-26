@@ -1,16 +1,19 @@
 #include <cstdint>
 
 #include <hw/hbridge.hpp>
+#include <logger.hpp>
 
 #include "main.h"
+#include "motor.hpp"
 #include "stm32g431xx.h"
 #include "stm32g4xx_hal_tim.h"
-#include "serial/debug.hpp"
 
+#include <functional>
+
+extern UART_HandleTypeDef hlpuart1;
 extern FDCAN_HandleTypeDef hfdcan1;
 
 extern I2C_HandleTypeDef hi2c1;
-#define ABSOLUTE_I2C &hi2c1
 
 /**
  * For each repeating timer, the update rate is determined by the .ioc file.
@@ -34,35 +37,48 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    HBridge hbridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}};
-    // NOTE this is for EHW's hbridge circuit, might not be a bad idea to write a separate header for the LN298 hbridges laying around too
+    Pin can_tx;
+    Pin can_rx;
 
-    Pin can_tx{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
-    Pin can_rx{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
+    Motor motor;
 
     auto init() -> void {
-        debug("initializing");
-        can_tx.set();
-        hbridge.write(0);
-        hbridge.change_max_pwm(100);
+        Logger::init(&hlpuart1);
+
+        can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
+        can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
+
+        motor = Motor{
+            HBridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
+        };
+
+        Logger::get_instance()->info("initialized");
     }
 
     [[noreturn]] auto loop() -> void {
 
+        size_t n = 0;
         for ( ;; ) {
-            debug("looping");
+            Logger::get_instance()->info("hi, i'm a BMC :) %u", n++);
+            motor.write(15_percent);
+            HAL_Delay(2500);
+            motor.write(-15_percent);
+            HAL_Delay(2500);
+            if (n == 3) break;
+        }
+
+        motor.write(0_percent);
+
+        for ( ;; ) {
+            Logger::get_instance()->info("hi, i'm a BMC :) %u", n++);
             can_tx.set();
             can_rx.reset();
-            hbridge.write(-25);
-            HAL_Delay(1000);
-
+            HAL_Delay(2500);
             can_tx.reset();
             can_rx.set();
-            hbridge.write(25);
-            HAL_Delay(1000);
+            HAL_Delay(2500);
         }
     }
-
 
 } // namespace mrover
 
