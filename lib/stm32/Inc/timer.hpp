@@ -77,7 +77,7 @@ namespace mrover {
     };
 #else // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ElapsedTimer"))) ElapsedTimer {
-        public:
+    public:
         template<typename... Args>
         explicit ElapsedTimer(Args&&... args) {}
     };
@@ -190,7 +190,7 @@ namespace mrover {
     };
 #else // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::VirtualStopwatches"))) VirtualStopwatches {
-        public:
+    public:
         template<typename... Args>
         explicit VirtualStopwatches(Args&&... args) {}
     };

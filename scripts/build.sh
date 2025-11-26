@@ -22,7 +22,7 @@ SCRIPT_NAME=$(basename "$0")
 
 usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME -s <src> [options]
+Usage: $SCRIPT_NAME --src <src> [options]
 
 options:
   -s, --src <path>      relative path to source directory (required)

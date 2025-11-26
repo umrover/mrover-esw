@@ -75,5 +75,5 @@ jobs:
         run: echo "CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)" >> $GITHUB_ENV
 
       - name: Build ${{ matrix.dir }} (${{ matrix.preset }})
-        run: ./scripts/build.sh --dir ${{ matrix.dir }} --preset ${{ matrix.preset }}
+        run: ./scripts/build.sh --src ${{ matrix.dir }} --preset ${{ matrix.preset }}
 

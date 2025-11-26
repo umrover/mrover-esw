@@ -48,7 +48,7 @@ namespace mrover {
     };
 #else // HAL_ADC_MODULE_ENABLED
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADCSensor"))) ADCSensor {
-        public:
+    public:
         template<typename... Args>
         explicit ADCSensor(Args&&... args) {}
     };

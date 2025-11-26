@@ -124,14 +124,11 @@ namespace mrover {
     };
 
 #else // HAL_UART_MODULE_ENABLED
-
     class __attribute__((unavailable("enable 'UART' in STM32CubeMX to use mrover::Logger"))) Logger {
-        public:
-        // Template constructor catches any instantiation attempt
+    public:
         template<typename... Args>
         explicit Logger(Args&&... args) {}
     };
-
 #endif // HAL_UART_MODULE_ENABLED
 
 } // namespace mrover

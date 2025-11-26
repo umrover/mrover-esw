@@ -244,7 +244,7 @@ namespace mrover {
     };
 #else // HAL_FDCAN_MODULE_ENABLED
     class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::FDCAN"))) FDCAN {
-        public:
+    public:
         template<typename... Args>
         explicit FDCAN(Args&&... args) {}
     };

@@ -103,7 +103,7 @@ namespace mrover {
     };
 #else // HAL_I2C_MODULE_ENABLED
     class __attribute__((unavailable("enable 'I2C' in STM32CubeMX to use mrover::SMBus"))) SMBus {
-        public:
+    public:
         template<typename... Args>
         explicit SMBus(Args&&... args) {}
     };
