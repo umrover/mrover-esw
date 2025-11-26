@@ -14,6 +14,36 @@
 
 namespace mrover {
 
+    struct TimerConfig {
+        std::uint16_t psc;
+        std::uint16_t arr;
+    };
+
+    constexpr auto configure_timer_16bit(Hertz const tim_frequency, std::chrono::nanoseconds const period) -> TimerConfig {
+        uint32_t const expiration_ticks = (tim_frequency.get() * period.count()) / std::nano::den;
+
+        for (uint16_t psc = 1; psc <= 65535; ++psc) {
+            if (uint32_t const arr = expiration_ticks / psc; arr > 0 && (arr - 1) <= 65535) {
+                return {static_cast<uint16_t>(psc - 1),
+                        static_cast<uint16_t>(arr - 1)};
+            }
+        }
+
+        return {std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::max()};
+    }
+
+    class IStopwatch {
+    public:
+        virtual ~IStopwatch() = default;
+        using TimerCallback = std::function<void()>;
+
+        virtual auto remove_stopwatch() -> std::uint8_t = 0;
+        virtual auto add_stopwatch() -> std::uint8_t = 0;
+        virtual auto add_stopwatch(std::optional<TimerCallback> callback) -> std::uint8_t = 0;
+        virtual auto get_time_since_last_read(std::uint8_t index) -> Seconds = 0;
+    };
+
+#ifdef HAL_TIM_MODULE_ENABLED
     class ElapsedTimer {
     public:
         // assumes the timer is started outside the scope of this class
@@ -45,38 +75,16 @@ namespace mrover {
 
         std::uint32_t m_tick_prev{};
     };
-
-
-    struct TimerConfig {
-        std::uint16_t psc;
-        std::uint16_t arr;
+#else // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ElapsedTimer"))) ElapsedTimer {
+        public:
+        template<typename... Args>
+        explicit ElapsedTimer(Args&&... args) {}
     };
-
-    constexpr TimerConfig configure_timer_16bit(Hertz tim_frequency, std::chrono::nanoseconds period) {
-        uint32_t expiration_ticks = (tim_frequency.get() * period.count()) / std::nano::den;
-
-        for (uint16_t psc = 1; psc <= 65535; ++psc) {
-            uint32_t arr = expiration_ticks / psc;
-            if (arr > 0 && (arr - 1) <= 65535) {
-                return {static_cast<uint16_t>(psc - 1),
-                        static_cast<uint16_t>(arr - 1)};
-            }
-        }
-
-        return {std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::max()};
-    }
+#endif // HAL_TIM_MODULE_ENABLED
 
 
-    class IStopwatch {
-    public:
-        using TimerCallback = std::function<void()>;
-
-        virtual auto remove_stopwatch() -> std::uint8_t = 0;
-        virtual auto add_stopwatch() -> std::uint8_t = 0;
-        virtual auto add_stopwatch(std::optional<TimerCallback> callback) -> std::uint8_t = 0;
-        virtual auto get_time_since_last_read(std::uint8_t index) -> Seconds = 0;
-    };
-
+#ifdef HAL_TIM_MODULE_ENABLED
     template<std::uint8_t MaxStopwatchCount, typename CountType, Hertz TimFrequency>
     class VirtualStopwatches final : public IStopwatch {
         static_assert(std::is_unsigned_v<CountType>, "Template parameter CountType must be an unsigned integer type");
@@ -153,7 +161,7 @@ namespace mrover {
             CountType current_count = m_stopwatches[index].tim_stamp.last_count;
 
             CountType last_count = last_tim_stamp.last_count;
-            std::size_t num_elapses = last_tim_stamp.num_elapses;
+            std::size_t const num_elapses = last_tim_stamp.num_elapses;
 
             uint64_t elapsed_counts = 0;
 
@@ -164,7 +172,7 @@ namespace mrover {
             }
 
             if (num_elapses > 0) {
-                uint64_t counts_per_overflow = static_cast<uint64_t>(std::numeric_limits<CountType>::max()) + 1;
+                uint64_t const counts_per_overflow = static_cast<uint64_t>(std::numeric_limits<CountType>::max()) + 1;
                 elapsed_counts += num_elapses * counts_per_overflow;
             }
 
@@ -180,5 +188,12 @@ namespace mrover {
             return __HAL_TIM_GetCounter(m_hardware_tim);
         }
     };
+#else // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::VirtualStopwatches"))) VirtualStopwatches {
+        public:
+        template<typename... Args>
+        explicit VirtualStopwatches(Args&&... args) {}
+    };
+#endif // HAL_TIM_MODULE_ENABLED
 
 } // namespace mrover

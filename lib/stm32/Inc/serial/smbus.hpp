@@ -8,6 +8,7 @@
 
 namespace mrover {
 
+#ifdef HAL_I2C_MODULE_ENABLED
     class SMBus {
         constexpr static std::size_t I2C_MAX_FRAME_SIZE = 32;
         constexpr static uint32_t I2C_TIMEOUT = 500, I2C_REBOOT_DELAY = 5;
@@ -100,5 +101,12 @@ namespace mrover {
         I2C_HandleTypeDef* m_i2c{};
         uint32_t m_timeout = I2C_TIMEOUT;
     };
+#else // HAL_I2C_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'I2C' in STM32CubeMX to use mrover::SMBus"))) SMBus {
+        public:
+        template<typename... Args>
+        explicit SMBus(Args&&... args) {}
+    };
+#endif // HAL_I2C_MODULE_ENABLED
 
 } // namespace mrover

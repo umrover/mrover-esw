@@ -4,10 +4,12 @@
 
 #include "main.h"
 
-
 namespace mrover {
 
+#ifdef HAL_GPIO_MODULE_ENABLED
     class Pin {
+        GPIO_TypeDef* m_port{};
+        std::uint16_t m_pin{};
     public:
         Pin() = default;
 
@@ -37,11 +39,14 @@ namespace mrover {
         [[nodiscard]] auto is_set() const -> bool {
             return HAL_GPIO_ReadPin(m_port, m_pin) == GPIO_PIN_SET;
         }
-
-    private:
-        GPIO_TypeDef* m_port{};
-        std::uint16_t m_pin{};
     };
+#else // HAL_GPIO_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'GPIO' in STM32CubeMX to use mrover::Pin"))) Pin {
+    public:
+        template<typename... Args>
+        explicit Pin(Args&&... args) {}
+    };
+#endif // HAL_GPIO_MODULE_ENABLED
 
 } // namespace mrover
 

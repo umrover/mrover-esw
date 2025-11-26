@@ -2,9 +2,7 @@
 
 #include <optional>
 
-#include <pin.hpp>
-
-#include "main.h"
+#include "pin.hpp"
 
 
 namespace mrover {
