@@ -6,7 +6,7 @@ extern I2C_HandleTypeDef hi2c3;
 
 namespace mrover {
 
-    FDCan m_fdcan;
+    FDCAN m_fdcan;
     SMBus m_i2c;
 
     void fdcan_test() {
@@ -16,7 +16,7 @@ namespace mrover {
     }
 
     void main() {
-        m_fdcan = FDCan(&hfdcan1);
+        m_fdcan = FDCAN(&hfdcan1);
         m_i2c = SMBus(&hi2c3);
 
         fdcan_test();

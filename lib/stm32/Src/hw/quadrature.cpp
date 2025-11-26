@@ -3,6 +3,7 @@
 
 namespace mrover {
 
+#ifdef HAL_TIM_MODULE_ENABLED
     QuadratureEncoderReader::QuadratureEncoderReader(
         TIM_HandleTypeDef* tick_timer,
         ElapsedTimer const &elapsed_timer,
@@ -41,5 +42,6 @@ namespace mrover {
         m_position += delta_angle;
         m_velocity_filter.add_reading(delta_angle / elapsed_time);
     }
+#endif
 
 } // namespace mrover

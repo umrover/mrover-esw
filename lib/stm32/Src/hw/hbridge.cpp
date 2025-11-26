@@ -3,6 +3,7 @@
 
 namespace mrover {
 
+#ifdef HAL_TIM_MODULE_ENABLED
     HBridge::HBridge(TIM_HandleTypeDef* timer, std::uint32_t channel, Pin direction_pin)
         : m_direction_pin{direction_pin},
           m_timer{timer},
@@ -51,5 +52,6 @@ namespace mrover {
     auto HBridge::change_inverted(bool inverted) -> void {
         m_is_inverted = inverted;
     }
+#endif // HAL_TIM_MODULE_ENABLED
 
 } // namespace mrover

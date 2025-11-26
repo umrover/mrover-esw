@@ -4,6 +4,8 @@
 #include <filtering.hpp>
 #include <timer.hpp>
 
+#include "main.h"
+
 namespace mrover {
 
     struct QuadratureEncoderReading {
@@ -11,6 +13,7 @@ namespace mrover {
         RadiansPerSecond velocity;
     };
 
+#ifdef HAL_TIM_MODULE_ENABLED
     /**
      * 2-phase quadrature encoder implementation
      *
@@ -48,5 +51,12 @@ namespace mrover {
         Radians m_position;
         RunningMeanFilter<RadiansPerSecond, VELOCITY_BUFFER_SIZE> m_velocity_filter;
     };
+#else // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::QuadratureEncoderReader"))) QuadratureEncoderReader {
+        public:
+        template<typename... Args>
+        explicit QuadratureEncoderReader(Args&&... args) {}
+    };
+#endif // HAL_TIM_MODULE_ENABLED
 
 } // namespace mrover

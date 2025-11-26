@@ -14,7 +14,6 @@ PRESET="Debug"
 TARGET_NAME=""
 DO_FLASH=false
 DO_CLEAN=false
-DO_RUN=false 
 
 PORT="${PORT:-swd}"
 FREQ="${FREQ:-8000}"
@@ -23,7 +22,7 @@ SCRIPT_NAME=$(basename "$0")
 
 usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME -s <src> [options]
+Usage: $SCRIPT_NAME --src <src> [options]
 
 options:
   -s, --src <path>      relative path to source directory (required)
@@ -31,7 +30,6 @@ options:
   -t, --target <name>   cmake target name (default: folder name)
   -f, --flash           flash the device after build
   -c, --clean           clean build directory before building
-  -r, --run             reset and run application after flash
   -h, --help            show this help message
 EOF
     exit 1
@@ -67,7 +65,6 @@ while [[ $# -gt 0 ]]; do
         -t|--target)    TARGET_NAME="$2"; shift 2 ;;
         -f|--flash)     DO_FLASH=true; shift ;;
         -c|--clean)     DO_CLEAN=true; shift ;;
-        -r|--run)       DO_RUN=true; shift ;;
         -h|--help)      usage ;;
         *)              echo -e "${RED}✗ unknown option: $1${NC}"; usage ;;
     esac
@@ -116,10 +113,7 @@ if [[ "$DO_FLASH" == "true" ]]; then
     FLASH_CMD=(STM32_Programmer_CLI --connect port="$PORT" freq="$FREQ" reset="$RESET")
     FLASH_CMD+=(--write "$ELF")
     FLASH_CMD+=(--verify)
-
-    if [[ "$DO_RUN" == "true" ]]; then
-        FLASH_CMD+=(--start)
-    fi
+    FLASH_CMD+=(--start)
 
     run_step "flash mcu" "${FLASH_CMD[@]}"
 fi

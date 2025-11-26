@@ -12,6 +12,7 @@
 
 namespace mrover {
 
+#ifdef HAL_TIM_MODULE_ENABLED
     /**
      * \brief Interface to MRover H-Bridge circuit
      */
@@ -37,5 +38,12 @@ namespace mrover {
 
         auto change_inverted(bool inverted) -> void;
     };
+#else // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::HBridge"))) HBridge {
+    public:
+        template<typename... Args>
+        explicit HBridge(Args&&... args) {}
+    };
+#endif // HAL_TIM_MODULE_ENABLED
 
 } // namespace mrover

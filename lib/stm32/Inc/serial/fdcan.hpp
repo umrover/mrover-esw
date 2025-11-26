@@ -13,7 +13,8 @@ namespace mrover {
 
     constexpr static std::size_t FDCAN_MAX_FRAME_SIZE = 64;
 
-    class FDCan {
+#ifdef HAL_FDCAN_MODULE_ENABLED
+    class FDCAN {
     public:
         enum class FilterIdType {
             Standard,
@@ -61,9 +62,9 @@ namespace mrover {
             Options() {};
         };
 
-        FDCan() = default;
+        FDCAN() = default;
 
-        explicit FDCan(FDCAN_HandleTypeDef* fdcan, Options const& options = Options())
+        explicit FDCAN(FDCAN_HandleTypeDef* fdcan, Options const& options = Options())
             : m_fdcan{fdcan}, m_options{options} {}
 
         auto init() -> void {
@@ -241,6 +242,13 @@ namespace mrover {
         Options m_options{};
         uint32_t m_last_tx_request = 0;
     };
+#else // HAL_FDCAN_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::FDCAN"))) FDCAN {
+    public:
+        template<typename... Args>
+        explicit FDCAN(Args&&... args) {}
+    };
+#endif // HAL_FDCAN_MODULE_ENABLED
 
 } // namespace mrover
 
