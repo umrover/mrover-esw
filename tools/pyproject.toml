@@ -10,7 +10,7 @@ authors = [
     { name = "Michigan Mars Rover Embedded Software Team" }
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 
 dependencies = [
     "Jinja2~=3.1.6",
