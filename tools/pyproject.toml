@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=80.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esw"
+version = "0.1.0"
+description = "utilities for mrover esw software"
+authors = [
+    { name = "Michigan Mars Rover Embedded Software Team" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "Jinja2~=3.1.6",
+    "moteus~=0.3.96",
+    "moteus-gui~=0.3.96",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy~=1.18.2",
+    "black~=25.11.0",
+    "pytest~=9.0.1",
+    "ruff~=0.14.6",
+]
