@@ -21,3 +21,10 @@ RemoteSystemsTempFiles/
 # Python
 .venv/
 venv/
+*.egg-info
+__pycache__/
+build/
+
+.vscode
+.idea
+
