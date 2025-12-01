@@ -31,9 +31,9 @@ add_custom_command(
     DEPENDS python_venv ${PYPROJECT_TOML}
     WORKING_DIRECTORY ${TOOLS_DIR}
     COMMAND ${VENV_PIP} install --upgrade pip setuptools wheel
-    COMMAND ${VENV_PIP} install --editable .
+    COMMAND ${VENV_PIP} install --editable ".[dev]"
     COMMAND ${CMAKE_COMMAND} -E touch ${VENV_DIR}/package.timestamp
-    COMMENT "installing esw (editable)"
+    COMMENT "installing esw python tools"
     VERBATIM
 )
 
@@ -51,3 +51,8 @@ function(run_python_tool TARGET_NAME SCRIPT)
         VERBATIM
     )
 endfunction()
+
+add_custom_target(clean_venv
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${VENV_DIR}
+    COMMENT "removing venv"
+)
