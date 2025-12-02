@@ -23,6 +23,9 @@ src/**/cmake/stm32cubemx/
 # Python
 .venv/
 venv/
+*.egg-info
+__pycache__/
+build/
 
 # CMake
 CMakeLists.txt.user
