@@ -65,7 +65,9 @@ namespace mrover {
         FDCAN() = default;
 
         explicit FDCAN(FDCAN_HandleTypeDef* fdcan, Options const& options = Options())
-            : m_fdcan{fdcan}, m_options{options} {}
+            : m_fdcan{fdcan}, m_options{options} {
+            init();
+        }
 
         auto init() -> void {
             if (m_options.delay_compensation) {

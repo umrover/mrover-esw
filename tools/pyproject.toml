@@ -14,6 +14,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "Jinja2~=3.1.6",
+    "cantools~=41.0.2",
     "moteus~=0.3.96",
     "moteus-gui~=0.3.96",
 ]
