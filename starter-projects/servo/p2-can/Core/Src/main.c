@@ -40,17 +40,20 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+FDCAN_HandleTypeDef hfdcan1;
 
 /* USER CODE BEGIN PV */
 
 // TODO 1: Create the necessary variables to send a CAN message
-
+FDCAN_TxHeaderTypeDef TxHeader;
+uint8_t TxData[1];
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_FDCAN1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,13 +92,65 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
 
   // TODO 2: Start the CAN peripheral
-
+  HAL_FDCAN_Start(&hfdcan1);
 
   // TODO 3: Form the CAN message header
+  /**
+    * @brief  FDCAN Tx header structure definition
+    */
+  typedef struct
+  {
+    uint32_t Identifier;          /*!< Specifies the identifier.
+                                       This parameter must be a number between:
+                                        - 0 and 0x7FF, if IdType is FDCAN_STANDARD_ID
+                                        - 0 and 0x1FFFFFFF, if IdType is FDCAN_EXTENDED_ID               */
 
+    uint32_t IdType;              /*!< Specifies the identifier type for the message that will be
+                                       transmitted.
+                                       This parameter can be a value of @ref FDCAN_id_type               */
+
+    uint32_t TxFrameType;         /*!< Specifies the frame type of the message that will be transmitted.
+                                       This parameter can be a value of @ref FDCAN_frame_type            */
+
+    uint32_t DataLength;          /*!< Specifies the length of the frame that will be transmitted.
+                                        This parameter can be a value of @ref FDCAN_data_length_code     */
+
+    uint32_t ErrorStateIndicator; /*!< Specifies the error state indicator.
+                                       This parameter can be a value of @ref FDCAN_error_state_indicator */
+
+    uint32_t BitRateSwitch;       /*!< Specifies whether the Tx frame will be transmitted with or without
+                                       bit rate switching.
+                                       This parameter can be a value of @ref FDCAN_bit_rate_switching    */
+
+    uint32_t FDFormat;            /*!< Specifies whether the Tx frame will be transmitted in classic or
+                                       FD format.
+                                       This parameter can be a value of @ref FDCAN_format                */
+
+    uint32_t TxEventFifoControl;  /*!< Specifies the event FIFO control.
+                                       This parameter can be a value of @ref FDCAN_EFC                   */
+
+    uint32_t MessageMarker;       /*!< Specifies the message marker to be copied into Tx Event FIFO
+                                       element for identification of Tx message status.
+                                       This parameter must be a number between 0 and 0xFF                */
+
+  } FDCAN_TxHeaderTypeDef;
+
+  // In TODO 1:
+  // FDCAN_TxHeaderTypeDef TxHeader;
+
+  TxHeader.Identifier = 2024;
+  TxHeader.IdType = FDCAN_STANDARD_ID;
+  TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+  TxHeader.DataLength = FDCAN_DLC_BYTES_8;
+  TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+  TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+  TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  TxHeader.MessageMarker = 0;
 
   /* USER CODE END 2 */
 
@@ -105,17 +160,20 @@ int main(void)
   {
 	  HAL_Delay(500);
     // TODO 4: Send a CAN message to rotate the servo to 0 degrees
-
+	  TxData[0] = 0;
+	  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData);
 
 
 	  HAL_Delay(500);
 	// TODO 5: Send a CAN message to rotate the servo to 90 degrees
-
+	  TxData[0] = 90;
+	  	  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData);
 
 
 	  HAL_Delay(500);
     // TODO 6: Send a CAN message to rotate the servo to 180 degrees
-
+	  TxData[0] = 180;
+	  	  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, TxData);
 
 
     /* USER CODE END WHILE */
@@ -169,6 +227,49 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief FDCAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_FDCAN1_Init(void)
+{
+
+  /* USER CODE BEGIN FDCAN1_Init 0 */
+
+  /* USER CODE END FDCAN1_Init 0 */
+
+  /* USER CODE BEGIN FDCAN1_Init 1 */
+
+  /* USER CODE END FDCAN1_Init 1 */
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
+  hfdcan1.Init.NominalPrescaler = 1;
+  hfdcan1.Init.NominalSyncJumpWidth = 36;
+  hfdcan1.Init.NominalTimeSeg1 = 107;
+  hfdcan1.Init.NominalTimeSeg2 = 36;
+  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 1;
+  hfdcan1.Init.DataTimeSeg1 = 1;
+  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 0;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FDCAN1_Init 2 */
+
+  /* USER CODE END FDCAN1_Init 2 */
+
 }
 
 /**
