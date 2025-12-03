@@ -1,8 +1,8 @@
-# STM32CubeIDE
+# STM32Cube*
 
 ## About
 
-STM32CubeIDE allows the user to write, compile, and flash code to the STM32 microcontroller! The IDE
+STM32CubeMX allows the user to write, compile, and flash code to the STM32 microcontroller! The IDE
 is based on the Eclipse framework and contains the GCC compiler and GDB debugging tool for in
 program compilation and debugging. The IDE also has flashing functionality for easy and quick
 programming of the STM32 microcontroller. The IDE provides a very powerful interface for automatic
