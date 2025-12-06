@@ -6,8 +6,8 @@ from time import time
 
 # logging constants
 _LOG_NAME = "esw"
-_LOG_LEVEL = logging.DEBUG
-_LOG_FMT = "%(asctime)s[%(levelname)-8s] %(message)s"
+_LOG_LEVEL = logging.INFO
+_LOG_FMT = "%(asctime)s[%(levelname)-4s] %(message)s"
 _LOG_DATE_FMT = "%m/%d/%Y %I:%M:%S%p "
 _LOG_DIR = Path(Path.home(), f".{_LOG_NAME}", "logs")
 _FORMATTER = logging.Formatter(fmt=_LOG_FMT, datefmt=_LOG_DATE_FMT)

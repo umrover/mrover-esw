@@ -9,8 +9,6 @@ def _get_load_command(target_name):
     # MCUs usually start with "STM32", boards are "NUCLEO", "DISCO", "EVAL", etc.
     if target_name.upper().startswith("STM32"):
         return f"load {target_name}"
-        # return f"config load {target_name}"
-        # return f"loadboard {target_name} nomode"
     else:
         return f"loadboard {target_name} nomode"
 
