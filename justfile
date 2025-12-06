@@ -18,3 +18,13 @@ alias f := flash
     just build {{src}} {{preset}}
     ./scripts/flash.sh --src {{src}} --preset {{preset}}
 
+# update cmake tooling
+cmake src *libs:
+    #!/usr/bin/env zsh
+    source tools/venv/bin/activate
+    PY_LIB_ARGS=()
+    for lib in {{libs}}; do
+        PY_LIB_ARGS+=(--lib "$lib")
+    done
+    python ./tools/scripts/update_cmake_cfg.py --src {{src}} --root . --ctx ./lib/stm32g4 "${PY_LIB_ARGS[@]}"
+
