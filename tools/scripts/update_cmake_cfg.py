@@ -4,6 +4,7 @@ from pathlib import Path
 from esw import esw_logger
 from esw.cubemx.cmake import configure_cmake
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update CMake Toolchain for CubeMX Projects")
     parser.add_argument(

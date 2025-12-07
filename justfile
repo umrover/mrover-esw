@@ -4,6 +4,7 @@ default_preset := "Debug"
 
 alias b := build
 alias f := flash
+alias m := monitor
 
 # list available recipes
 @default:
@@ -27,4 +28,9 @@ cmake src *libs:
         PY_LIB_ARGS+=(--lib "$lib")
     done
     python ./tools/scripts/update_cmake_cfg.py --src {{src}} --root . --ctx ./lib/stm32g4 "${PY_LIB_ARGS[@]}"
+
+@monitor baud="115200" log="INFO":
+    #!/usr/bin/env zsh
+    source tools/venv/bin/activate
+    python ./tools/scripts/monitor.py --baud {{baud}} --log-level {{log}}
 
