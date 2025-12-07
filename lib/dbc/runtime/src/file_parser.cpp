@@ -223,7 +223,17 @@ namespace mrover::dbc {
             }
         }
 
+        reset();
+
         return process_file(file);
+    }
+
+    void CanDbcFileParser::reset() {
+        m_messages.clear();
+        m_current_message = CanMessageDescription{};
+        m_is_processing_message = false;
+        m_lines_parsed = 0;
+        m_error = Error::None;
     }
 
     auto CanDbcFileParser::process_file(string_view file_view) -> bool {

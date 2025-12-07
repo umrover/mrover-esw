@@ -127,16 +127,9 @@ auto main(int argc, char** argv) -> int {
         assert(std::holds_alternative<float>(decoded_signals.at("Sensors_CO2")));
         assert(std::get<float>(decoded_signals.at("Sensors_CO2")) == 415.0f);
 
-        std::cout << "Decoded Signals from Science_Sensors message:\n";
+        std::cout << "Decoded signals from Science_Sensors message:\n";
         for (auto const& [name, value]: decoded_signals) {
-            std::cout << "  " << name << ": ";
-            if (std::holds_alternative<float>(value)) {
-                std::cout << static_cast<float>(std::get<float>(value));
-            } else if (std::holds_alternative<int32_t>(value)) {
-                std::cout << static_cast<int32_t>(std::get<int32_t>(value));
-            } else {
-                std::cout << "Unknown Type";
-            }
+            std::cout << "  " << name << ": " << value << "\n";
         }
     }
 

@@ -27,9 +27,24 @@ namespace mrover::dbc {
         SwitchAndSignal = MultiplexorSwitch | MultiplexedSignal, // if extended multiplexing is supported
     };
 
-    using CanSignalValue = std::variant<int8_t, uint8_t, int16_t, uint16_t,
-                                        int32_t, uint32_t, int64_t, uint64_t,
-                                        float, double, std::string>;
+    class CanSignalValue : public std::variant<int8_t, uint8_t, int16_t, uint16_t,
+                                               int32_t, uint32_t, int64_t, uint64_t,
+                                               float, double, std::string> {
+    public:
+        using variant::variant;
+
+        [[nodiscard]] auto is_integral() const -> bool;
+        [[nodiscard]] auto is_floating_point() const -> bool;
+        [[nodiscard]] auto is_numeric() const -> bool;
+        [[nodiscard]] auto is_string() const -> bool;
+
+        [[nodiscard]] auto as_signed_integer() const -> int64_t;
+        [[nodiscard]] auto as_unsigned_integer() const -> uint64_t;
+        [[nodiscard]] auto as_double() const -> double;
+        [[nodiscard]] auto as_string() const -> std::string;
+
+        friend auto operator<<(std::ostream& os, CanSignalValue const& value) -> std::ostream&;
+    };
 
     class CanSignalDescription {
     public:

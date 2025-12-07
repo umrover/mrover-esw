@@ -26,15 +26,8 @@ namespace mrover::dbc {
         void set_transmitter(std::string&& transmitter);
         void set_transmitter(std::string_view transmitter);
 
-        [[nodiscard]] auto signals() noexcept {
-            // range: unordered_map<...>& -> view of unique_ptr<CanSignalDescription>& ->
-            //       view of CanSignalDescription&
-            return m_signals | std::views::values;
-        }
-        [[nodiscard]] auto signals() const noexcept {
-            return m_signals | std::views::values;
-        }
-
+        [[nodiscard]] auto signals() noexcept { return m_signals | std::views::values; }
+        [[nodiscard]] auto signals() const noexcept { return m_signals | std::views::values; }
 
         [[nodiscard]] auto signals_size() const -> std::size_t;
 

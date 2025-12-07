@@ -2,6 +2,85 @@
 
 namespace mrover::dbc {
 
+    auto CanSignalValue::is_integral() const -> bool {
+        return std::holds_alternative<int8_t>(*this) ||
+               std::holds_alternative<uint8_t>(*this) ||
+               std::holds_alternative<int16_t>(*this) ||
+               std::holds_alternative<uint16_t>(*this) ||
+               std::holds_alternative<int32_t>(*this) ||
+               std::holds_alternative<uint32_t>(*this) ||
+               std::holds_alternative<int64_t>(*this) ||
+               std::holds_alternative<uint64_t>(*this);
+    }
+
+    auto CanSignalValue::is_floating_point() const -> bool {
+        return std::holds_alternative<float>(*this) ||
+               std::holds_alternative<double>(*this);
+    }
+
+    auto CanSignalValue::is_numeric() const -> bool {
+        return is_integral() || is_floating_point();
+    }
+
+    auto CanSignalValue::is_string() const -> bool {
+        return std::holds_alternative<std::string>(*this);
+    }
+
+    auto CanSignalValue::as_signed_integer() const -> int64_t {
+        return std::visit([](auto const& v) -> int64_t {
+            using T = std::decay_t<decltype(v)>;
+
+            if constexpr (std::is_same_v<T, std::string>) {
+                throw std::bad_variant_access{};
+            } else {
+                static_assert(std::is_arithmetic_v<T>,
+                              "Non-numeric type in CanSignalValue");
+                return static_cast<int64_t>(v);
+            }
+        },
+                          *this);
+    }
+
+    auto CanSignalValue::as_unsigned_integer() const -> uint64_t {
+        return std::visit([](auto const& v) -> int64_t {
+            using T = std::decay_t<decltype(v)>;
+
+            if constexpr (std::is_same_v<T, std::string>) {
+                throw std::bad_variant_access{};
+            } else {
+                static_assert(std::is_arithmetic_v<T>,
+                              "Non-numeric type in CanSignalValue");
+                return static_cast<uint64_t>(v);
+            }
+        },
+                          *this);
+    }
+
+    auto CanSignalValue::as_double() const -> double {
+        return std::visit([](auto const& v) -> double {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                throw std::bad_variant_access{};
+            } else {
+                return static_cast<double>(v);
+            }
+        },
+                          *this);
+    }
+
+    auto CanSignalValue::as_string() const -> std::string {
+        return std::get<std::string>(*this);
+    }
+
+    auto operator<<(std::ostream& os, CanSignalValue const& value) -> std::ostream& {
+        std::visit([&os](auto const& v) {
+            os << v;
+        },
+                   value);
+
+        return os;
+    }
+
     [[nodiscard]] auto CanSignalDescription::name() const -> std::string { return m_name; }
     void CanSignalDescription::set_name(std::string&& name) { m_name = std::move(name); }
     void CanSignalDescription::set_name(std::string_view name) { m_name = name; }

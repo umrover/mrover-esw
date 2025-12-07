@@ -60,10 +60,7 @@ namespace mrover::dbc {
         [[nodiscard]] auto is_error() const -> bool;
         [[nodiscard]] auto error() const -> Error;
 
-        [[nodiscard]] auto messages() const noexcept {
-            namespace rv = std::views;
-            return m_messages | rv::values | rv::transform([](auto const& p) -> CanMessageDescription const& { return p; });
-        }
+        [[nodiscard]] auto messages() const noexcept { return m_messages | std::views::values; }
 
         [[nodiscard]] auto message(uint32_t id) -> CanMessageDescription*;
         [[nodiscard]] auto message(uint32_t id) const -> CanMessageDescription const*;
@@ -101,6 +98,7 @@ namespace mrover::dbc {
             DataFormat data_format;
         };
 
+        void reset();
         auto process_file(std::string_view file_view) -> bool;
         static auto parse_message(std::string_view line) -> std::expected<CanMessageDescription, Error>;
         static auto parse_signal(std::string_view line) -> std::expected<CanSignalDescription, Error>;
