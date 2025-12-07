@@ -70,9 +70,9 @@ fi
 if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
     mkdir -p "$BUILD_DIR"
     if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-        cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}"
+        cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
     fi
-    cmake --build "${BUILD_DIR}" --target python_venv
+    cmake --build "${BUILD_DIR}" --target python_env_ready
     rm -rf "$BUILD_DIR"
 fi
 
