@@ -246,31 +246,6 @@ struct bmc_config_t {
       return byte;
     }
 
-    // writes a value in the correct double word, given its size
-    // ! shouldn't need this anymore
-    /*
-    template <typename T>
-    void write(uint32_t address, size_t size_of, T value) {  
-      uint32_t dbl_word_start = get_double_word_start(address);
-      int address_offset = address % 8;
-
-      uint64_t existing = read_double_word(dbl_word_start);
-
-      uint64_t mask = 0;
-      for (size_t i = 0; i < size_of; ++i) {
-        mask |= 0xFFULL << ((address_offset + i) * 8);
-      }
-      
-      uint64_t cleared = existing & ~mask;
-      uint64_t new_data = 0;
-      memcpy(&new_data, &value, size_of);
-      new_data <<= (address_offset * 8);
-
-      new_data |= cleared;
-      program_double_word(dbl_word_start, new_data);
-    }
-    */
-
     template <typename T>
     void write(const uint32_t &custom_addr, T value) {
       uint32_t physical_addr = region_start + custom_addr;
@@ -291,22 +266,7 @@ struct bmc_config_t {
 
     template <typename T>
     T read(uint32_t address) {
-      /*
-      ! old version
-      uint32_t dbl_word_start = get_double_word_start(address);
-      int address_offset = address % 8;
-      uint32_t size_of = sizeof(T);
       
-      uint64_t dbl_word = read_double_word(dbl_word_start);
-
-      uint64_t shifted = dbl_word >> (address_offset * 8);
-
-      uint64_t mask = 0;
-      for (size_t i = 0; i < size_of; ++i) {
-        mask |= 0xFF << (i * 8);
-      }
-      shifted &= mask;
-      */
       uint32_t physical_addr = get_physical_addr(address);
 
       T result;
