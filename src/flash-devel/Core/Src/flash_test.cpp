@@ -1,8 +1,6 @@
 #include "main.h"
 #include "hw/flash.hpp"
 #include "stm32g4xx_hal_gpio.h"
-#include <cstdio>
-#include <variant>
 
 extern "C" {
     #include <stdio.h>
@@ -10,13 +8,19 @@ extern "C" {
 
 namespace mrover {
 
-  Flash flash(0x0801F800);
+  
+
+  Flash<bmc_config_t> flash(LAST_PAGE_START);
+  // FlashPageManager mgr(flash);
   int count;
   uint32_t start_addr;
   uint32_t curr_addr;
   uint64_t read = 0;
-  float pi = 3.14159;
-  float read_float = 0.0;
+
+  uint32_t read_32;
+  uint16_t read_16;
+  uint8_t read_8;
+
   auto init() -> void {
     printf("===== RESET =====\n\r");
     count = 1;
@@ -24,20 +28,25 @@ namespace mrover {
     // printf("Init start_addr: %lx\n\r", start_addr);
     curr_addr = start_addr;
     // printf("Init curr_addr: %lx\n\r", curr_addr);
-    
-    flash.erase();
-    uint64_t combined =  0;
-    combined |= ((uint64_t)8 << 56) | ((uint64_t)8 << 48) | ((uint64_t)16 << 32) | ((uint64_t)32 << 0);
-    flash.write(0x00, 8, combined);
-    flash.write(0x08, 2, (uint16_t)(16));
-    flash.write(0x10, 1, (uint8_t)(8));
-    flash.write(0x18, 1, (uint8_t)(8));
-    printf("====== WROTE: 32 at 0x00, 16 at 0x04, 8 at 0x06, 8 at 0x07 ======\n\r");
-  
-  }
 
+    //flash.write_config(bmc_config_t::CAN_ID, 0x02);
+    auto const id = flash.read_config(bmc_config_t::CAN_ID);
+    printf("CAN ID: 0x%u \n\r", id);
+    //flash.write_config(bmc_config_t::LIMITS_ENABLED, 0x20);
+    auto const lims_enabled = flash.read_config(bmc_config_t::LIMITS_ENABLED);
+    printf("LIMITS ENABLED: 0x%u \n\r", lims_enabled);
+    //flash.write_config(bmc_config_t::INT_VALUE, 12);
+    auto const int_value = flash.read_config(bmc_config_t::INT_VALUE);
+    printf("INT VALUE : %u \n\r", int_value);
+    //flash.write_config(bmc_config_t::FLOAT_VALUE, 3.1);
+    auto const float_value = flash.read_config(bmc_config_t::FLOAT_VALUE);
+    printf("FLOAT VALUE : %.5f \n\r", float_value);
+
+  }
+  
   auto loop() -> void {
     // printf("start of loop %lx\n\r",curr_addr);
+    printf("====== LOOP ======\n\r");
     while(true) {
       
       int button_state = HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13);
@@ -67,27 +76,21 @@ namespace mrover {
         HAL_Delay(100);
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
         
-        curr_addr = 0x00;
-        uint32_t read_data_32 = flash.read<uint32_t>(curr_addr);
-        printf("Read at address 0x00: %lu\n\r", read_data_32);
-        curr_addr = 0x04;
-        uint16_t read_data_16 = flash.read<uint16_t>(curr_addr);
-        printf("Read at address 0x04: %u\n\r", read_data_16);
-        curr_addr = 0x06;
-        uint8_t read_data_8 = flash.read<uint8_t>(curr_addr);
-        printf("Read at address 0x06: %u\n\r", read_data_8);
-        curr_addr = 0x07;
-        read_data_8 = flash.read<uint8_t>(curr_addr);
-        printf("Read at address 0x07: %u\n\r", read_data_8);
-        read_data_16 = flash.read<uint16_t>(0x08);
-        printf("Read at address 0x08: %u\n\r", read_data_16);
-        read_data_8 = flash.read<uint8_t>(0x10);
-        printf("Read at address 0x10: %u\n\r", read_data_8);
-        read_data_8 = flash.read<uint8_t>(0x18);
-        printf("Read at address 0x18: %u\n\r", read_data_8);
-        printf("====BYTE READING TEST====\n\r");
-        read_data_8 = flash.read_byte(start_addr + 0x10);
-        printf("Read at byte at address 0x10: %u\n\r", read_data_8);
+        
+        read_32 = flash.read<uint32_t>(0x00);
+        read_16 = flash.read<uint16_t>(0x04);
+        printf("=== READ %lu at 0x%lx ===\n\r", read_32, (uint32_t)0x00);
+        printf("=== READ %u at 0x%lx ===\n\r", read_16, (uint32_t)0x04);
+        flash.write(0x00, (uint32_t)(64));
+        printf("====== REWROTE 64 at 0x00 ======\n\r"); 
+        flash.flush();
+        read_32 = flash.read<uint32_t>(0x00);
+        printf("=== READ %lu at 0x%lx ===\n\r", read_32, (uint32_t)0x00);
+        flash.write(0x00, (uint32_t)(128));
+        flash.flush();
+        printf("====== REWROTE 128 at 0x00 ======\n\r");
+        read_32 = flash.read<uint32_t>(0x00);
+        printf("=== READ (again) %lu at 0x%lx ===\n\r", read_32, (uint32_t)0x00);
 
       }
       
