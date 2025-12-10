@@ -17,6 +17,7 @@ dependencies = [
     "cantools~=41.0.2",
     "moteus~=0.3.96",
     "moteus-gui~=0.3.96",
+    "pyserial~=3.5",
 ]
 
 [project.optional-dependencies]
