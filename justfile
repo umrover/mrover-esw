@@ -29,7 +29,7 @@ cmake src *libs:
     done
     python ./tools/scripts/update_cmake_cfg.py --src {{src}} --root . --ctx ./lib/stm32g4 "${PY_LIB_ARGS[@]}"
 
-@monitor baud="115200" log="INFO":
+monitor baud="115200" log="INFO":
     #!/usr/bin/env zsh
     source tools/venv/bin/activate
     python ./tools/scripts/monitor.py --baud {{baud}} --log-level {{log}}

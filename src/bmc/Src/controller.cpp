@@ -40,7 +40,7 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    static constexpr uint32_t CAN_ID = 0x0;
+    static constexpr uint32_t CAN_ID = 0x05;
 
     Pin can_tx;
     Pin can_rx;
@@ -57,9 +57,11 @@ namespace mrover {
         can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
         Logger::get_instance()->info("\t...CAN Transceiver");
-        can_receiver = CANBus1Handler{
-            FDCAN{&hfdcan1, FDCAN::Options{}}
-        };
+        auto can_opts = FDCAN::Options{};
+        can_opts.delay_compensation = true;
+        can_opts.tdc_offset = 13;
+        can_opts.tdc_filter = 1;
+        can_receiver = CANBus1Handler{FDCAN{&hfdcan1, can_opts}};
 
         Logger::get_instance()->info("\t...Motor Output");
         motor = Motor{
@@ -72,23 +74,26 @@ namespace mrover {
     [[noreturn]] auto loop() -> void {
 
         size_t n = 0;
+        // Logger::get_instance()->info("Delaying for 10s...");
+        // HAL_Delay(10000);
+        Logger::get_instance()->info("Sending Responses every 5s...");
         for ( ;; ) {
-            Logger::get_instance()->info("BMC Main Loop #%u", n++);
+            Logger::get_instance()->info("BMC Main Loop #%u", n);
             can_tx.set();
-            can_rx.reset();
-            HAL_Delay(500);
+            can_receiver.send(BMCAck{n}, CAN_ID);
             can_tx.reset();
-            can_rx.set();
-            HAL_Delay(500);
-            can_receiver.send(BMCAck{}, CAN_ID);
+            HAL_Delay(5000);
+            ++n;
         }
     }
 
     auto receive_can_message() -> void {
+        can_rx.set();
         if (auto const recv = can_receiver.receive(CAN_ID); recv) {
             auto const& msg = *recv;
             motor.receive(msg);
         }
+        can_rx.reset();
     }
 
 } // namespace mrover

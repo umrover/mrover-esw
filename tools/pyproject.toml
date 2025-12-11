@@ -18,6 +18,7 @@ dependencies = [
     "moteus~=0.3.96",
     "moteus-gui~=0.3.96",
     "pyserial~=3.5",
+    "python-can~=4.6.1",
 ]
 
 [project.optional-dependencies]
@@ -27,3 +28,7 @@ dev = [
     "pytest~=9.0.1",
     "ruff~=0.14.6",
 ]
+
+[tool.setuptools.packages.find]
+include = ["esw"]
+exclude = ["fdcanusb"]

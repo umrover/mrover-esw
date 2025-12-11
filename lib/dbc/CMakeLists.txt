@@ -19,7 +19,9 @@ set(GENERATED_HEADERS "")
 
 foreach(DBC_FILE ${DBC_FILES})
     get_filename_component(FILE_NAME ${DBC_FILE} NAME_WE)
-    set(HEADER_FILE "${DBC_GEN_DIR}/${FILE_NAME}.h")
+    set(HEADER_FILE "${DBC_GEN_DIR}/${FILE_NAME}.hpp")
+    # NOTE(eric): when you want to change the headers for testing, comment out the command below
+    # to ensure the header is not overwritten on build
     add_custom_command(
         OUTPUT ${HEADER_FILE}
         COMMAND ${VENV_PYTHON} ${DBC_SCRIPT} --dest ${DBC_GEN_DIR} --ctx ${CMAKE_CURRENT_SOURCE_DIR} ${DBC_FILE}

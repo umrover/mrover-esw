@@ -15,7 +15,7 @@ namespace mrover {
         }
 
         auto handle(BMCProbe const& msg) -> void {
-            Logger::get_instance()->info("BMC Probed");
+            Logger::get_instance()->info("BMC Probed with data %u", msg.data);
         }
 
     public:

@@ -135,22 +135,34 @@ namespace mrover {
         explicit {{ dbc_name }}Handler(FDCAN&& fdcan_driver)
             : m_fdcan{std::move(fdcan_driver)} {}
 
+        struct CanSenderVisitor {
+            {{ dbc_name }}Handler* m_parent;
+            uint32_t const m_node_id;
+
+            CanSenderVisitor({{ dbc_name }}Handler* parent, uint32_t node_id)
+                : m_parent(parent), m_node_id(node_id) {}
+
+            template<typename MessageT>
+            void operator()(MessageT const& message) const
+                requires CanMessage<MessageT>
+            {
+                uint32_t const base_id = MessageT::BASE_ID;
+
+                uint32_t const masked_node_id = m_node_id & CAN_NODE_MASK;
+                uint32_t const final_id = base_id | masked_node_id;
+
+                std::span<uint8_t const> const data(message.msg_arr, sizeof(message.msg_arr));
+                this->m_parent->m_fdcan.send(final_id,
+                    std::string_view(reinterpret_cast<char const*>(data.data()), data.size())
+                );
+            }
+        };
+
         void send(
             {{ dbc_name }}Msg_t const& message_variant,
             uint32_t const node_id)
         {
-            auto const sender = [this, node_id](auto const& message) {
-                if constexpr (CanMessage<decltype(message)>) {
-                    uint32_t const base_id = decltype(message)::BASE_ID;
-
-                    uint32_t const masked_node_id = node_id & CAN_NODE_MASK;
-                    uint32_t const final_id = base_id | masked_node_id;
-
-                    std::span<uint8_t const> const data(message.msg_arr, sizeof(message.msg_arr));
-                    this->m_fdcan.send(final_id, std::string_view(reinterpret_cast<char const*>(data.data()), data.size()));
-                }
-            };
-
+            CanSenderVisitor sender(this, node_id);
             std::visit(sender, message_variant);
         }
 

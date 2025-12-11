@@ -45,8 +45,7 @@ CMakeUserPresets.json
 # Editors
 .idea
 .vscode
-src/**/.idea
-src/**/.vscode
-src/bmc/.cache/clangd/index
-src/bmc/.clangd
-src/bmc/build/.cmake/api/v1/query/client-neocmake
+
+# cache dirs
+tools/fdcanusb
+

@@ -71,9 +71,11 @@ BO_ 512 BMCMotorState: 20 Vector__XXX
  SG_ is_stalled : 98|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ current : 104|32@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 320 BMCProbe: 0 Vector__XXX
+BO_ 320 BMCProbe: 4 Vector__XXX
+ SG_ data : 0|32@1+ (1,0) [0|0] "" Vector__XXX
 
-BO_ 528 BMCAck: 0 Vector__XXX
+BO_ 528 BMCAck: 4 Vector__XXX
+ SG_ data : 0|32@1+ (1,0) [0|0] "" Vector__XXX
 
 
 
