@@ -1,9 +1,18 @@
 #include "dbc.hpp"
 
 #include <cassert>
+#include <iomanip>
 #include <iostream>
 
 using namespace mrover::dbc;
+
+template<typename T>
+auto to_le_bytes(T value) -> std::array<uint8_t, sizeof(T)> {
+    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
+    std::array<uint8_t, sizeof(T)> bytes{};
+    std::memcpy(bytes.data(), &value, sizeof(T)); // assumes little-endian host
+    return bytes;
+}
 
 auto main(int argc, char** argv) -> int {
     if (argc < 2) {
@@ -98,7 +107,61 @@ auto main(int argc, char** argv) -> int {
         assert(co2_signal->receiver() == "");
     }
 
+    // encode test
     {
+        std::cout << "\n=== Encoding Test ===\n";
+        std::unordered_map<std::string, CanSignalValue> signals_to_encode{
+                {"Sensors_Temperature", int32_t(-22)},
+                {"Sensors_Humidity", float(55.0f)},
+                {"Sensors_UV", float(3.2f)},
+                {"Sensors_Oxygen", float(20.8f)},
+                {"Sensors_CO2", float(415.0f)},
+        };
+
+        CanMessageDescription const* science_message = parser.message(80);
+        CanFrameProcessor frame_processor;
+        frame_processor.add_message_description(*science_message);
+        auto encoded_frame_result = frame_processor.encode("Science_Sensors", signals_to_encode);
+        assert(encoded_frame_result.has_value());
+        CanFrame const& encoded_frame = encoded_frame_result.value();
+        assert(encoded_frame.id == 80);
+        assert(encoded_frame.data.size() == 20);
+
+        std::cout << "Encoded CAN frame data for Science_Sensors message:\n";
+        for (size_t i = 0; i < encoded_frame.data.size(); ++i) {
+            std::cout << "  Byte " << i << ": 0x"
+                      << std::hex << std::setw(2) << std::setfill('0')
+                      << static_cast<int>(encoded_frame.data[i])
+                      << std::dec << "\n";
+        }
+
+        std::array<uint8_t, 20> expected_data{};
+        auto write = [&](size_t offset, auto value) {
+            auto b = to_le_bytes(value);
+            std::copy(b.begin(), b.end(), expected_data.begin() + offset);
+        };
+        write(0, int32_t(-22));
+        write(4, 55.0f);
+        write(8, 3.2f);
+        write(12, 20.8f);
+        write(16, 415.0f);
+
+        for (size_t i = 0; i < encoded_frame.data.size(); ++i) {
+            assert(encoded_frame.data[i] == expected_data[i]);
+        }
+
+        auto decoded_signals = frame_processor.decode(encoded_frame.id, std::string_view(
+                                                                                reinterpret_cast<char const*>(encoded_frame.data.data()),
+                                                                                encoded_frame.data.size()));
+        std::cout << "Decoded signals from encoded Science_Sensors message:\n";
+        for (auto const& [name, value]: decoded_signals) {
+            std::cout << "  " << name << ": " << value << "\n";
+        }
+    }
+
+    // decode test
+    {
+        std::cout << "\n=== Decoding Test ===\n";
         struct ScienceSensorsTestMessage {
             int32_t temperature = -22;
             float humidity = 55.0f;
@@ -116,8 +179,8 @@ auto main(int argc, char** argv) -> int {
                                                                   reinterpret_cast<char const*>(&ScienceSensorsTestMessage),
                                                                   sizeof(ScienceSensorsTestMessage)));
         assert(decoded_signals.size() == 5);
-        assert(std::holds_alternative<int32_t>(decoded_signals.at("Sensors_Temperature")));
-        assert(std::get<int32_t>(decoded_signals.at("Sensors_Temperature")) == -22);
+        assert(std::holds_alternative<int64_t>(decoded_signals.at("Sensors_Temperature")));
+        assert(std::get<int64_t>(decoded_signals.at("Sensors_Temperature")) == -22);
         assert(std::holds_alternative<float>(decoded_signals.at("Sensors_Humidity")));
         assert(std::get<float>(decoded_signals.at("Sensors_Humidity")) == 55.0f);
         assert(std::holds_alternative<float>(decoded_signals.at("Sensors_UV")));
@@ -132,6 +195,8 @@ auto main(int argc, char** argv) -> int {
             std::cout << "  " << name << ": " << value << "\n";
         }
     }
+
+    std::cout << "\nAll tests passed successfully.\n";
 
 
     return 0;

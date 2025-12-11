@@ -1,5 +1,7 @@
 #include "frame_processor.hpp"
 
+#include <bit>
+#include <concepts>
 #include <vector>
 
 namespace mrover::dbc {
@@ -50,7 +52,7 @@ namespace mrover::dbc {
                             }
                             int64_t int_value = signal_value.as_signed_integer();
                             if (signal_desc->factor_offset_used()) {
-                                double raw = (static_cast<double>(int_value) - signal_desc->offset()) / signal_desc->factor();
+                                double const raw = (static_cast<double>(int_value) - signal_desc->offset()) / signal_desc->factor();
                                 int_value = static_cast<int64_t>(raw);
                             }
                             raw_value = static_cast<uint64_t>(int_value);
@@ -62,7 +64,7 @@ namespace mrover::dbc {
                             }
                             uint64_t uint_value = signal_value.as_unsigned_integer();
                             if (signal_desc->factor_offset_used()) {
-                                double raw = (static_cast<double>(uint_value) - signal_desc->offset()) / signal_desc->factor();
+                                double const raw = (static_cast<double>(uint_value) - signal_desc->offset()) / signal_desc->factor();
                                 uint_value = static_cast<uint64_t>(raw);
                             }
                             raw_value = uint_value;
@@ -76,8 +78,8 @@ namespace mrover::dbc {
                             if (signal_desc->factor_offset_used()) {
                                 double_value = (double_value - signal_desc->offset()) / signal_desc->factor();
                             }
-                            auto float_value = static_cast<float>(double_value);
-                            raw_value = static_cast<uint64_t>(*reinterpret_cast<uint32_t*>(&float_value));
+                            auto const float_value = static_cast<float>(double_value);
+                            raw_value = static_cast<uint64_t>(std::bit_cast<uint32_t>(float_value));
                             break;
                         }
                         case DataFormat::Double: {
@@ -86,10 +88,10 @@ namespace mrover::dbc {
                             }
                             double double_value = signal_value.as_double();
                             if (signal_desc->factor_offset_used()) {
-                                double raw = (double_value - signal_desc->offset()) / signal_desc->factor();
+                                double const raw = (double_value - signal_desc->offset()) / signal_desc->factor();
                                 double_value = raw;
                             }
-                            raw_value = *reinterpret_cast<uint64_t*>(&double_value);
+                            raw_value = std::bit_cast<uint64_t>(double_value);
                             break;
                         }
                         case DataFormat::AsciiString:
@@ -97,7 +99,12 @@ namespace mrover::dbc {
                         default:
                             return std::unexpected(Error::InvalidSignalDescription);
                     }
-                }
+                    for (size_t i = 0; i < signal_desc->bit_length(); ++i) {
+                        if (raw_value & (uint64_t(1) << i)) {
+                            raw_bitset.set(signal_desc->bit_start() + i);
+                        }
+                    }
+                } // for (auto const& [signal_name, signal_value]: signal_values)
 
                 std::vector<uint8_t> frame_data(message_desc.length(), 0);
                 for (size_t i = 0; i < message_desc.length() * 8; ++i) {
@@ -154,7 +161,7 @@ namespace mrover::dbc {
     }
 
     // ===== HELPERS FOR from_signal_description =====
-    auto bytes_to_int(std::span<uint8_t const> bytes) -> uint64_t {
+    constexpr auto bytes_to_int(std::span<uint8_t const> bytes) -> uint64_t {
         if (bytes.size() > 8) {
             return 0;
         }
@@ -166,22 +173,24 @@ namespace mrover::dbc {
         return value;
     }
 
-    auto do_factor_and_offset(double raw, double factor, double offset) -> double {
+    constexpr auto do_factor_and_offset(double raw, double factor, double offset) -> double {
         return raw * factor + offset;
     }
 
     template<typename T>
-    auto make_value(double raw, CanSignalDescription const& signal) -> CanSignalValue {
-        static_assert(std::is_integral_v<T>, "T must be integral");
-        double scaled = signal.factor_offset_used() ? do_factor_and_offset(raw, signal.factor(), signal.offset())
-                                                    : raw;
-        T value = static_cast<T>(scaled);
-        return CanSignalValue{value};
+    concept numeric = std::integral<T> || std::floating_point<T>;
+
+    constexpr auto get_physical_value(numeric auto raw, CanSignalDescription const& signal) -> CanSignalValue {
+        if (signal.factor_offset_used()) {
+            double physical_value = do_factor_and_offset(raw, signal.factor(), signal.offset());
+            return physical_value;
+        }
+
+        return raw;
     }
     // ===== END HELPERS =============================
 
     auto CanFrameProcessor::from_signal_description(std::string_view data, CanSignalDescription const& signal) -> std::expected<CanSignalValue, Error> {
-
         auto bytes_result = extract_raw_bytes(data, signal);
         if (!bytes_result.has_value()) {
             return std::unexpected(bytes_result.error());
@@ -217,19 +226,7 @@ namespace mrover::dbc {
                     raw_s = static_cast<int64_t>(raw_u);
                 }
 
-                if (bit_length <= 8) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<int8_t>(static_cast<double>(raw_s), signal));
-                } else if (bit_length <= 16) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<int16_t>(static_cast<double>(raw_s), signal));
-                } else if (bit_length <= 32) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<int32_t>(static_cast<double>(raw_s), signal));
-                } else { // bit_length <= 64
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<int64_t>(static_cast<double>(raw_s), signal));
-                }
+                return std::expected<CanSignalValue, Error>(std::in_place, get_physical_value(raw_s, signal));
             }
 
             case DataFormat::UnsignedInteger: {
@@ -243,19 +240,7 @@ namespace mrover::dbc {
                     raw_u &= (uint64_t(1) << bit_length) - 1;
                 }
 
-                if (bit_length <= 8) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<uint8_t>(static_cast<double>(raw_u), signal));
-                } else if (bit_length <= 16) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<uint16_t>(static_cast<double>(raw_u), signal));
-                } else if (bit_length <= 32) {
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<uint32_t>(static_cast<double>(raw_u), signal));
-                } else { // bit_length <= 64
-                    return std::expected<CanSignalValue, Error>(
-                            std::in_place, make_value<uint64_t>(static_cast<double>(raw_u), signal));
-                }
+                return std::expected<CanSignalValue, Error>(std::in_place, get_physical_value(raw_u, signal));
             }
 
             case DataFormat::Float: {
@@ -267,12 +252,7 @@ namespace mrover::dbc {
                 float raw_value;
                 std::memcpy(&raw_value, &raw_int, sizeof(float));
 
-                if (signal.factor_offset_used()) {
-                    auto value = static_cast<float>(do_factor_and_offset(static_cast<double>(raw_value), signal.factor(), signal.offset()));
-                    return std::expected<CanSignalValue, Error>(std::in_place, CanSignalValue{value});
-                } else {
-                    return std::expected<CanSignalValue, Error>(std::in_place, CanSignalValue{raw_value});
-                }
+                return std::expected<CanSignalValue, Error>(std::in_place, get_physical_value(raw_value, signal));
             }
 
             case DataFormat::Double: {
@@ -284,13 +264,7 @@ namespace mrover::dbc {
                 double raw_value;
                 std::memcpy(&raw_value, &raw_int, sizeof(double));
 
-                if (signal.factor_offset_used()) {
-                    double value = do_factor_and_offset(raw_value,
-                                                        signal.factor(), signal.offset());
-                    return std::expected<CanSignalValue, Error>(std::in_place, CanSignalValue{value});
-                } else {
-                    return std::expected<CanSignalValue, Error>(std::in_place, CanSignalValue{raw_value});
-                }
+                return std::expected<CanSignalValue, Error>(std::in_place, get_physical_value(raw_value, signal));
             }
 
             case DataFormat::AsciiString: {
