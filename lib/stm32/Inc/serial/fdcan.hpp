@@ -55,7 +55,7 @@ namespace mrover {
             // TODO: add more options to make this driver more configurable
             FilterConfig filter_config{};
 
-            bool delay_compensation = false;
+            bool delay_compensation = false; // NOTE: needs to be on to enable BRS
             uint32_t tdc_offset = 0; // 13 with moteus
             uint32_t tdc_filter = 0; // 1 with moteus
 
