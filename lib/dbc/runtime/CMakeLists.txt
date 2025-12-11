@@ -1,25 +1,19 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(dbc LANGUAGES CXX)
+project(dbc_runtime LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+target_compile_features(dbc_runtime PUBLIC cxx_std_23)
 
-add_library(dbc STATIC
+add_library(dbc_runtime STATIC
     src/file_parser.cpp
     src/frame_processor.cpp
     src/message.cpp
     src/signal.cpp
 )
-add_library(dbc::dbc ALIAS dbc)
+add_library(dbc_runtime::dbc_runtime ALIAS dbc_runtime)
 
-target_include_directories(dbc
+target_include_directories(dbc_runtime
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
 )
-
-option(DBC_BUILD_TESTS "Build tests for the dbc library" OFF)
-if(DBC_BUILD_TESTS)
-  add_subdirectory(tests)
-endif()
 
