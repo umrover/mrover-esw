@@ -24,27 +24,70 @@ def _clean_project(path: Path) -> None:
     if cmakelists_stm.parent.exists() and cmakelists_stm.parent.is_dir():
         cmakelists_stm.parent.rmdir()
 
+def _find_dir_case_exact(base: Path, rel: Path) -> Path | None:
+    """
+    Resolve a relative path using the exact on-disk casing.
+
+    Traverses `base / rel` component-by-component, performing a
+    case-insensitive match at each level but returning the directory
+    names with their true filesystem casing.
+
+    This is primarily intended to prevent case-insensitive filesystems
+    from emitting incorrectly-cased paths into generated build files
+    that will later be consumed on case-sensitive systems.
+
+    Args:
+        base: Base directory from which resolution begins.
+        rel: Relative path to resolve (case-insensitive).
+
+    Returns:
+        A Path whose components match the actual casing on disk, relative
+        to `base`, or None if any path component does not exist.
+    """
+    cur = base
+    parts_out: list[str] = []
+
+    for part in rel.parts:
+        if not cur.is_dir():
+            return None
+
+        match = None
+        for entry in cur.iterdir():
+            if entry.name.lower() == part.lower():
+                match = entry
+                break
+        if match is None:
+            return None
+
+        parts_out.append(match.name)
+        cur = match
+
+    return Path(*parts_out)
 
 def _get_context(name: str, path: Path, root: Path, libs: list[str]) -> dict[str, Any]:
     # find source file directory
+    possible_srcs = [Path("Src"), Path("src"), Path("Core") / "Src"]
     src_dir: Path | None = None
-    possible_srcs = [ path / "Src", path / "src", path / "Core" / "Src" ]
-    for possible_src in possible_srcs:
-        if possible_src.exists() and possible_src.is_dir():
-            src_dir = possible_src.relative_to(path)
-            esw_logger.info(f"Found Source Directory {src_dir.absolute().resolve()}")
+    for cand in possible_srcs:
+        resolved = _find_dir_case_exact(path, cand)
+        if resolved is not None and (path / resolved).is_dir():
+            src_dir = resolved
+            esw_logger.info(f"Found Source Directory {(path.absolute() / src_dir).resolve()}")
+            break
     if not src_dir:
         err = f"Could not find Source Directory under {path.absolute().resolve()}"
         esw_logger.error(err)
         raise RuntimeError(err)
 
     # find header file directory
+    possible_incs = [Path("Inc"), Path("inc"), Path("Core") / "Inc"]
     inc_dir: Path | None = None
-    possible_incs = [ path / "Inc", path / "inc", path / "Core" / "Inc" ]
-    for possible_inc in possible_incs:
-        if possible_inc.exists() and possible_inc.is_dir():
-            inc_dir = possible_inc.relative_to(path)
-            esw_logger.info(f"Found Header Directory {inc_dir.absolute().resolve()}")
+    for cand in possible_incs:
+        resolved = _find_dir_case_exact(path, cand)
+        if resolved is not None and (path / resolved).is_dir():
+            inc_dir = resolved
+            esw_logger.info(f"Found Header Directory {(path.absolute() / inc_dir).resolve()}")
+            break
     if not inc_dir:
         err = f"Could not find Header Directory under {path.absolute().resolve()}"
         esw_logger.error(err)
