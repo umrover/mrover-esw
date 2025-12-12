@@ -15,10 +15,7 @@ def _cfg_logger(level=logging.DEBUG):
     if not logger.handlers:
         ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            "ST-LINKv3 %(asctime)s [%(levelname)-4s] %(message)s",
-            datefmt="%I:%M:%S%p"
-        )
+        formatter = logging.Formatter("ST-LINKv3 %(asctime)s [%(levelname)-4s] %(message)s", datefmt="%I:%M:%S%p")
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
@@ -42,7 +39,7 @@ def _process_log_string(logger: logging.Logger, log_message: str):
 
     if found_prefix:
         log_func = LEVEL_MAP[found_prefix]
-        content = log_message[len(found_prefix):].strip()
+        content = log_message[len(found_prefix) :].strip()
         log_func(content)
     else:
         default_log_func(f"{log_message.strip()}")
@@ -58,14 +55,14 @@ def stream_serial_data(port_name: Path, baud_rate: int, log_level=logging.DEBUG)
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
-            timeout=1
+            timeout=1,
         ) as ser:
             sleep(1)
             while True:
                 raw_line = ser.readline()
 
                 if raw_line:
-                    line = raw_line.decode('utf-8', errors='replace')
+                    line = raw_line.decode("utf-8", errors="replace")
                     clean_line = line.rstrip()
                     _process_log_string(logger, clean_line)
 

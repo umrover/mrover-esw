@@ -9,9 +9,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse dbc files to generate C header files.")
     parser.add_argument(
         "files",
-        nargs="+", # One or more files
+        nargs="+",  # One or more files
         type=str,
-        help="List of dbc files"
+        help="List of dbc files",
     )
     parser.add_argument(
         "--dest",
@@ -39,11 +39,7 @@ if __name__ == "__main__":
         dbc = parse_file(f)
 
         # Declare data object to pass into jinja2 template
-        data = {
-            "dbc_name": dbc.name,
-            "libs": libs,
-            "message_dict": dbc.message_dict
-        }
+        data = {"dbc_name": dbc.name, "libs": libs, "message_dict": dbc.message_dict}
 
         # Pass message_dict and library list
         rendered = template.render(data)

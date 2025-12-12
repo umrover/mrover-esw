@@ -8,9 +8,9 @@ namespace mrover {
 
     class AutonLed {
     public:
-    	AutonLed() = default;
+        AutonLed() = default;
 
-    	AutonLed(Pin red_pin, Pin green_pin, Pin blue_pin);
+        AutonLed(Pin red_pin, Pin green_pin, Pin blue_pin);
 
         void change_state(bool red, bool green, bool blue, bool blinking);
 

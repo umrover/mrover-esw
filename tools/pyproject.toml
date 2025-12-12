@@ -26,3 +26,11 @@ dev = [
     "pytest~=9.0.1",
     "ruff~=0.14.6",
 ]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "lf"

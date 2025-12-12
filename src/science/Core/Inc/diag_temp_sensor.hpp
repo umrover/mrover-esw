@@ -2,20 +2,20 @@
 
 #include "stm32g4xx_hal.h"
 
-#include <stdint.h>
+#include "hardware_adc.hpp"
 #include <math.h>
+#include <memory>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "hardware_adc.hpp"
-#include <memory>
 
 namespace mrover {
 
     class DiagTempSensor {
     public:
-    	DiagTempSensor() = default;
+        DiagTempSensor() = default;
 
-    	DiagTempSensor(std::shared_ptr<ADCSensor> adc_sensor, uint8_t channel);
+        DiagTempSensor(std::shared_ptr<ADCSensor> adc_sensor, uint8_t channel);
 
         void update_temp();
 
@@ -31,4 +31,3 @@ namespace mrover {
     };
 
 } // namespace mrover
-

@@ -2,11 +2,11 @@
 
 #include "stm32g4xx_hal.h"
 
-#include <stdint.h>
 #include <math.h>
+#include <memory>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <memory>
 
 #include "hardware_adc.hpp"
 

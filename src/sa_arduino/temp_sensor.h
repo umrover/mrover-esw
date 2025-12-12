@@ -17,29 +17,28 @@ constexpr static float THRM_D = -7.2405219E-08;
 #define TEMP_SENSOR_PIN A1
 
 class TempSensor {
-  public:
+public:
     void setup() {
-      pinMode(TEMP_SENSOR_PIN, INPUT); 
+        pinMode(TEMP_SENSOR_PIN, INPUT);
     }
 
     float getTemperature() {
-      float measured_voltage = getVoltage();
-      float measured_resistance = (measured_voltage * RESISTANCE_25)/(3.3 - measured_voltage);
-      float temp = 1/(THRM_A + THRM_B*log(measured_resistance/RESISTANCE_25) + THRM_C*log((measured_resistance/RESISTANCE_25)*(measured_resistance/RESISTANCE_25)) + THRM_D*(((measured_resistance/RESISTANCE_25)*(measured_resistance/RESISTANCE_25)*(measured_resistance/RESISTANCE_25))));
-      temp -= 273.15;
-//      float temp = (THRM_A4 * powf(measured_voltage,4)) + (THRM_A3 * powf(measured_voltage,3)) + (THRM_A2 * powf(measured_voltage,2)) + (THRM_A1 *  measured_voltage) + THRM_A0;
-      return temp;
+        float measured_voltage = getVoltage();
+        float measured_resistance = (measured_voltage * RESISTANCE_25) / (3.3 - measured_voltage);
+        float temp = 1 / (THRM_A + THRM_B * log(measured_resistance / RESISTANCE_25) + THRM_C * log((measured_resistance / RESISTANCE_25) * (measured_resistance / RESISTANCE_25)) + THRM_D * (((measured_resistance / RESISTANCE_25) * (measured_resistance / RESISTANCE_25) * (measured_resistance / RESISTANCE_25))));
+        temp -= 273.15;
+        //      float temp = (THRM_A4 * powf(measured_voltage,4)) + (THRM_A3 * powf(measured_voltage,3)) + (THRM_A2 * powf(measured_voltage,2)) + (THRM_A1 *  measured_voltage) + THRM_A0;
+        return temp;
     }
 
     int getRawData() {
-      return analogRead(TEMP_SENSOR_PIN);
+        return analogRead(TEMP_SENSOR_PIN);
     }
-  private:
-    
 
+private:
     float getVoltage() {
-      int rawData = getRawData();
-      float voltage = rawData * 3.3 / 1024.0;
-      return voltage;
+        int rawData = getRawData();
+        float voltage = rawData * 3.3 / 1024.0;
+        return voltage;
     }
 };

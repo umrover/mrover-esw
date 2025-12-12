@@ -101,7 +101,7 @@ namespace mrover {
         I2C_HandleTypeDef* m_i2c{};
         uint32_t m_timeout = I2C_TIMEOUT;
     };
-#else // HAL_I2C_MODULE_ENABLED
+#else  // HAL_I2C_MODULE_ENABLED
     class __attribute__((unavailable("enable 'I2C' in STM32CubeMX to use mrover::SMBus"))) SMBus {
     public:
         template<typename... Args>

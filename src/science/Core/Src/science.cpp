@@ -2,11 +2,11 @@
 #include "OxygenSensor.hpp"
 #include "TempHumiditySensor.hpp"
 #include "UVSensor.hpp"
+#include "diag_temp_sensor.hpp"
 #include "hardware.hpp"
 #include "hardware_adc.hpp"
-#include "messaging_science.hpp"
-#include "diag_temp_sensor.hpp"
 #include "heater.hpp"
+#include "messaging_science.hpp"
 #include <memory>
 
 extern ADC_HandleTypeDef hadc1;
@@ -36,37 +36,36 @@ namespace mrover {
     OutBoundScienceMessage science_out;
 
     std::array<Heater, NUM_HEATERS> heaters;
-	std::array<Pin, NUM_WL> white_leds;
+    std::array<Pin, NUM_WL> white_leds;
 
     void event_loop() {
         while (true) {}
     }
 
     void init() {
-    	uv_sensor = UVSensor(&adc_sensor2, 0);
-		oxygen_sensor = OxygenSensor(&hi2c2);
-		th_sensor = TempHumiditySensor(&hi2c3);
-		fdcan_bus = FDCAN<InBoundScienceMessage>(&hfdcan1);
+        uv_sensor = UVSensor(&adc_sensor2, 0);
+        oxygen_sensor = OxygenSensor(&hi2c2);
+        th_sensor = TempHumiditySensor(&hi2c3);
+        fdcan_bus = FDCAN<InBoundScienceMessage>(&hfdcan1);
 
         std::array<DiagTempSensor, NUM_THERM> diag_temp_sensors =
-		{
-				DiagTempSensor{adc_sensor1, 5},
+                {
+                        DiagTempSensor{adc_sensor1, 5},
 
-		};
+                };
         std::array<Pin, NUM_HEATERS> heater_pins =
-        {
-        		Pin{HEATER_1_GPIO_Port, HEATER_1_Pin},
-				Pin{HEATER_2_GPIO_Port, HEATER_2_Pin},
-        };
+                {
+                        Pin{HEATER_1_GPIO_Port, HEATER_1_Pin},
+                        Pin{HEATER_2_GPIO_Port, HEATER_2_Pin},
+                };
         std::array<Pin, NUM_WL> white_led_pins =
-		{
-				Pin{WHITE_LED_GPIO_Port, WHITE_LED_Pin}
-		};
+                {
+                        Pin{WHITE_LED_GPIO_Port, WHITE_LED_Pin}};
 
         white_leds.at(0) = white_led_pins.at(0);
 
         for (int i = 0; i < NUM_HEATERS; ++i) {
-        	heaters.at(i) = Heater(diag_temp_sensors[0], heater_pins[i]);
+            heaters.at(i) = Heater(diag_temp_sensors[0], heater_pins[i]);
             heaters.at(i).set_auto_shutoff(false);
         }
 
@@ -79,22 +78,22 @@ namespace mrover {
     }
 
     void handleI2CSensors() {
-    	SensorData temp_data = {.id = static_cast<std::uint8_t>(ScienceDataID::TEMPERATURE), .data = 0};
-		SensorData humidity_data = {.id = static_cast<std::uint8_t>(ScienceDataID::HUMIDITY), .data = 0};
-		SensorData oxygen_data = {.id = static_cast<std::uint8_t>(ScienceDataID::OXYGEN), .data = 0};
+        SensorData temp_data = {.id = static_cast<std::uint8_t>(ScienceDataID::TEMPERATURE), .data = 0};
+        SensorData humidity_data = {.id = static_cast<std::uint8_t>(ScienceDataID::HUMIDITY), .data = 0};
+        SensorData oxygen_data = {.id = static_cast<std::uint8_t>(ScienceDataID::OXYGEN), .data = 0};
 
-		th_sensor.update_temp_humidity();
-		temp_data.data = th_sensor.get_current_temp();
-		humidity_data.data = th_sensor.get_current_humidity();
-		oxygen_sensor.update_oxygen();
-		oxygen_data.data = oxygen_sensor.get_oxygen();
+        th_sensor.update_temp_humidity();
+        temp_data.data = th_sensor.get_current_temp();
+        humidity_data.data = th_sensor.get_current_humidity();
+        oxygen_sensor.update_oxygen();
+        oxygen_data.data = oxygen_sensor.get_oxygen();
 
-		science_out = temp_data;
-		fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
-		science_out = humidity_data;
-		fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
-		science_out = oxygen_data;
-		fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
+        science_out = temp_data;
+        fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
+        science_out = humidity_data;
+        fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
+        science_out = oxygen_data;
+        fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
     }
 
     void handleAnalogSensors() {
@@ -109,11 +108,11 @@ namespace mrover {
     void handleHeaterTemps() {
         HeaterStateData heater_msg;
         ThermistorData thermistor_msg;
-    	for (size_t i = 0; i < heaters.size(); i++) {
-			heaters.at(i).update_temp_and_auto_shutoff_if_applicable();
+        for (size_t i = 0; i < heaters.size(); i++) {
+            heaters.at(i).update_temp_and_auto_shutoff_if_applicable();
             thermistor_msg.temps.at(i) = heaters.at(i).get_temp();
             SET_BIT_AT_INDEX(heater_msg.heater_state_info.on, i, heaters.at(i).get_state());
-		}
+        }
         science_out = heater_msg;
         fdcan_bus.broadcast(science_out, SCIENCE_BOARD_ID, JETSON_ADDRESS);
         science_out = thermistor_msg;
@@ -167,39 +166,39 @@ namespace mrover {
     }
 
     void receive_message() {
-		std::optional<std::pair<FDCAN_RxHeaderTypeDef, InBoundScienceMessage>> received = fdcan_bus.receive();
-		if (!received) Error_Handler(); // This function is called WHEN we receive a message so this should never happen
+        std::optional<std::pair<FDCAN_RxHeaderTypeDef, InBoundScienceMessage>> received = fdcan_bus.receive();
+        if (!received) Error_Handler(); // This function is called WHEN we receive a message so this should never happen
 
-		auto const& [header, message] = received.value();
+        auto const& [header, message] = received.value();
 
-		auto messageId = std::bit_cast<FDCAN<InBoundScienceMessage>::MessageId>(header.Identifier);
+        auto messageId = std::bit_cast<FDCAN<InBoundScienceMessage>::MessageId>(header.Identifier);
 
-		if (messageId.destination == SCIENCE_BOARD_ID) {
-			std::visit([&](auto const& command) { feed(command); }, message);
-		}
-	}
+        if (messageId.destination == SCIENCE_BOARD_ID) {
+            std::visit([&](auto const& command) { feed(command); }, message);
+        }
+    }
 } // namespace mrover
 
 extern "C" {
 
-void HAL_I2C_MemRxCpltCallback (I2C_HandleTypeDef* hi2c) {
-	if (hi2c == &hi2c2 && mrover::oxygen_state == 0) {
-		mrover::oxygen_state = 1;
-		mrover::oxygen_sensor.calibrate_oxygen();
-	} else if (hi2c == &hi2c2 && mrover::oxygen_state == 1) {
-		mrover::oxygen_state = 0;
-		mrover::oxygen_sensor.set_oxygen();
-	}
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c == &hi2c2 && mrover::oxygen_state == 0) {
+        mrover::oxygen_state = 1;
+        mrover::oxygen_sensor.calibrate_oxygen();
+    } else if (hi2c == &hi2c2 && mrover::oxygen_state == 1) {
+        mrover::oxygen_state = 0;
+        mrover::oxygen_sensor.set_oxygen();
+    }
 }
 
-void HAL_I2C_MasterTxCpltCallback (I2C_HandleTypeDef* hi2c) {
-	if (hi2c == &hi2c3)
-		mrover::th_sensor.receive_buf();
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c == &hi2c3)
+        mrover::th_sensor.receive_buf();
 }
 
-void HAL_I2C_MasterRxCpltCallback (I2C_HandleTypeDef* hi2c) {
-	if (hi2c == &hi2c3)
-		mrover::th_sensor.calculate_th();
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
+    if (hi2c == &hi2c3)
+        mrover::th_sensor.calculate_th();
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
@@ -211,28 +210,25 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
     }
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
-{
-	if (htim == &htim2) {
-		mrover::handleI2CSensors();
-	} else if (htim == &htim3){
-		mrover::handleHeaterTemps();
-	} else if (htim == &htim4) {
-		mrover::handleAnalogSensors();
-	}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+    if (htim == &htim2) {
+        mrover::handleI2CSensors();
+    } else if (htim == &htim3) {
+        mrover::handleHeaterTemps();
+    } else if (htim == &htim4) {
+        mrover::handleAnalogSensors();
+    }
 }
 
-void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef *hfdcan, uint32_t ErrorStatusITs)
-{
-	FDCAN_ProtocolStatusTypeDef protocolStatus = {};
-	HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
-	if (protocolStatus.BusOff) {
-		CLEAR_BIT(hfdcan->Instance->CCCR, FDCAN_CCCR_INIT);
-	}
+void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef* hfdcan, uint32_t ErrorStatusITs) {
+    FDCAN_ProtocolStatusTypeDef protocolStatus = {};
+    HAL_FDCAN_GetProtocolStatus(hfdcan, &protocolStatus);
+    if (protocolStatus.BusOff) {
+        CLEAR_BIT(hfdcan->Instance->CCCR, FDCAN_CCCR_INIT);
+    }
 }
 
 void HAL_PostInit() {
     mrover::init();
 }
-
 }

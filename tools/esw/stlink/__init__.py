@@ -8,9 +8,7 @@ from esw import esw_logger
 @lru_cache(maxsize=1)
 def get_stlinkv3_port():
     ST_VID = 0x0483
-    KNOWN_STLINK_PIDS = [
-        0x3748, 0x374B, 0x374E, 0x374F, 0x3753, 0x3754
-    ]
+    KNOWN_STLINK_PIDS = [0x3748, 0x374B, 0x374E, 0x374F, 0x3753, 0x3754]
 
     stlink_port = None
 
