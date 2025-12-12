@@ -8,7 +8,20 @@ extern "C" {
 
 namespace mrover {
 
-  
+  struct bmc_config_t {
+    static constexpr reg_t<uint8_t> CAN_ID{"can_id", 0x00};
+    static constexpr reg_t<uint8_t> LIMITS_ENABLED{"limits_enabled", 0x01};
+    static constexpr reg_t<uint16_t> INT_VALUE{"int_value", 0x02};
+    static constexpr reg_t<float> FLOAT_VALUE{"float_value", 0x04};
+
+    static constexpr auto all() {
+        return std::make_tuple(CAN_ID, LIMITS_ENABLED, INT_VALUE, FLOAT_VALUE);
+    }
+
+    static consteval uint16_t size_bytes() {
+        return validated_config_t<bmc_config_t>::size_bytes();
+    }
+  };
 
   Flash<bmc_config_t> flash(LAST_PAGE_START);
   // FlashPageManager mgr(flash);
