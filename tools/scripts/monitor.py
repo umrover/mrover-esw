@@ -11,21 +11,26 @@ def _logging_level_type(level_string):
     # TODO: should it?
     if level is None or level == logging.NOTSET or level == logging.CRITICAL:
         raise argparse.ArgumentTypeError(
-            f"Invalid logging level: '{level_string}'. Must be one of: "
-            f"DEBUG, INFO, WARNING, ERROR"
+            f"Invalid logging level: '{level_string}'. Must be one of: DEBUG, INFO, WARNING, ERROR"
         )
     return level
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Serial Log Viewer for ST-LINKv3")
-    parser.add_argument("--baud", "-b", type=int, default=115200, help="Configured Baud Rate of Target Device")
+    parser.add_argument(
+        "--baud",
+        "-b",
+        type=int,
+        default=115200,
+        help="Configured Baud Rate of Target Device",
+    )
     parser.add_argument(
         "--log-level",
         "-l",
         type=_logging_level_type,
         default=logging.INFO,
-        help="Set the logging level (e.g., INFO, DEBUG, WARNING, ERROR). Default: INFO"
+        help="Set the logging level (e.g., INFO, DEBUG, WARNING, ERROR). Default: INFO",
     )
     args = parser.parse_args()
 

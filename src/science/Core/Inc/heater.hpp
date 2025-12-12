@@ -2,8 +2,8 @@
 
 #include "stm32g4xx_hal.h"
 
-#include <stdint.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,13 +11,13 @@
 
 namespace mrover {
 
-	constexpr static float DEFAULT_MAX_HEATER_TEMP = 150.0f;
+    constexpr static float DEFAULT_MAX_HEATER_TEMP = 150.0f;
 
     class Heater {
     public:
-    	Heater() = default;
+        Heater() = default;
 
-    	Heater(DiagTempSensor const& diag_temp_sensor, Pin const& heater_pin);
+        Heater(DiagTempSensor const& diag_temp_sensor, Pin const& heater_pin);
 
         float get_temp();
 
@@ -38,10 +38,10 @@ namespace mrover {
 
         DiagTempSensor m_diag_temp_sensor;
         Pin m_heater_pin;
-        bool m_state {};
-        bool m_auto_shutoff_enabled {};
-        uint32_t m_last_time_received_message {};
-        float m_max_heater_temp {DEFAULT_MAX_HEATER_TEMP};
+        bool m_state{};
+        bool m_auto_shutoff_enabled{};
+        uint32_t m_last_time_received_message{};
+        float m_max_heater_temp{DEFAULT_MAX_HEATER_TEMP};
     };
 
 } // namespace mrover

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <string_view>
 #include <span>
+#include <string_view>
 
 #include <util.hpp>
 
@@ -21,13 +21,9 @@ namespace mrover {
 
         UART() = default;
 
-        explicit UART(
-            UART_HandleTypeDef* huart,
-            Options const& options = Options()
-        ) :
-            m_huart{huart},
-            m_options{options}
-        {}
+        explicit UART(UART_HandleTypeDef* huart, Options const& options = Options())
+            : m_huart{huart},
+              m_options{options} {}
 
         auto transmit(std::string_view const data) const -> void {
             auto* ptr = reinterpret_cast<uint8_t const*>(data.data());
@@ -64,7 +60,7 @@ namespace mrover {
         Options m_options{};
     };
 
-#else // HAL_UART_MODULE_ENABLED
+#else  // HAL_UART_MODULE_ENABLED
     class __attribute__((unavailable("enable 'UART' in STM32CubeMX to use mrover::UART"))) UART {
     public:
         template<typename... Args>

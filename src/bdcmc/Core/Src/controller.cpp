@@ -28,7 +28,7 @@ extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim16;
 // extern WWDG_HandleTypeDef hwwdg;
 
-#define QUADRATURE_TICK_TIMER &htim4    // Special encoder timer which externally reads quadrature encoder ticks
+#define QUADRATURE_TICK_TIMER &htim4 // Special encoder timer which externally reads quadrature encoder ticks
 
 // Measures time since:
 // The last absolute/quad encoder reading
@@ -53,13 +53,13 @@ namespace mrover {
         motor = Motor{
                 DEVICE_ID,
                 HBridge{PWM_TIMER, PWM_TIMER_CHANNEL, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
-				FDCAN_WATCHDOG_TIMER,
+                FDCAN_WATCHDOG_TIMER,
                 {LimitSwitch{Pin{LIMIT_0_GPIO_Port, LIMIT_0_Pin}}, LimitSwitch{Pin{LIMIT_1_GPIO_Port, LIMIT_1_Pin}}},
-                GENERIC_ELAPSED_TIMER, GENERIC_ELAPSED_FREQUENCY,
+                GENERIC_ELAPSED_TIMER,
+                GENERIC_ELAPSED_FREQUENCY,
                 QUADRATURE_TICK_TIMER,
                 ABSOLUTE_I2C,
-                A2_A1
-        };
+                A2_A1};
 
         // fdcan_bus.add_filter(DEVICE_ID);
         fdcan_bus.start();
@@ -83,37 +83,37 @@ namespace mrover {
     }
 
     auto send_motor_status() -> void {
-		if (bool success = fdcan_bus.broadcast(motor.get_outbound(), motor.get_id(), DESTINATION_DEVICE_ID); !success) {
-			fdcan_bus.reset();
-		}
+        if (bool success = fdcan_bus.broadcast(motor.get_outbound(), motor.get_id(), DESTINATION_DEVICE_ID); !success) {
+            fdcan_bus.reset();
+        }
     }
 
-	auto update_relative_encoder_callback() -> void {
-		motor.update_quadrature_encoder();
-	}
+    auto update_relative_encoder_callback() -> void {
+        motor.update_quadrature_encoder();
+    }
 
-	auto request_absolute_encoder_data_callback() -> void {
-		motor.request_absolute_encoder_data();
-	}
+    auto request_absolute_encoder_data_callback() -> void {
+        motor.request_absolute_encoder_data();
+    }
 
-	auto read_absolute_encoder_data_callback() -> void {
-		motor.read_absolute_encoder_data();
-	}
+    auto read_absolute_encoder_data_callback() -> void {
+        motor.read_absolute_encoder_data();
+    }
 
-	auto update_absolute_encoder_callback() -> void {
-		motor.update_absolute_encoder();
-	}
+    auto update_absolute_encoder_callback() -> void {
+        motor.update_absolute_encoder();
+    }
 
-	auto update_quadrature_encoder_callback() -> void {
-		motor.update_quadrature_encoder();
-	}
+    auto update_quadrature_encoder_callback() -> void {
+        motor.update_quadrature_encoder();
+    }
 
 
-	auto global_update_callback() -> void {
-		send_motor_status();
-		request_absolute_encoder_data_callback();
-		update_relative_encoder_callback();
-	}
+    auto global_update_callback() -> void {
+        send_motor_status();
+        request_absolute_encoder_data_callback();
+        update_relative_encoder_callback();
+    }
 
     auto fdcan_watchdog_expired() -> void {
         motor.receive_watchdog_expired();

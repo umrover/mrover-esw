@@ -1,33 +1,41 @@
 import os
 import re
 
+
 # Class Objects
 class DBC:
     name: str
+
     def __init__(self, name):
         self.name = name
         self.message_dict = {}
 
+
 class Message:
     name: str
     byte_length: int
+
     def __init__(self, name):
         self.name = name
         self.bit_length = 0
         self.signal_dict = {}
-    
+
+
 class Signal:
     data_type: str
     start_bit: int
     bit_length: int
     byte_length: int
+
     def __init__(self, data_type, start_bit, bit_length):
         self.data_type = data_type
         self.start_bit = start_bit
         self.bit_length = bit_length
         self.byte_length = bit_length // 8
 
+
 # TODO: add some type hints
+
 
 def update_type(line, dbc_file):
     msg_id = line[1]
@@ -39,8 +47,8 @@ def update_type(line, dbc_file):
     elif line[4][0:-1] == "2":
         sig.data_type = "double"
 
-def parse_message(line, dbc_file):
 
+def parse_message(line, dbc_file):
     id = line[1]
     name = line[2][:-1]
     byte_length = line[3]
@@ -52,12 +60,13 @@ def parse_message(line, dbc_file):
     # Append to most recent dbc object's message dict
     dbc_file.message_dict[id] = msg
 
+
 # TODO: order the message signals by size (descending)
 # Currently we assume they are already ordered :)
 def parse_signal(line, dbc_file):
     name = line[1]
 
-    bits_section = re.split(r'[|@]', line[3])
+    bits_section = re.split(r"[|@]", line[3])
     start_bit = bits_section[0]
     bit_length = int(bits_section[1])
     isLittleEndian = bool(bits_section[2][0])
@@ -96,6 +105,7 @@ def parse_signal(line, dbc_file):
 
     # Update size of message
     msg.bit_length += bit_length
+
 
 def parse_file(filepath):
     dbc_file = DBC(os.path.basename(filepath)[:-4])

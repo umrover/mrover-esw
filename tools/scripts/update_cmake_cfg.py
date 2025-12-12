@@ -21,7 +21,7 @@ if __name__ == "__main__":
         "-l",
         action="append",
         default=[],
-        help="Libraries to Include in Generated Project"
+        help="Libraries to Include in Generated Project",
     )
     args = parser.parse_args()
 

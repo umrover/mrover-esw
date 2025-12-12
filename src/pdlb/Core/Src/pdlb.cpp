@@ -1,8 +1,8 @@
-#include <pdlb.hpp>
-#include <cstdint>
-#include "main.h"
 #include "hardware.hpp"
+#include "main.h"
 #include "messaging.hpp"
+#include <cstdint>
+#include <pdlb.hpp>
 
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
@@ -30,55 +30,54 @@ namespace mrover {
               Error_Handler);
 
         AutonLed auton_led = AutonLed{
-        	Pin{AUTON_LED_R_GPIO_Port, AUTON_LED_R_Pin},
-			Pin{AUTON_LED_G_GPIO_Port, AUTON_LED_G_Pin},
-			Pin{AUTON_LED_B_GPIO_Port, AUTON_LED_B_Pin}
-        };
+                Pin{AUTON_LED_R_GPIO_Port, AUTON_LED_R_Pin},
+                Pin{AUTON_LED_G_GPIO_Port, AUTON_LED_G_Pin},
+                Pin{AUTON_LED_B_GPIO_Port, AUTON_LED_B_Pin}};
         std::shared_ptr<ADCSensor> adc_sensor_1 = std::make_shared<ADCSensor>(&hadc1, 10);
         std::shared_ptr<ADCSensor> adc_sensor_2 = std::make_shared<ADCSensor>(&hadc2, 2);
 
         std::array<CurrentSensor, 6> current_sensors =
-		{
-				CurrentSensor{adc_sensor_1, 0},
-				CurrentSensor{adc_sensor_1, 1},
-				CurrentSensor{adc_sensor_1, 2},
-				CurrentSensor{adc_sensor_1, 3},
-				CurrentSensor{adc_sensor_1, 4},
-				CurrentSensor{adc_sensor_1, 5},
+                {
+                        CurrentSensor{adc_sensor_1, 0},
+                        CurrentSensor{adc_sensor_1, 1},
+                        CurrentSensor{adc_sensor_1, 2},
+                        CurrentSensor{adc_sensor_1, 3},
+                        CurrentSensor{adc_sensor_1, 4},
+                        CurrentSensor{adc_sensor_1, 5},
 
-		};
+                };
         std::array<DiagTempSensor, 6> diag_temp_sensors =
-        {
-        		DiagTempSensor{adc_sensor_1, 6},
-				DiagTempSensor{adc_sensor_1, 7},
-				DiagTempSensor{adc_sensor_1, 8},
-				DiagTempSensor{adc_sensor_1, 9},
-				DiagTempSensor{adc_sensor_2, 0},
-				DiagTempSensor{adc_sensor_2, 1},
-        };
+                {
+                        DiagTempSensor{adc_sensor_1, 6},
+                        DiagTempSensor{adc_sensor_1, 7},
+                        DiagTempSensor{adc_sensor_1, 8},
+                        DiagTempSensor{adc_sensor_1, 9},
+                        DiagTempSensor{adc_sensor_2, 0},
+                        DiagTempSensor{adc_sensor_2, 1},
+                };
 
         fdcan_bus = FDCAN<InBoundPDLBMessage>{DEVICE_ID, DESTINATION_DEVICE_ID, &hfdcan1};
         pdlb = PDLB{fdcan_bus, Pin{ARM_LASER_GPIO_Port, ARM_LASER_Pin},
-        	auton_led, adc_sensor_1, adc_sensor_2,
-			current_sensors, diag_temp_sensors};
+                    auton_led, adc_sensor_1, adc_sensor_2,
+                    current_sensors, diag_temp_sensors};
     }
 
     void update_and_send_current_temp() {
-    	pdlb.update_and_send_current_temp();
+        pdlb.update_and_send_current_temp();
     }
 
     void blink_led_if_applicable() {
-		pdlb.blink_led_if_applicable();
-	}
+        pdlb.blink_led_if_applicable();
+    }
 
     void receive_message() {
-    	if (std::optional received = fdcan_bus.receive()) {
-			auto const& [header, message] = received.value();
-			auto messageId = std::bit_cast<FDCAN<InBoundPDLBMessage>::MessageId>(header.Identifier);
-			if (messageId.destination == DEVICE_ID)
-				pdlb.receive(message);
-		}
-	}
+        if (std::optional received = fdcan_bus.receive()) {
+            auto const& [header, message] = received.value();
+            auto messageId = std::bit_cast<FDCAN<InBoundPDLBMessage>::MessageId>(header.Identifier);
+            if (messageId.destination == DEVICE_ID)
+                pdlb.receive(message);
+        }
+    }
 
 } // namespace mrover
 
@@ -87,23 +86,21 @@ void init() {
 }
 
 void update_and_send_current_temp() {
-	mrover::update_and_send_current_temp();
+    mrover::update_and_send_current_temp();
 }
 
 void blink_led_if_applicable() {
-	mrover::blink_led_if_applicable();
+    mrover::blink_led_if_applicable();
 }
 
 void receive_message() {
-	mrover::receive_message();
+    mrover::receive_message();
 }
 
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
-  if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
-  {
-    mrover::receive_message();
-  }
-  else {
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
+    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
+        mrover::receive_message();
+    } else {
         // Mailbox is full OR we lost a frame
         Error_Handler();
     }

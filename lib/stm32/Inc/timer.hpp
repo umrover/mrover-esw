@@ -75,7 +75,7 @@ namespace mrover {
 
         std::uint32_t m_tick_prev{};
     };
-#else // HAL_TIM_MODULE_ENABLED
+#else  // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ElapsedTimer"))) ElapsedTimer {
     public:
         template<typename... Args>
@@ -188,7 +188,7 @@ namespace mrover {
             return __HAL_TIM_GetCounter(m_hardware_tim);
         }
     };
-#else // HAL_TIM_MODULE_ENABLED
+#else  // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::VirtualStopwatches"))) VirtualStopwatches {
     public:
         template<typename... Args>

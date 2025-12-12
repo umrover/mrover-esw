@@ -2,3 +2,5 @@ src/**/Core/**/*.c
 src/**/Core/**/*.h
 src/**/Drivers/**/*.c
 src/**/Drivers/**/*.h
+src/sa_arduino/libraries/**/*
+**/*build*/**/*

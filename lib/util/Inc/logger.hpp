@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <string_view>
-#include <cstdio>
 #include <cstdarg>
+#include <cstdint>
+#include <cstdio>
+#include <string_view>
 
 #include <serial/uart.hpp>
 
@@ -39,7 +39,7 @@ namespace mrover {
             m_level = level;
         }
 
-        auto debug(const char* format, ...) const -> void {
+        auto debug(char const* format, ...) const -> void {
             if (log_level_t::LOG_DEBUG >= m_level) {
                 va_list args;
                 va_start(args, format);
@@ -48,7 +48,7 @@ namespace mrover {
             }
         }
 
-        auto info(const char* format, ...) const -> void {
+        auto info(char const* format, ...) const -> void {
             if (log_level_t::LOG_INFO >= m_level) {
                 va_list args;
                 va_start(args, format);
@@ -57,7 +57,7 @@ namespace mrover {
             }
         }
 
-        auto warn(const char* format, ...) const -> void {
+        auto warn(char const* format, ...) const -> void {
             if (log_level_t::LOG_WARNING >= m_level) {
                 va_list args;
                 va_start(args, format);
@@ -66,7 +66,7 @@ namespace mrover {
             }
         }
 
-        auto error(const char* format, ...) const -> void {
+        auto error(char const* format, ...) const -> void {
             if (log_level_t::LOG_ERROR >= m_level) {
                 va_list args;
                 va_start(args, format);
@@ -101,7 +101,7 @@ namespace mrover {
         explicit Logger(UART_HandleTypeDef* huart, log_level_t const level) : m_uart{huart}, m_level{level} {}
 
         auto vlog(log_level_t const level, std::string_view const prefix,
-                  const char* format, va_list const args) const -> void {
+                  char const* format, va_list const args) const -> void {
             if (level < m_level) return;
 
             static char buffer[LOG_BUFFER_SIZE];
@@ -121,9 +121,10 @@ namespace mrover {
             m_uart.transmit("\r\n");
         }
     };
-#else // DEBUG
+#else  // DEBUG
     class Logger {
         Logger() = default;
+
     public:
         template<typename... Args>
         static auto init(Args&&... args) -> void {}
@@ -144,7 +145,7 @@ namespace mrover {
         auto error(Args&&... args) const -> void {}
     };
 #endif // DEBUG
-#else // HAL_UART_MODULE_ENABLED
+#else  // HAL_UART_MODULE_ENABLED
     class __attribute__((unavailable("enable 'UART' in STM32CubeMX to use mrover::Logger"))) Logger {
     public:
         template<typename... Args>

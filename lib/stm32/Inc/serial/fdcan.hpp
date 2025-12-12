@@ -242,7 +242,7 @@ namespace mrover {
         Options m_options{};
         uint32_t m_last_tx_request = 0;
     };
-#else // HAL_FDCAN_MODULE_ENABLED
+#else  // HAL_FDCAN_MODULE_ENABLED
     class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::FDCAN"))) FDCAN {
     public:
         template<typename... Args>
@@ -251,4 +251,3 @@ namespace mrover {
 #endif // HAL_FDCAN_MODULE_ENABLED
 
 } // namespace mrover
-

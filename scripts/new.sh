@@ -1,11 +1,11 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
 RED="\e[1;31m"
-GREEN="\e[1;32m"
-BLUE="\e[1;34m"
-YELLOW="\e[1;33m"
+# GREEN="\e[1;32m"
+# BLUE="\e[1;34m"
+# YELLOW="\e[1;33m"
 NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
@@ -44,20 +44,20 @@ while [[ $# -gt 0 ]]; do
         -s|--src)       SRC="$2"; shift 2 ;;
         -l|--lib)       LIBS+=("$2"); shift 2 ;;
         -h|--help)      usage ;;
-        *)              echo -e "${RED}✗ unknown option: $1${NC}"; usage ;;
+        *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
     esac
 done
 
 # select project source
 if [[ -z "$SRC" ]]; then
-    echo -e "${RED}Project source path must be specified${NC}"
+    printf "%b\n" "${RED}Project source path must be specified${NC}"
     exit 1
 fi
 
 # select target
 TARGET=""
 if { [ -n "$MCU" ] && [ -n "$BOARD" ]; } || { [ -z "$MCU" ] && [ -z "$BOARD" ]; }; then
-    echo -e "${RED}Exactly one of MCU or BOARD must be specified${NC}"
+    printf "%b\n" "${RED}Exactly one of MCU or BOARD must be specified${NC}"
     exit 1
 fi
 if [ -n "$MCU" ]; then
@@ -77,6 +77,7 @@ if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
 fi
 
 # activate venv
+# shellcheck source=/dev/null
 source "$VENV_PATH/bin/activate"
 
 # run project generation script
@@ -94,4 +95,3 @@ done
     --root "$ESW_ROOT" \
     --ctx "$ESW_ROOT/lib/stm32g4" \
     "${PY_LIB_ARGS[@]}"
-

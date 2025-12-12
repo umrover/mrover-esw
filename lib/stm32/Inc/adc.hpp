@@ -46,7 +46,7 @@ namespace mrover {
         uint8_t m_channels;
         std::vector<uint32_t> m_values;
     };
-#else // HAL_ADC_MODULE_ENABLED
+#else  // HAL_ADC_MODULE_ENABLED
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADCSensor"))) ADCSensor {
     public:
         template<typename... Args>

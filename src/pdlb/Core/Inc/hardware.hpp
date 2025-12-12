@@ -9,8 +9,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <units.hpp>
 #include "stm32g4xx_hal.h"
+#include <units.hpp>
 
 #include "main.h"
 
@@ -253,8 +253,8 @@ namespace mrover {
         std::uint8_t m_source{}, m_destination{};
     };
 
-//    inline auto cycle_time(TIM_HandleTypeDef* timer, Hertz clock_freq) -> Seconds {
-//        return 1 / clock_freq * std::exchange(__HAL_TIM_GetCounter(timer), 0);
-//    }
+    //    inline auto cycle_time(TIM_HandleTypeDef* timer, Hertz clock_freq) -> Seconds {
+    //        return 1 / clock_freq * std::exchange(__HAL_TIM_GetCounter(timer), 0);
+    //    }
 
 } // namespace mrover
