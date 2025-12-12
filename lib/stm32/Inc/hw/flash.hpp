@@ -4,7 +4,6 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
-#include <cstdio>
 #include <string_view>
 #include <tuple>
 
@@ -96,36 +95,23 @@ struct validated_config_t {
     }
 };
 
-struct bmc_config_t {
-    static constexpr reg_t<uint8_t> CAN_ID{"can_id", 0x00};
-    static constexpr reg_t<uint8_t> LIMITS_ENABLED{"limits_enabled", 0x01};
-    static constexpr reg_t<uint16_t> INT_VALUE{"int_value", 0x02};
-    static constexpr reg_t<float> FLOAT_VALUE{"float_value", 0x04};
-
-    static constexpr auto all() {
-        return std::make_tuple(CAN_ID, LIMITS_ENABLED, INT_VALUE, FLOAT_VALUE);
-    }
-
-    static consteval uint16_t size_bytes() {
-        return validated_config_t<bmc_config_t>::size_bytes();
-    }
-};
-
 // --------------------------------------------------------------------
 // FLASH CLASS
 // --------------------------------------------------------------------
 
 
-
   constexpr uint32_t LAST_PAGE_START = 0x0801F800;
   constexpr uint32_t LAST_PAGE_END = 0x0801FFFF;
   constexpr uint32_t PAGE_SIZE = 2048;
-  constexpr int CHUNK_SIZE = 0x08;
   constexpr uint32_t LAST_PAGE_NUM = 63;
 
   template <config_t Config>
   class Flash {
   private:
+    std::array<uint8_t, PAGE_SIZE> m_page_buffer;
+    uint32_t m_loaded_page_num;
+    bool m_dirty;
+
     // Unlock/lock the flash protection
     void unlock() {
       HAL_FLASH_Unlock();
@@ -134,18 +120,14 @@ struct bmc_config_t {
       HAL_FLASH_Lock();
     }
 
-    std::array<uint8_t, PAGE_SIZE> page_buffer;
-    uint32_t loaded_page_num;
-    bool dirty;
-
     void load_page( uint32_t page_num) {
       uint32_t curr_addr = get_page_start(page_num);
       for (size_t i = 0; i < PAGE_SIZE; ++i) {
         uint8_t byte = read_byte(curr_addr + i);
-        page_buffer[i] = byte;
+        m_page_buffer[i] = byte;
       }
-      loaded_page_num = page_num;
-      dirty = false;
+      m_loaded_page_num = page_num;
+      m_dirty = false;
     }
 
     // Calculate what page of flash an address is in.
@@ -169,35 +151,6 @@ struct bmc_config_t {
       return physical_addr = physical_addr & ~0x7ULL;
     }
 
-  public:
-    Flash() {
-      static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
-    };
-    ~Flash() = default;
-    Flash (uint32_t start_addr) {
-      static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
-      region_start = start_addr;
-      region_end = LAST_PAGE_END;
-    };
-   
-    struct Info {
-      uint32_t start = 0;
-      uint32_t end = 0;
-    };
-
-    // LAST PAGE OF FLASH ONLY
-    Info info {
-      info.start = 0x0801F800,
-      info.end = 0x0801FFFF
-    };
-
-    uint32_t region_start = LAST_PAGE_START;
-    uint32_t region_end = LAST_PAGE_END;
-
-    auto get_start() -> uint32_t {
-      return info.start;
-    }
-
     /// Erase the entirety of the managed flash section.
     void erase_page(const uint32_t &page_num = LAST_PAGE_NUM) {
       unlock();
@@ -217,28 +170,56 @@ struct bmc_config_t {
       lock();
 
       if (status != HAL_OK) {
-        printf("ERASE FAILED");
+        // TODO logger for this
+        // printf("ERASE FAILED\n\r");
       }
       
     }
 
+  public:
+    uint32_t m_region_start = LAST_PAGE_START; // default to last page only
+    uint32_t m_region_end = LAST_PAGE_END;  
+
+    Flash() {
+      static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
+    };
+    ~Flash() = default;
+    Flash (uint32_t start_addr) {
+      static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
+      m_region_start = start_addr;
+      m_region_end = LAST_PAGE_END;
+    };
+   
+    struct Info {
+      uint32_t start = 0;
+      uint32_t end = 0;
+    };
+
+    // LAST PAGE OF FLASH ONLY
+    Info info {
+      info.start = LAST_PAGE_START,
+      info.end = LAST_PAGE_END
+    };
+
+    auto get_start() -> uint32_t {
+      return info.start;
+    }
 
     /// Write a double word into flash.
     void program_double_word(uint32_t address, uint64_t value) {
       unlock();
-      // printf("WRITING ADDRESS 0x%lx, WRITE VALUE: %lu\n\r", address, value);
       HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, value);
       lock();
 
       if (status != HAL_OK) {
-        printf("WRITE FAILED\n\r");
+        // TODO logger for this
+        // printf("WRITE FAILED\n\r");
       }
     }
 
     // Read a double word from flash.
     auto read_double_word(uint32_t start_addr) -> uint64_t {
       uint64_t word = *(__IO uint64_t *)start_addr;
-      // printf("READING ADDRESS 0x%lx, READ VALUE: %lu\n\r", start_addr, word);
       return word;
     } 
     auto read_byte(uint32_t start_addr) -> uint8_t {
@@ -248,19 +229,17 @@ struct bmc_config_t {
 
     template <typename T>
     void write(const uint32_t &custom_addr, T value) {
-      uint32_t physical_addr = region_start + custom_addr;
+      uint32_t physical_addr = m_region_start + custom_addr;
       uint32_t page_num = get_page(physical_addr);
       uint32_t offset = physical_addr - get_page_start(page_num);
 
-      if (page_num != loaded_page_num) {
-        if (dirty) flush();
+      if (page_num != m_loaded_page_num) {
+        if (m_dirty) flush();
         load_page(page_num);
       }
 
-      printf("====== WROTE AT ADDRESS: 0x%lu, PHYSICAL ADDRESS: 0x%lx ======\n\r", 
-        custom_addr, physical_addr);
-      memcpy(&page_buffer[offset], &value, sizeof(T));
-      dirty = true;
+      memcpy(&m_page_buffer[offset], &value, sizeof(T));
+      m_dirty = true;
 
     }
 
@@ -278,27 +257,27 @@ struct bmc_config_t {
 
     // once changes are finalized, erase and rewrite a flash page
     void flush() {
-      if (!dirty || loaded_page_num == UINT32_MAX) return;
+      if (!m_dirty || m_loaded_page_num == UINT32_MAX) return;
       
-      uint32_t start_addr = get_page_start(loaded_page_num);
-      erase_page(loaded_page_num);
+      uint32_t start_addr = get_page_start(m_loaded_page_num);
+      erase_page(m_loaded_page_num);
 
       for (size_t i = 0; i < PAGE_SIZE / 8; ++i) {
         uint64_t double_word = 0;
         for (int j = 0; j < 8; ++j) {
-          double_word |= ((uint64_t)page_buffer[i * 8 + j]) << (8 * j);
+          double_word |= ((uint64_t)m_page_buffer[i * 8 + j]) << (8 * j);
         }
         program_double_word(start_addr + (i * 8), double_word);
         
       }
 
-      dirty = false;
-      printf("====== PAGE FLUSHED ======\n\r");
+      m_dirty = false;
+      // TODO logger for this
+      // printf("====== PAGE FLUSHED ======\n\r");
     }
 
     template<typename Field, typename Value>
     auto write_config(Field const& f, Value const& v) {
-      //std::cout << "Writing value " << v << " to register " << f.name << " at 0x" << std::hex << f.addr << std::dec << "\n";
       write(f.addr, v);
       flush();
     }
@@ -308,7 +287,6 @@ struct bmc_config_t {
       using V = Field::value_t;
       V value{};
       value = read<V>(f.addr);
-      //std::cout << "Read value " << value << " from register " << f.name << " at 0x" << std::hex << f.addr << std::hex << "\n";
       return value;
     }
   
