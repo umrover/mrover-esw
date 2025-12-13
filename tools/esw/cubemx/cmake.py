@@ -28,7 +28,7 @@ def _clean_project(path: Path) -> None:
 def _get_context(name: str, path: Path, root: Path, libs: list[str]) -> dict[str, Any]:
     # find source file directory
     src_dir: Path | None = None
-    possible_srcs = [ path / "Src", path / "src", path / "Core" / "Src" ]
+    possible_srcs = [ path / "Src", path / "Core" / "Src" ]
     for possible_src in possible_srcs:
         if possible_src.exists() and possible_src.is_dir():
             src_dir = possible_src.relative_to(path)
@@ -40,7 +40,7 @@ def _get_context(name: str, path: Path, root: Path, libs: list[str]) -> dict[str
 
     # find header file directory
     inc_dir: Path | None = None
-    possible_incs = [ path / "Inc", path / "inc", path / "Core" / "Inc" ]
+    possible_incs = [ path / "Inc", path / "Core" / "Inc" ]
     for possible_inc in possible_incs:
         if possible_inc.exists() and possible_inc.is_dir():
             inc_dir = possible_inc.relative_to(path)
