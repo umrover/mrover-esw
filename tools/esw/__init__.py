@@ -34,3 +34,7 @@ def _configure_logging() -> logging.Logger:
 
 # global logging objects
 esw_logger = _configure_logging()
+
+
+def get_esw_root() -> Path:
+    return Path(__file__).parents[2]

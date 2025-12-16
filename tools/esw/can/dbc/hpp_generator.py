@@ -3,7 +3,7 @@ from pathlib import Path
 import cantools
 from jinja2 import Environment, FileSystemLoader
 
-from esw.dbc.parser import prepare_context
+from esw.can.dbc.parser import prepare_context
 
 
 def generate_can_header(ctx: Path, dest: Path, files: list[str]) -> None:

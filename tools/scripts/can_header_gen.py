@@ -1,7 +1,8 @@
 import argparse
 from pathlib import Path
 
-from esw.dbc.hpp_generator import generate_can_header
+from esw.can.dbc.hpp_generator import generate_can_header
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse dbc files to generate self-contained C++ headers.")
