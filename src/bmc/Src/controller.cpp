@@ -5,6 +5,7 @@
 #include <serial/fdcan.hpp>
 
 #include "main.h"
+#include "config.hpp"
 #include "motor.hpp"
 #include "stm32g431xx.h"
 #include "stm32g4xx_hal_tim.h"
@@ -15,95 +16,108 @@
 
 extern UART_HandleTypeDef hlpuart1;
 extern FDCAN_HandleTypeDef hfdcan1;
-
 extern I2C_HandleTypeDef hi2c1;
 
-/**
- * For each repeating timer, the update rate is determined by the .ioc file.
- *
- * Specifically the ARR value. You can use the following equation: ARR = (MCU Clock Speed) / (Update Rate) / (Prescaler + 1) - 1
- * For the STM32G4 we have a 140 MHz clock speed configured.
- *
- * You must also set auto reload to true so the interrupt gets called on a cycle.
- */
-
 extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
+// extern TIM_HandleTypeDef htim2;
 // extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
-extern TIM_HandleTypeDef htim6;
-extern TIM_HandleTypeDef htim8;
-extern TIM_HandleTypeDef htim15;
-extern TIM_HandleTypeDef htim16;
-extern TIM_HandleTypeDef htim17;
+// extern TIM_HandleTypeDef htim4;
+// extern TIM_HandleTypeDef htim6;
+// extern TIM_HandleTypeDef htim8;
+// extern TIM_HandleTypeDef htim15;
+// extern TIM_HandleTypeDef htim16;
+// extern TIM_HandleTypeDef htim17;
 
 
 namespace mrover {
 
     static constexpr uint32_t CAN_ID = 0x05;
 
+    // Hardware Objects
     Pin can_tx;
     Pin can_rx;
-
     CANBus1Handler can_receiver;
     Motor motor;
 
+    /**
+     * Send a CAN message defined in CANBus1.dbc on the bus.
+     * @param msg CAN message to send
+     */
+    auto send_can_message(CANBus1Msg_t const& msg) -> void {
+        can_tx.set();
+        can_receiver.send(msg, CAN_ID);
+        Logger::get_instance()->debug("CAN Message Sent");
+        can_tx.reset();
+    }
+
+    /**
+     * Receive and parse a CAN message over the bus.
+     * Message should be of a type defined in CANBus1.dbc
+     */
+    auto receive_can_message() -> void {
+        if (auto const recv = can_receiver.receive(CAN_ID); recv) {
+            can_rx.set();
+            Logger::get_instance()->debug("CAN Message Received");
+            auto const& msg = *recv;
+            motor.receive(msg);
+            can_rx.reset();
+        }
+    }
+
+    /**
+     * Initialization sequence for BMC.
+     */
     auto init() -> void {
+        // initialize logger
         Logger::init(&hlpuart1);
         Logger::get_instance()->info("Initializing...");
 
+        // setup debug LEDs
         Logger::get_instance()->info("\t...CAN LEDs");
         can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
         can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
+        // setup can transceiver
         Logger::get_instance()->info("\t...CAN Transceiver");
-        auto can_opts = FDCAN::Options{};
-        can_opts.delay_compensation = true;
-        can_opts.tdc_offset = 13;
-        can_opts.tdc_filter = 1;
-        can_receiver = CANBus1Handler{FDCAN{&hfdcan1, can_opts}};
+        can_receiver = CANBus1Handler{FDCAN{&hfdcan1, get_can_options()}};
 
-        Logger::get_instance()->info("\t...Motor Output");
+        // setup motor instance
+        Logger::get_instance()->info("\t...Motor");
         motor = Motor{
             HBridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
+            send_can_message,
         };
 
+        // set initialization state and initial error state
         Logger::get_instance()->info("BMC Initialized");
     }
 
+    /**
+     * Main execution loop.
+     *
+     * Spin here, all logic interrupt-driven.
+     */
     [[noreturn]] auto loop() -> void {
-
-        size_t n = 0;
-        // Logger::get_instance()->info("Delaying for 10s...");
-        // HAL_Delay(10000);
-        Logger::get_instance()->info("Sending Responses every 5s...");
         for ( ;; ) {
-            Logger::get_instance()->info("BMC Main Loop #%u", n);
-            can_tx.set();
-            can_receiver.send(BMCAck{n}, CAN_ID);
-            can_tx.reset();
-            HAL_Delay(5000);
-            ++n;
+            // periodic delay
+            HAL_Delay(10);
         }
-    }
-
-    auto receive_can_message() -> void {
-        can_rx.set();
-        if (auto const recv = can_receiver.receive(CAN_ID); recv) {
-            auto const& msg = *recv;
-            motor.receive(msg);
-        }
-        can_rx.reset();
     }
 
 } // namespace mrover
 
 extern "C" {
 
+/**
+ * Initialization Callback
+ */
 void PostInit() {
     mrover::init();
 }
 
+/**
+ * Main Loop Callback
+ */
 void Loop() {
     mrover::loop();
 }

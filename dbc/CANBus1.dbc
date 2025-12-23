@@ -38,18 +38,18 @@ BU_:
 
 BO_ 3221225472 VECTOR__INDEPENDENT_SIG_MSG: 0 Vector__XXX
  SG_ reserved : 9|7@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ velocity_valid : 97|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ position_valid : 96|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ throttle : 64|32@1- (1,0) [0|0] "Percent" Vector__XXX
+ SG_ velocity : 32|32@1- (1,0) [0|0] "Rotations per Second" Vector__XXX
 
 BO_ 256 BMCModeCmd: 2 Vector__XXX
  SG_ mode : 0|8@1+ (1,0) [0|0] "" Vector__XXX
  SG_ enable : 8|1@1+ (1,0) [0|0] "" Vector__XXX
 
-BO_ 272 BMCTargetCmd: 16 Vector__XXX
- SG_ position : 0|32@1- (1,0) [0|0] "Rotations" Vector__XXX
- SG_ velocity : 32|32@1- (1,0) [0|0] "Rotations per Second" Vector__XXX
- SG_ throttle : 64|32@1- (1,0) [0|0] "Percent" Vector__XXX
- SG_ position_valid : 96|1@1+ (1,0) [0|0] "" Vector__XXX
- SG_ velocity_valid : 97|1@1+ (1,0) [0|0] "" Vector__XXX
- SG_ throttle_valid : 98|1@1+ (1,0) [0|0] "" Vector__XXX
+BO_ 272 BMCTargetCmd: 5 Vector__XXX
+ SG_ target : 0|32@1- (1,0) [0|0] "" Vector__XXX
+ SG_ target_valid : 32|1@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 288 BMCConfigCmd: 6 Vector__XXX
  SG_ address : 0|8@1+ (1,0) [0|0] "Memory Address" Vector__XXX
@@ -102,17 +102,17 @@ BA_ "VFrameFormat" BO_ 320 14;
 BA_ "CANFD_BRS" BO_ 320 1;
 BA_ "VFrameFormat" BO_ 528 14;
 BA_ "CANFD_BRS" BO_ 528 1;
+VAL_ 3221225472 velocity_valid 1 "Valid" 0 "Invalid" ;
+VAL_ 3221225472 position_valid 1 "Valid" 0 "Invalid" ;
 VAL_ 256 mode 0 "Stopped" 1 "Fault" 5 "Throttle" 6 "Position" 7 "Velocity" ;
 VAL_ 256 enable 1 "Enabled" 0 "Disabled" ;
-VAL_ 272 position_valid 1 "Valid" 0 "Invalid" ;
-VAL_ 272 velocity_valid 1 "Valid" 0 "Invalid" ;
-VAL_ 272 throttle_valid 1 "Valid" 0 "Invalid" ;
+VAL_ 272 target_valid 1 "Valid" 0 "Invalid" ;
 VAL_ 304 reset 1 "Enable" 0 "Disable" ;
 VAL_ 304 clear_faults 1 "Enable" 0 "Disable" ;
 VAL_ 512 mode 0 "Stopped" 1 "Fault" 5 "Throttle" 6 "Position" 7 "Velocity" ;
-SIG_VALTYPE_ 272 position : 1;
-SIG_VALTYPE_ 272 velocity : 1;
-SIG_VALTYPE_ 272 throttle : 1;
+SIG_VALTYPE_ 3221225472 throttle : 1;
+SIG_VALTYPE_ 3221225472 velocity : 1;
+SIG_VALTYPE_ 272 target : 1;
 SIG_VALTYPE_ 512 position : 1;
 SIG_VALTYPE_ 512 velocity : 1;
 SIG_VALTYPE_ 512 current : 1;
