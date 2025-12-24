@@ -31,7 +31,7 @@ extern TIM_HandleTypeDef htim1;
 
 namespace mrover {
 
-    static constexpr uint32_t CAN_ID = 0x05;
+    bmc_config_t config;
 
     // Hardware Objects
     Pin can_tx;
@@ -45,7 +45,7 @@ namespace mrover {
      */
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         can_tx.set();
-        can_receiver.send(msg, CAN_ID);
+        can_receiver.send(msg, config.get_can_id());
         Logger::get_instance()->debug("CAN Message Sent");
         can_tx.reset();
     }
@@ -55,7 +55,7 @@ namespace mrover {
      * Message should be of a type defined in CANBus1.dbc
      */
     auto receive_can_message() -> void {
-        if (auto const recv = can_receiver.receive(CAN_ID); recv) {
+        if (auto const recv = can_receiver.receive(config.get_can_id()); recv) {
             can_rx.set();
             Logger::get_instance()->debug("CAN Message Received");
             auto const& msg = *recv;
@@ -86,6 +86,7 @@ namespace mrover {
         motor = Motor{
             HBridge{&htim1, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
             send_can_message,
+            &config,
         };
 
         // set initialization state and initial error state

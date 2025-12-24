@@ -4,6 +4,7 @@
 #include <hw/hbridge.hpp>
 #include <err.hpp>
 #include <CANBus1.hpp>
+#include <cinttypes>
 #include <functional>
 #include <pidf.hpp>
 #include <units.hpp>
@@ -19,6 +20,7 @@ namespace mrover {
         HBridge m_hbridge;
         send_hook_t m_message_tx_f;
 
+        bmc_config_t* m_config;
         mode_t m_mode;
         bmc_error_t m_error;
         float m_target;
@@ -38,14 +40,18 @@ namespace mrover {
             // stop if not enabled, consume mode only if enabled
             if (!msg.enable) m_mode = mode_t::STOPPED;
             else m_mode = static_cast<mode_t>(msg.mode);
+            Logger::get_instance()->debug("Mode set to %u", m_mode);
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
             if (!msg.target_valid) return;
             m_target = msg.target;
+            Logger::get_instance()->debug("Target set to %f", m_target);
         }
 
         auto handle(BMCConfigCmd const& msg) -> void {
+            m_config->set(msg.address, msg.value);
+            Logger::get_instance()->debug("Written 0x%08" PRIX32 "to address 0x%08" PRIX32, msg.value, msg.address);
         }
 
         auto handle(BMCResetCmd const& msg) -> void {
@@ -56,10 +62,12 @@ namespace mrover {
 
         explicit Motor(
             HBridge const& motor_driver,
-            send_hook_t const& message_tx_f
+            send_hook_t const& message_tx_f,
+            bmc_config_t* config
         ) :
             m_hbridge{motor_driver},
             m_message_tx_f{message_tx_f},
+            m_config{config},
             m_mode{mode_t::STOPPED},
             m_error{bmc_error_t::NONE},
             m_target{0.0f}

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <tuple>
+#include <bit>
+#include <type_traits>
+#include <cstdint>
 
 
 namespace mrover {
@@ -14,15 +17,25 @@ namespace mrover {
     };
 
     // TODO(eric): update with flash PR
+    template <typename T>
+    static auto from_raw(uint32_t raw) -> T {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<T>(raw);
+        } else {
+            return static_cast<T>(raw);
+        }
+    }
+
     template<typename T>
     struct reg_t {
         using value_t = T;
 
         std::string_view name;
-        uint16_t addr{};
+        uint8_t addr{};
         value_t value;
         static consteval size_t size() { return sizeof(T); }
-        [[nodiscard]] constexpr uint16_t reg() const { return addr; }
+        [[nodiscard]] constexpr uint8_t reg() const { return addr; }
     };
 
     // TODO(eric): update with flash PR
@@ -50,10 +63,65 @@ namespace mrover {
         reg_t<float> K_F{"kf", 0x44, 0.0f};
 
         auto all() {
-            return std::make_tuple(CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
+            return std::forward_as_tuple(CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
                 ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, LIMIT_FORWARD_POSITION,
                 LIMIT_BACKWARD_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
         }
+
+        auto all() const {
+            return std::forward_as_tuple(CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
+                ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, LIMIT_FORWARD_POSITION,
+                LIMIT_BACKWARD_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
+        }
+
+        auto set(uint8_t address, uint32_t const raw) -> bool {
+            bool updated = false;
+            std::apply([&](auto&... reg) {
+                (..., ([&] {
+                    if (reg.addr == address) {
+                        reg.value =
+                            from_raw<typename std::remove_reference_t<decltype(reg)>::value_t>(raw);
+                        updated = true;
+                    }
+                }()));
+            }, all());
+            return updated;
+        }
+
+        auto get_can_id() const -> uint8_t { return CAN_ID.value; }
+        auto get_motor_en() const -> bool { return (SYS_CFG.value & (1 << 0)) != 0; }
+        auto get_motor_inv() const -> bool { return (SYS_CFG.value & (1 << 1)) != 0; }
+        auto get_quad_en() const -> bool { return (SYS_CFG.value & (1 << 2)) != 0; }
+        auto get_quad_phase() const -> bool { return (SYS_CFG.value & (1 << 3)) != 0; }
+        auto get_abs_i2c_en() const -> bool { return (SYS_CFG.value & (1 << 4)) != 0; }
+        auto get_abs_i2c_phase() const -> bool { return (SYS_CFG.value & (1 << 5)) != 0; }
+        auto get_abs_spi_en() const -> bool { return (SYS_CFG.value & (1 << 6)) != 0; }
+        auto get_abs_spi_phase() const -> bool { return (SYS_CFG.value & (1 << 7)) != 0; }
+        auto get_lim_a_en() const -> bool { return (LIMIT_CFG.value & (1 << 0)) != 0; }
+        auto get_lim_a_active_high() const -> bool { return (LIMIT_CFG.value & (1 << 1)) != 0; }
+        auto get_lim_a_is_forward() const -> bool { return (LIMIT_CFG.value & (1 << 2)) != 0; }
+        auto get_lim_a_use_readjust() const -> bool { return (LIMIT_CFG.value & (1 << 3)) != 0; }
+        auto get_lim_b_en() const -> bool { return (LIMIT_CFG.value & (1 << 4)) != 0; }
+        auto get_lim_b_active_high() const -> bool { return (LIMIT_CFG.value & (1 << 5)) != 0; }
+        auto get_lim_b_is_forward() const -> bool { return (LIMIT_CFG.value & (1 << 6)) != 0; }
+        auto get_lim_b_use_readjust() const -> bool { return (LIMIT_CFG.value & (1 << 7)) != 0; }
+        auto get_quad_ratio() const -> float { return QUAD_RATIO.value; }
+        auto get_abs_i2c_ratio() const -> float { return ABS_I2C_RATIO.value; }
+        auto get_abs_i2c_offset() const -> float { return ABC_I2C_OFFSET.value; }
+        auto get_abs_spi_ratio() const -> float { return ABS_SPI_RATIO.value; }
+        auto get_abs_spi_offset() const -> float { return ABS_SPI_OFFSET.value; }
+        auto get_gear_ratio() const -> float { return GEAR_RATIO.value; }
+        auto get_lim_fwd_pos() const -> float { return LIMIT_FORWARD_POSITION.value; }
+        auto get_lim_back_pos() const -> float { return LIMIT_BACKWARD_POSITION.value; }
+        auto get_max_pwm() const -> float { return MAX_PWM.value; }
+        auto get_min_pos() const -> float { return MIN_POS.value; }
+        auto get_max_pos() const -> float { return MAX_POS.value; }
+        auto get_min_vel() const -> float { return MIN_VEL.value; }
+        auto get_max_vel() const -> float { return MAX_VEL.value; }
+        auto get_k_p() const -> float { return K_P.value; }
+        auto get_k_i() const -> float { return K_I.value; }
+        auto get_k_d() const -> float { return K_D.value; }
+        auto get_k_f() const -> float { return K_F.value; }
 
     };
 
