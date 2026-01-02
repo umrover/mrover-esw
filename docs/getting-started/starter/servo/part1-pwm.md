@@ -11,7 +11,7 @@ so please reach out if you ever get stuck!
 
 ## Prerequisites
 
-- STM32CubeIDE [installed](../../stm32cubeide/index.md)
+- STM32Cube [installed](../../stm32cube/index.md)
 - LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
 - Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
 - STM32G431RB Nucleo
@@ -56,9 +56,7 @@ Then, create a new branch for yourself
 git switch -c starter/your-first-name
 ```
 
-Open STM32CubeIDE and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`). Follow the following
-[guide](../../stm32cubeide/index.md#opening-an-existing-project) to open an existing project if you do not
-know how to do so.
+Open STM32CubeMX and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`).
 
 ### 2. PWM timer configuration
 
