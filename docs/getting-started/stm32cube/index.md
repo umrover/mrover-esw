@@ -185,6 +185,13 @@ rm st-stm32cubeclt*
 The install path to STM32CubeCLT is `/opt/st/`, but each tool included has its own `bin` directory that must be added
 to the path independently.
 
+The tools to be added are as follows.
+
+- GNU-tools-for-STM32
+- st-arm-clang
+- STLink-gdb-server
+- STM32CubeProgrammer
+
 ## Creating a New Project
 
 This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
@@ -192,78 +199,10 @@ will be developing on.
 
 ### Prerequisites
 
--   STM32CubeIDE [installed](../stm32cubeide/index.md)
+- STM32CubeMX and STM32CubeCLT [installed](../stm32cube/index.md)
 
 ### Guide
 
-Open STM32CubeIDE, select the desired workspace, and click `Launch` (the default is fine for now).
-
-![image](https://user-images.githubusercontent.com/71603173/186999707-e8a45808-e55b-4859-a797-41e1fe225b05.png)
-
-In the top left, go to `File`&#8594;`New`&#8594;`STM32 Project`.
-
-![image](https://user-images.githubusercontent.com/71603173/186999816-2f289e9c-ebd2-4c3b-ae86-8a29d061ab75.png)
-
-You may experience some lag after the previous step. Eventually, you will be prompted with the following window:
-
-![image](https://user-images.githubusercontent.com/71603173/186999915-d8197e0a-cf00-43e0-a8ce-7c13c3039615.png)
-
-At the top, select the `Board Selector` option.
-Then on the left, in the text box next to `Commercial Part Number`, type `G431RB`.
-There should only be one option in the `Boards List` Section, click that and press `Next`:
-
-![board selector window with g431rb selected](board-select.webp)
-
-Now you will be prompted with the following window:
-
-![image](https://user-images.githubusercontent.com/71603173/187000137-4465eb7f-d7b6-4ec2-8986-57e7c16f9a14.png)
-
-Here you can name your project whatever you want, but we can just call it "tutorial". Leave everything else as default and click Finish.
-
-You will then be prompted with this window to configure this board. Make sure to uncheck all the
-boxes by clicking `Unselect All`. Then select `OK`.
-
-![board configuration window to select software components](board-config.webp)
-
-It may also ask about changing perspective. Here, it comes down to preference, but you can just click `Yes`.
-
-![image](https://user-images.githubusercontent.com/71603173/187000255-967961b9-7b45-4d6f-b0ca-4bb18dbb7210.png)
-
-You should now see the following screen, which means that you have successfully created the project!
-Notice the graphical interface of the chip on the right (which we may call the `.ioc` file) and the
-files on the left that fall under the tutorial project (most importantly, `Src/main.c` and
-`tutorial.ioc`). Cool things to know is the graphical interface is used to make changes to the chip
-settings. If changes are made, then once the project is saved, code will be auto-generated for the
-user. The `main.c` file is where you will want to write your code.
-
-![image](https://user-images.githubusercontent.com/71603173/187000579-18856eed-e151-4cc7-a5d3-f419b2eff41e.png)
+To create a new project, use the `scripts/new.sh` script. The script accepts 
 
 **Congratulations! You have successfully created a new project in CubeIDE!**
-
-## Opening an Existing Project
-
-This quick guide will teach you how to open an existing STM32 project in your STM32CubeIDE workspace.
-
-### Prerequisites
-
--   STM32CubeIDE [installed](#install)
--   Any existing STM32 project downloaded
-
-### Guide
-
-Open up STM32CubeIDE.
-
-Then, select the desired workspace that you want to open the project in and click `Launch`.
-
-In the top left, go to `File`&#8594;`Open Projects from File System`.
-
-Open the project directory in `Import source`.
-
-Click `Finish`.
-
-**Congratulations! You have successfully opened an existing project in CubeIDE!**
-
-**_Note:_** Your project files will remain in the original directory that you opened
-and any changes you make in STM32CubeIDE will reflect in the original directory.
-All that you have done is added the project to the workspace, allowing you to
-open it in STM32CubeIDE.
