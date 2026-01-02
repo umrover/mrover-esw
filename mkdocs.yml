@@ -29,8 +29,7 @@ nav:
       - Nucleo Information: info/nucleos.md
       - STM32 Boot: info/stm32-boot.md
       - CMake Toolchain: info/cmake-tools.md
-  - Headers:
-      - hardware.hpp: headers/hardware.md
+      - Archived Docs: info/archive/index.md
 
 # ignoring README.md satisfies mkdocs build --strict error
 exclude_docs: |

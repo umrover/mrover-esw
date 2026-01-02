@@ -4,7 +4,6 @@
 #include <string_view>
 #include <cstdio>
 #include <cstdarg>
-#include <optional>
 
 #include <serial/uart.hpp>
 
@@ -13,7 +12,7 @@ namespace mrover {
     static constexpr size_t LOG_BUFFER_SIZE = 128;
 
 #ifdef HAL_UART_MODULE_ENABLED
-
+#ifdef DEBUG
     class Logger {
     public:
         enum class log_level_t : uint8_t {
@@ -26,14 +25,14 @@ namespace mrover {
 
         Logger() = delete;
 
-        static void init(UART_HandleTypeDef* huart, log_level_t const level = log_level_t::LOG_INFO) {
+        static auto init(UART_HandleTypeDef* huart, log_level_t const level = log_level_t::LOG_INFO) -> void {
             s_huart = huart;
             s_level = level;
         }
 
-        static Logger* get_instance() {
-            static Logger singleton{s_huart, s_level};
-            return &singleton;
+        static auto get_instance() -> Logger* {
+            static Logger inst{s_huart, s_level};
+            return &inst;
         }
 
         auto set_level(log_level_t const level) -> void {
@@ -122,7 +121,29 @@ namespace mrover {
             m_uart.transmit("\r\n");
         }
     };
+#else // DEBUG
+    class Logger {
+        Logger() = default;
+    public:
+        template<typename... Args>
+        static auto init(Args&&... args) -> void {}
 
+        static auto get_instance() -> Logger* {
+            static Logger inst{};
+            return &inst;
+        }
+        template<typename... Args>
+        auto set_level(Args&&... args) -> void {}
+        template<typename... Args>
+        auto debug(Args&&... args) const -> void {}
+        template<typename... Args>
+        auto info(Args&&... args) const -> void {}
+        template<typename... Args>
+        auto warn(Args&&... args) const -> void {}
+        template<typename... Args>
+        auto error(Args&&... args) const -> void {}
+    };
+#endif // DEBUG
 #else // HAL_UART_MODULE_ENABLED
     class __attribute__((unavailable("enable 'UART' in STM32CubeMX to use mrover::Logger"))) Logger {
     public:

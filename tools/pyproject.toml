@@ -17,7 +17,8 @@ dependencies = [
     "moteus~=0.3.96",
     "moteus-gui~=0.3.96",
     "mkdocs~=1.6.1",
-    "pymdown-extensions~=10.17.2"
+    "pymdown-extensions~=10.17.2",
+    "pyserial~=3.5",
 ]
 
 [project.optional-dependencies]
