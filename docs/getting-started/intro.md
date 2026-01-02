@@ -9,7 +9,7 @@ There is also useful information linked below to supplement the starter projects
 
 All new members are asked to complete the following:
 
-1. [Install STM32Cube* Tools](stm32cubeide/index.md)
+1. [Install STM32Cube* Tools](stm32cube/index.md)
 2. [Starter Project: LED](starter/led/index.md)
 3. [Starter Project: Servo Part 1](starter/servo/part1-pwm.md)
 4. [Starter Project: Servo Part 2](starter/servo/part2-can.md)

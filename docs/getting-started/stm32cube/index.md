@@ -203,6 +203,24 @@ will be developing on.
 
 ### Guide
 
-To create a new project, use the `scripts/new.sh` script. The script accepts 
+To create a new project, use the `scripts/new.sh` script. The script accepts either an MCU or Development Board ID, project source, and optionally any number of cmake libraries defined under `lib`. To create a project for the Nucleo G431RB developer kit, run the following.
 
-**Congratulations! You have successfully created a new project in CubeIDE!**
+```bash
+./scripts/new.sh --board NUCLEO-G431RB --src <path/to/project>
+```
+
+When prompted to select default peripheral configurations, select "Unselect All" and "continue".
+
+If this is the first time STM32CubeMX is being run on a machine, it may need to download the firmware repository. Select "Download" and continue.
+
+Once the script completes, try to build the generated project as follows.
+
+```bash
+./scripts/build.sh --src <path/to/project>
+```
+
+If this completes successfully, then STM32CubeCLT is correctly installed on the system.
+
+Open the `<project>.ioc` file in STM32CubeMX to modify the project configuration.
+
+**Congratulations! You have successfully created a new project with CubeMX!**
