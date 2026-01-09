@@ -11,7 +11,7 @@ nav:
   - Home: index.md
   - Getting Started:
       - Introduction: getting-started/intro.md
-      - STM32Cube: getting-started/stm32cubeide/index.md
+      - STM32Cube: getting-started/stm32cube/index.md
       - Starter Projects:
           - LED: getting-started/starter/led/index.md
           - Servo:
