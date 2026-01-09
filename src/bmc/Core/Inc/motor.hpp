@@ -15,15 +15,44 @@
 namespace mrover {
 
     class Motor {
-        using send_hook_t = std::function<void(CANBus1Msg_t const& msg)>;
+        using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
 
         HBridge m_hbridge;
-        send_hook_t m_message_tx_f;
+        tx_exec_t m_message_tx_f;
 
-        bmc_config_t* m_config;
+        bmc_config_t* m_config_ptr;
         mode_t m_mode;
         bmc_error_t m_error;
-        float m_target;
+        Percent m_target;
+
+        bool m_enabled = false;
+
+        auto reset() -> void {
+            m_mode = mode_t::STOPPED;
+            m_error = bmc_error_t::NONE;
+            m_target = 0.0f;
+        }
+
+        auto write_output_pwm() -> void {
+            if (m_enabled) {
+                m_hbridge.write(m_target);
+            }
+        }
+
+        /**
+         * Initializes the motor as the configuration defines.
+         *
+         * Should be called after configuration is updated.
+         */
+        auto init() -> void {
+            Logger::get_instance()->info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get_can_id());
+            m_enabled = m_config_ptr->get_motor_en();
+            m_hbridge.change_inverted(m_config_ptr->get_motor_inv());
+            m_hbridge.change_max_pwm(m_config_ptr->get_max_pwm());
+            // TODO(eric) add limit switches
+            // TODO(eric) add quad encoders
+            // TODO(eric) add absolute encoders
+        }
 
         template <typename T>
         auto handle(T const& _) const -> void {
@@ -50,11 +79,26 @@ namespace mrover {
         }
 
         auto handle(BMCConfigCmd const& msg) -> void {
-            m_config->set(msg.address, msg.value);
-            Logger::get_instance()->debug("Written 0x%08" PRIX32 "to address 0x%08" PRIX32, msg.value, msg.address);
+            if (msg.apply) {
+                if (m_config_ptr->set(msg.address, msg.value)) {
+                    Logger::get_instance()->debug("Written 0x%08" PRIX32 "to address 0x%02" PRIX32, msg.value, msg.address);
+                    // re-initialize after config is modified
+                    init();
+                } else {
+                    Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
+                }
+            } else {
+                if (uint32_t val{}; m_config_ptr->get(msg.address, val)) {
+                    m_message_tx_f(BMCAck{val});
+                } else {
+                    Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
+                }
+            }
         }
 
         auto handle(BMCResetCmd const& msg) -> void {
+            reset();
+            Logger::get_instance()->info("BMC Reset Received");
         }
 
     public:
@@ -62,18 +106,18 @@ namespace mrover {
 
         explicit Motor(
             HBridge const& motor_driver,
-            send_hook_t const& message_tx_f,
+            tx_exec_t const& message_tx_f,
             bmc_config_t* config
         ) :
             m_hbridge{motor_driver},
             m_message_tx_f{message_tx_f},
-            m_config{config},
+            m_config_ptr{config},
             m_mode{mode_t::STOPPED},
             m_error{bmc_error_t::NONE},
             m_target{0.0f}
         {
-            m_hbridge.change_max_pwm(100);
-            m_hbridge.write(0);
+            reset();
+            init();
         }
 
         auto receive(CANBus1Msg_t const& v) -> void {

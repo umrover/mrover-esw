@@ -27,6 +27,16 @@ namespace mrover {
         }
     }
 
+    template <typename T>
+    static auto to_raw(T value) -> uint32_t {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<uint32_t>(value);
+        } else {
+            return static_cast<uint32_t>(value);
+        }
+    }
+
     template<typename T>
     struct reg_t {
         using value_t = T;
@@ -86,6 +96,20 @@ namespace mrover {
                 }()));
             }, all());
             return updated;
+        }
+
+        auto get(uint8_t address, uint32_t& raw) const -> bool {
+            bool found = false;
+            std::apply([&](auto const&... reg) {
+                (..., ([&] {
+                    if (reg.addr == address) {
+                        using T = std::remove_cvref_t<decltype(reg)>::value_t;
+                        raw = to_raw<T>(reg.value);
+                        found = true;
+                    }
+                }()));
+            }, all());
+            return found;
         }
 
         auto get_can_id() const -> uint8_t { return CAN_ID.value; }

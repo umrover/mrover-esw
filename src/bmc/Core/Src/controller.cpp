@@ -93,18 +93,6 @@ namespace mrover {
         Logger::get_instance()->info("BMC Initialized");
     }
 
-    /**
-     * Main execution loop.
-     *
-     * Spin here, all logic interrupt-driven.
-     */
-    [[noreturn]] auto loop() -> void {
-        for ( ;; ) {
-            // periodic delay
-            HAL_Delay(10);
-        }
-    }
-
 } // namespace mrover
 
 extern "C" {
@@ -117,19 +105,11 @@ void PostInit() {
 }
 
 /**
- * Main Loop Callback
- */
-void Loop() {
-    mrover::loop();
-}
-
-/**
  * These are interrupt handlers. They are called by the HAL.
  *
  * These are set up in the .ioc file.
  * They have to be enabled in the NVIC settings.
- * It is important th
-*/
+ */
 
 /**
  * \note Timers have to be started with "HAL_TIM_Base_Start_IT" for this interrupt to work for them.
