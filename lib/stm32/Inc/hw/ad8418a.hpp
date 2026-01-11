@@ -76,8 +76,8 @@ namespace mrover {
         auto update_sensor() -> void {
             if (!m_enabled || !m_valid) return;
             auto adc_value = m_analog_pin.read_analog();
-            float v_out = (adc_value / m_adc_resolution) * m_vref;
-            float v_sense = v_out - m_vcm;
+            float v_out = (static_cast<float>(adc_value) / static_cast<float>(m_adc_resolution)) * m_vref;
+            float v_sense = v_out - m_vcm; // delete later -- doesn't seem to have a purpose
             m_current = v_out / (m_gain * m_shunt_resistance);
         }
 
