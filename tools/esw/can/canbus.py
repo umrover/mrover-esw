@@ -1,5 +1,5 @@
 import queue
-from typing import Any, Tuple
+from typing import Any, Callable, Tuple
 
 import can
 from cantools.database import Database
@@ -16,12 +16,14 @@ class CANBus:
     _bus: can.BusABC | None
     _notifier: can.Notifier | None
     _rx_queue: "queue.Queue[Tuple[str, dict[str, Any], int]]"
+    _on_msg: Callable
 
-    def __init__(self, dbc: Database, channel: str):
+    def __init__(self, dbc: Database, channel: str, on_recv: Callable = lambda arg: None):
         self._dbc = dbc
         self._channel = channel
         self._bus = None
         self._rx_queue = queue.Queue()
+        self._on_msg = on_recv
 
     def __enter__(self):
         if self._bus is None:
@@ -63,7 +65,8 @@ class CANBus:
                 node_id = offset
                 decoded_signals = dbc_msg.decode(msg.data)
                 self._rx_queue.put((dbc_msg.name, decoded_signals, node_id))
-                esw_logger.info(f"CAN RECV {dbc_msg.name} (Node {hex(node_id)}): {decoded_signals}")
+                esw_logger.debug(f"CAN RECV {dbc_msg.name} (Node {hex(node_id)}): {decoded_signals}")
+                self._on_msg((dbc_msg.name, decoded_signals, node_id))
                 match_found = True
                 break
 
@@ -103,7 +106,7 @@ class CANBus:
         except Exception as e:
             esw_logger.error(f"CAN ERROR: exception when sending message {message_name}: {e}")
 
-    def recv(self, block: bool = True, timeout: float = None) -> Tuple[str, dict[str, Any], int] | None:
+    def recv(self, block: bool = True, timeout: float | None = None) -> Tuple[str, dict[str, Any], int] | None:
         try:
             return self._rx_queue.get(block=block, timeout=timeout)
         except queue.Empty:

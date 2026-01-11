@@ -9,10 +9,91 @@
 #include <utility>
 
 #include <units.hpp>
+#include <logger.hpp>
 
 #include "main.h"
 
 namespace mrover {
+
+#ifdef HAL_TIM_MODULE_ENABLED
+    class Timer {
+        TIM_HandleTypeDef* htim;
+        uint32_t sys_clock;
+        std::string name;
+        bool interrupt;
+        bool is_en = false;
+
+        auto start_no_it() const -> HAL_StatusTypeDef {
+            return HAL_TIM_Base_Start(htim);
+        }
+
+        auto start_it() const -> HAL_StatusTypeDef {
+            return HAL_TIM_Base_Start_IT(htim);
+        }
+
+        auto stop_no_it() const -> HAL_StatusTypeDef {
+            return HAL_TIM_Base_Stop(htim);
+        }
+
+        auto stop_it() const -> HAL_StatusTypeDef {
+            return HAL_TIM_Base_Stop_IT(htim);
+        }
+
+    public:
+        Timer() = default;
+        explicit Timer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false, std::string const& name = "Timer")
+            : htim{tim_handle}, sys_clock{HAL_RCC_GetSysClockFreq()}, name{std::move(name)}, interrupt{interrupt} {
+            start();
+        }
+
+        auto start() -> void {
+            if (interrupt) {
+                check(start_it() == HAL_OK, Error_Handler);
+                is_en = true;
+            } else {
+                check(start_no_it() == HAL_OK, Error_Handler);
+                is_en = true;
+            }
+            Logger::get_instance()->info("%s @%.2f Hz", name.c_str(), get_update_frequency().rep);
+        }
+
+        auto stop() -> void {
+            if (interrupt) {
+                check(stop_it() == HAL_OK, Error_Handler);
+                is_en = false;
+            } else {
+                check(stop_no_it() == HAL_OK, Error_Handler);
+                is_en = false;
+            }
+        }
+
+        auto is_enabled() const -> bool {
+            return is_en;
+        }
+
+        auto get_update_frequency() const -> Hertz {
+            uint32_t const psc = htim->Instance->PSC;
+            uint32_t const arr = htim->Instance->ARR;
+
+            return Hertz{static_cast<float>(sys_clock) / ((psc + 1) * (arr + 1))};
+        }
+
+        auto get_counter_frequency() const -> Hertz {
+            return Hertz{static_cast<float>(sys_clock) / (htim->Instance->PSC + 1)};
+        }
+
+        auto reset() const -> void {
+            __HAL_TIM_SetCounter(htim, 0);
+        }
+
+    };
+#else // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::Timer"))) Timer {
+        public:
+        template<typename... Args>
+        explicit Timer(Args&&... args) {}
+    };
+#endif // HAL_TIM_MODULE_ENABLED
 
     struct TimerConfig {
         std::uint16_t psc;

@@ -23,7 +23,7 @@ namespace mrover {
         bmc_config_t* m_config_ptr;
         mode_t m_mode;
         bmc_error_t m_error;
-        Percent m_target;
+        float m_target;
 
         bool m_enabled = false;
 
@@ -35,7 +35,26 @@ namespace mrover {
 
         auto write_output_pwm() -> void {
             if (m_enabled) {
-                m_hbridge.write(m_target);
+                switch (m_mode) {
+                case mode_t::STOPPED:
+                    if (m_hbridge.is_on()) m_hbridge.stop();
+                    break;
+                case mode_t::FAULT:
+                    if (m_hbridge.is_on()) m_hbridge.stop();
+                    break;
+                case mode_t::THROTTLE:
+                    if (!m_hbridge.is_on()) m_hbridge.start();
+                    m_hbridge.write(m_target);
+                    break;
+                case mode_t::POSITION:
+                    if (m_hbridge.is_on()) m_hbridge.stop();
+                    // TODO(eric) PID calcs here
+                    break;
+                case mode_t::VELOCITY:
+                    if (m_hbridge.is_on()) m_hbridge.stop();
+                    // TODO(eric) PID calcs here
+                    break;
+                }
             }
         }
 
@@ -45,10 +64,10 @@ namespace mrover {
          * Should be called after configuration is updated.
          */
         auto init() -> void {
-            Logger::get_instance()->info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get_can_id());
-            m_enabled = m_config_ptr->get_motor_en();
-            m_hbridge.change_inverted(m_config_ptr->get_motor_inv());
-            m_hbridge.change_max_pwm(m_config_ptr->get_max_pwm());
+            Logger::get_instance()->info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
+            m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
+            m_hbridge.change_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
+            m_hbridge.change_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
             // TODO(eric) add limit switches
             // TODO(eric) add quad encoders
             // TODO(eric) add absolute encoders
@@ -67,28 +86,46 @@ namespace mrover {
 
         auto handle(BMCModeCmd const& msg) -> void {
             // stop if not enabled, consume mode only if enabled
+            Logger::get_instance()->info("Received Mode Command");
             if (!msg.enable) m_mode = mode_t::STOPPED;
-            else m_mode = static_cast<mode_t>(msg.mode);
-            Logger::get_instance()->debug("Mode set to %u", m_mode);
+            else {
+                Logger::get_instance()->info("Received Enabled Mode Command");
+                m_mode = static_cast<mode_t>(msg.mode);
+            }
+            Logger::get_instance()->info("Mode set to %u", m_mode);
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
+            Logger::get_instance()->info("Received Target Command");
             if (!msg.target_valid) return;
-            m_target = msg.target;
-            Logger::get_instance()->debug("Target set to %f", m_target);
+            Logger::get_instance()->info("Received Valid Target Command");
+            switch (m_mode) {
+            case mode_t::STOPPED:
+            case mode_t::FAULT:
+                m_target = 0.0f;
+                break;
+            case mode_t::THROTTLE:
+            case mode_t::POSITION:
+            case mode_t::VELOCITY:
+                m_target = msg.target;
+                Logger::get_instance()->info("Set Target to %.2f", m_target);
+                break;
+            }
         }
 
         auto handle(BMCConfigCmd const& msg) -> void {
+            // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
-                if (m_config_ptr->set(msg.address, msg.value)) {
+                if (m_config_ptr->set_raw(msg.address, msg.value)) {
                     Logger::get_instance()->debug("Written 0x%08" PRIX32 "to address 0x%02" PRIX32, msg.value, msg.address);
-                    // re-initialize after config is modified
+                    // re-initialize after configuration is modified
                     init();
                 } else {
                     Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
                 }
             } else {
-                if (uint32_t val{}; m_config_ptr->get(msg.address, val)) {
+                // send data back as an acknowledgement of the request
+                if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
                     m_message_tx_f(BMCAck{val});
                 } else {
                     Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
@@ -139,5 +176,18 @@ namespace mrover {
                 0.0 // current
             });
         }
+
+        auto drive_output() -> void {
+            // TODO(eric) read limit switch state
+            // TODO(eric) read quad encoders
+            // TODO(eric) read abs encoders
+            write_output_pwm();
+        }
+
+        auto tx_watchdog_lapsed() -> void {
+            m_mode = mode_t::FAULT;
+            m_error = bmc_error_t::WWDG_EXPIRED;
+        }
+
     };
 } // namespace mrover

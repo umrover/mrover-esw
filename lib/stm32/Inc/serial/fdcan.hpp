@@ -77,7 +77,6 @@ namespace mrover {
                 check(HAL_FDCAN_DisableTxDelayCompensation(m_fdcan) == HAL_OK, Error_Handler);
             }
 
-
             int std_filter_index = 0;
             int ext_filter_index = 0;
 
@@ -87,7 +86,7 @@ namespace mrover {
                           [&](auto const& filter) {
                               FDCAN_FilterTypeDef f;
 
-                              f.IdType = [&]() {
+                              f.IdType = [&]() -> uint32_t {
                                   switch (filter.id_type) {
                                       case FilterIdType::Standard:
                                           return FDCAN_STANDARD_ID;
@@ -95,9 +94,10 @@ namespace mrover {
                                           return FDCAN_EXTENDED_ID;
                                   }
                                   Error_Handler();
+                                  return FDCAN_STANDARD_ID;
                               }();
 
-                              f.FilterIndex = [&]() {
+                              f.FilterIndex = [&]() -> uint32_t {
                                   switch (filter.id_type) {
                                       case FilterIdType::Standard: {
                                           return std_filter_index++;
@@ -107,9 +107,10 @@ namespace mrover {
                                       }
                                   }
                                   Error_Handler();
+                                  return 0;
                               }();
 
-                              f.FilterType = [&]() {
+                              f.FilterType = [&]() -> uint32_t {
                                   switch (filter.mode) {
                                       case FilterMode::Range:
                                           return FDCAN_FILTER_RANGE;
@@ -119,9 +120,10 @@ namespace mrover {
                                           return FDCAN_FILTER_MASK;
                                   }
                                   Error_Handler();
+                                  return FDCAN_FILTER_RANGE;
                               }();
 
-                              f.FilterConfig = [&]() {
+                              f.FilterConfig = [&]() -> uint32_t {
                                   switch (filter.action) {
                                       case FilterAction::Accept:
                                           return FDCAN_FILTER_TO_RXFIFO0;
@@ -129,6 +131,7 @@ namespace mrover {
                                           return FDCAN_FILTER_REJECT;
                                   }
                                   Error_Handler();
+                                  return FDCAN_FILTER_REJECT;
                               }();
 
                               f.FilterID1 = filter.id1;
@@ -137,8 +140,7 @@ namespace mrover {
                               check(HAL_FDCAN_ConfigFilter(m_fdcan, &f) == HAL_OK, Error_Handler);
                           });
 
-
-            auto map_filter_action = [](auto value) {
+            auto map_filter_action = [](auto value) -> uint32_t {
                 switch (value) {
                     case FilterAction::Accept: {
                         return FDCAN_ACCEPT_IN_RX_FIFO0;
@@ -148,9 +150,10 @@ namespace mrover {
                     }
                 }
                 Error_Handler();
+                return FDCAN_REJECT;
             };
 
-            auto map_remote_action = [](auto value) {
+            auto map_remote_action = [](auto value) -> uint32_t {
                 switch (value) {
                     case FilterAction::Accept: {
                         return FDCAN_FILTER_REMOTE;
@@ -160,6 +163,7 @@ namespace mrover {
                     }
                 }
                 Error_Handler();
+                return FDCAN_REJECT_REMOTE;
             };
 
             check(HAL_FDCAN_ConfigGlobalFilter(m_fdcan,
@@ -169,10 +173,114 @@ namespace mrover {
                                                map_remote_action(filters.global_remote_ext_action)) == HAL_OK,
                   Error_Handler);
 
-
             check(HAL_FDCAN_ActivateNotification(m_fdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) == HAL_OK, Error_Handler);
             check(HAL_FDCAN_Start(m_fdcan) == HAL_OK, Error_Handler);
         }
+
+        // auto init() -> void {
+        //     if (m_options.delay_compensation) {
+        //         check(HAL_FDCAN_ConfigTxDelayCompensation(m_fdcan, m_options.tdc_offset, m_options.tdc_filter) == HAL_OK, Error_Handler);
+        //         check(HAL_FDCAN_EnableTxDelayCompensation(m_fdcan) == HAL_OK, Error_Handler);
+        //     } else {
+        //         check(HAL_FDCAN_DisableTxDelayCompensation(m_fdcan) == HAL_OK, Error_Handler);
+        //     }
+        //
+        //
+        //     int std_filter_index = 0;
+        //     int ext_filter_index = 0;
+        //
+        //     FilterConfig const& filters = m_options.filter_config;
+        //
+        //     std::for_each(filters.begin, filters.end,
+        //                   [&](auto const& filter) {
+        //                       FDCAN_FilterTypeDef f;
+        //
+        //                       f.IdType = [&]() {
+        //                           switch (filter.id_type) {
+        //                               case FilterIdType::Standard:
+        //                                   return FDCAN_STANDARD_ID;
+        //                               case FilterIdType::Extended:
+        //                                   return FDCAN_EXTENDED_ID;
+        //                           }
+        //                           Error_Handler();
+        //                       }();
+        //
+        //                       f.FilterIndex = [&]() {
+        //                           switch (filter.id_type) {
+        //                               case FilterIdType::Standard: {
+        //                                   return std_filter_index++;
+        //                               }
+        //                               case FilterIdType::Extended: {
+        //                                   return ext_filter_index++;
+        //                               }
+        //                           }
+        //                           Error_Handler();
+        //                       }();
+        //
+        //                       f.FilterType = [&]() {
+        //                           switch (filter.mode) {
+        //                               case FilterMode::Range:
+        //                                   return FDCAN_FILTER_RANGE;
+        //                               case FilterMode::Dual:
+        //                                   return FDCAN_FILTER_DUAL;
+        //                               case FilterMode::Mask:
+        //                                   return FDCAN_FILTER_MASK;
+        //                           }
+        //                           Error_Handler();
+        //                       }();
+        //
+        //                       f.FilterConfig = [&]() {
+        //                           switch (filter.action) {
+        //                               case FilterAction::Accept:
+        //                                   return FDCAN_FILTER_TO_RXFIFO0;
+        //                               case FilterAction::Reject:
+        //                                   return FDCAN_FILTER_REJECT;
+        //                           }
+        //                           Error_Handler();
+        //                       }();
+        //
+        //                       f.FilterID1 = filter.id1;
+        //                       f.FilterID2 = filter.id2;
+        //
+        //                       check(HAL_FDCAN_ConfigFilter(m_fdcan, &f) == HAL_OK, Error_Handler);
+        //                   });
+        //
+        //
+        //     auto map_filter_action = [](auto value) {
+        //         switch (value) {
+        //             case FilterAction::Accept: {
+        //                 return FDCAN_ACCEPT_IN_RX_FIFO0;
+        //             }
+        //             case FilterAction::Reject: {
+        //                 return FDCAN_REJECT;
+        //             }
+        //         }
+        //         Error_Handler();
+        //     };
+        //
+        //     auto map_remote_action = [](auto value) {
+        //         switch (value) {
+        //             case FilterAction::Accept: {
+        //                 return FDCAN_FILTER_REMOTE;
+        //             }
+        //             case FilterAction::Reject: {
+        //                 return FDCAN_REJECT_REMOTE;
+        //             }
+        //         }
+        //         Error_Handler();
+        //     };
+        //
+        //     check(HAL_FDCAN_ConfigGlobalFilter(m_fdcan,
+        //                                        map_filter_action(filters.global_non_matching_std_action),
+        //                                        map_filter_action(filters.global_non_matching_ext_action),
+        //                                        map_remote_action(filters.global_remote_std_action),
+        //                                        map_remote_action(filters.global_remote_ext_action)) == HAL_OK,
+        //           Error_Handler);
+        //
+        //
+        //     check(HAL_FDCAN_ActivateNotification(m_fdcan, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) == HAL_OK, Error_Handler);
+        //     check(HAL_FDCAN_Start(m_fdcan) == HAL_OK, Error_Handler);
+        // }
 
         /**
          * \brief   Attempt to pop a message from the receive queue
