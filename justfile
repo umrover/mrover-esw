@@ -3,6 +3,7 @@ set shell := ["zsh", "-ceuo", "pipefail"]
 default_preset := "Debug"
 
 alias b := build
+alias d := docs
 alias f := flash
 alias m := monitor
 
@@ -18,6 +19,12 @@ alias m := monitor
 @flash src preset=default_preset:
     just build {{src}} {{preset}}
     ./scripts/flash.sh --src {{src}} --preset {{preset}}
+
+# start a local mkdocs server
+docs:
+    #!/usr/bin/env zsh
+    source ./tools/venv/bin/activate
+    mkdocs serve
 
 # update cmake tooling
 cmake src *libs:
