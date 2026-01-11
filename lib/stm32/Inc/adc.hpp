@@ -13,6 +13,10 @@ namespace mrover {
 
 #ifdef HAL_ADC_MODULE_ENABLED
     class ADCSensor {
+    private:
+		ADC_HandleTypeDef* m_hadc;
+		uint8_t m_channels;
+		std::vector<uint32_t> m_values;
     public:
         ADCSensor() = default;
 
@@ -37,14 +41,9 @@ namespace mrover {
             return 0;
         }
 
-        void update() {
+        void start_dma() {
             HAL_ADC_Start_DMA(m_hadc, reinterpret_cast<uint32_t*>(m_values.data()), m_channels);
         }
-
-    private:
-        ADC_HandleTypeDef* m_hadc;
-        uint8_t m_channels;
-        std::vector<uint32_t> m_values;
     };
 #else // HAL_ADC_MODULE_ENABLED
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADCSensor"))) ADCSensor {
