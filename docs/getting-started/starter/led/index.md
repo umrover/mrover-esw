@@ -1,8 +1,9 @@
 # LED Starter Project
 
 ## About
+
 This tutorial is intended to get you more familiar with a Nucleo
-(with STM32G431RB MCU) and the Cube IDE.
+(with STM32G431RB MCU) and the Cube Tool Suite.
 You will be asked to develop code such that the LED on the Nucleo
 will light up whenever the Nucleo’s button is pressed down.
 
@@ -11,6 +12,7 @@ of the ESW leads or members. This project isn't meant to be high-stakes,
 so please reach out if you ever get stuck!
 
 ## Instructions
+
 As mentioned earlier, the goal is to make sure that the button is able to activate the LED.
 
 As you walk through the guide, keep the following questions in mind:
@@ -23,14 +25,14 @@ As you walk through the guide, keep the following questions in mind:
 
 ## Prerequisites
 
-* STM32CubeIDE [installed](../../stm32cubeide/index.md)
+* STM32CubeMX [installed](../../stm32cube/index.md)
 * STM32G431RB Nucleo (pictured below)
 
-![stm32f303re nucleo](nucleo-g431.webp)
+![stm32g431rb nucleo](./nucleo-g431.webp)
 
 ## Guide
 
-Open up Cube IDE and create a new project called tutorial by following the steps in the [Cube IDE New Project Guide](../../stm32cubeide/index.md#creating-a-new-project).
+Open up CubeMX and create a new project called tutorial by following the steps in the [CubeMX New Project Guide](../../stm32cube/index.md#creating-a-new-project).
 
 When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit [this](https://os.mbed.com/platforms/ST-Nucleo-G474RE/) page.
 
@@ -40,42 +42,34 @@ On this page, you will find some pinouts. Based on the pinouts, you should be ab
 
 ![g4 pinout showing led connected to pa5](g4-led-pin.webp)
 
-Head back to the Cube IDE and if the .ioc file is not open already, open it from the Project Explorer located on the left. You should be able to see a graphical interface with the chip on it.
-
-> **Some images may include STM32F303RETx instead of STM32G431RBTx**: Please ignore the differences!
-
-![image](https://user-images.githubusercontent.com/71603173/187025002-c1fa3c55-ab5c-4f1e-8c72-e129c777fb35.png)
+Head back to the CubeMX and open the .ioc file if it is not open already. You should be able to see a graphical interface with the chip on it.
 
 The first thing we want to do is set PC13 pin (which is connected to the push button) to be a GPIO input. This means that the pin will be set so that we can choose to read digital input in our code. Reading digital input means that we can read 3.3V as high (logic 1) and read 0V as low (logic 0). This is relevant because this means that we can be able to tell if the push button is pressed down or released.
 
 On the graphical interface (also called the .ioc file), locate PC13 and click on it. Then select GPIO_Input to change its configuration.
 
-![image](https://user-images.githubusercontent.com/71603173/187025088-8a04c257-dba0-4e08-a9c4-71c91a15f997.png)
+![pc13](pc13.webp)
 
 The next thing we want to do is set PA5 (which is connected to the LED) to be a GPIO output. This means that we will be able to make the pin either be set to 3.3V (high) or 0V (low). By default, the pin starts off as low.
 
 On the .ioc file, locate PA5 and click on it. Select GPIO_Output to change its configuration. You may need to scroll down a bit. Note that the pin may already be set to GPIO_Output by default, so you may choose to not do anything new.
 
-![image](https://user-images.githubusercontent.com/71603173/187025293-8a33787e-d418-403d-bcd9-f4712445e639.png)
+![pa5](pa5.webp)
+
+Optionally, right click on PC13 and select "Enter User Label" can give it a useful name, such as `BUTTON`. Do the same for PA5, but call it `LED`.
 
 Make sure to save your changes by saving the file. Either run the keyboard shortcut Ctrl + S on your keyboard or click on File -> Save.
 
-You will then see a window asking if you want to generate Code. Click Yes.
-
-![image](https://user-images.githubusercontent.com/71603173/187025508-5da30153-7112-4d8b-8d9e-7dcd5afe1576.png)
-
-You may also see a window asking about opening the associated perspective. Click Yes.
-
-![image](https://user-images.githubusercontent.com/71603173/187025545-51bc7c08-041a-4a66-80dc-881a238e9407.png)
+Now that you are finished modifying the .ioc file, select "GENERATE CODE" in the top right. Once generated successfully, close the confirmation window.
 
 We have now successfully configured our pins and generated the code for it. Now it is time to write the logic to link the button and the LED together.
 
-Begin by opening up the `src/main.c` file.
+Begin by opening up the `Src/main.c` file in an editor of your choice.
 
-![image](https://user-images.githubusercontent.com/71603173/187025970-833b8ae5-90ef-4ddc-ba08-8142c90febae.png)
+
 
 When writing code, you will only want to write in specific sections. A good rule of thumb is to only put your code in between where it says
-`USER CODE BEGIN` and `USER CODE END`. This is necessary because otherwise, the automatic code generation from the Cube IDE
+`USER CODE BEGIN` and `USER CODE END`. This is necessary because otherwise, the automatic code generation from the CubeMX
 will overwrite and delete your code.
 
 ![image](https://user-images.githubusercontent.com/71603173/187026017-329a2cf3-b442-4004-b9d0-447986f27ceb.png)
@@ -99,17 +93,20 @@ Connect an STM32G431RB Nucleo board to your computer via USB. Ask an experienced
 
 Before building your program, ensure that all relevant files have been saved to ensure that code generation has been done.
 
-Then, build your project by clicking `Project`&rarr;`Build All` (or `Project`&rarr;`Build Project`) or using the keyboard shortcut `Ctrl + B`.
+Then, build your project by running the build script from the root of the repository on your command line. The command might look something as follows.
 
-![image](https://user-images.githubusercontent.com/71603173/187026630-70fd8f18-5e86-4dc6-8172-4ef7284ed50e.png)
+```bash
+./scripts/build.sh --src <path/to/led/project>
+```
 
-After building your project, you will see the console which will tell you whether or not your project built successfully. As long as there are no errors, then your project built successfully. You should also look over the warnings if you have any since those hint at potential problems in your code.
+After building your project, you should also look over the warnings if you have any since those hint at potential problems in your code.
 
-![image](https://user-images.githubusercontent.com/71603173/187026679-b2c141a5-bc19-42bc-bbeb-b328746ddd26.png)
+Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Ensure the Nucleo is plugged into your machine,
+and run the build script again with the `--flash` option. This will use STM32CubeProgrammer (bundled with STM32CubeCLT) to flash the compiled binary onto the Nucleo. The command will look as follows.
 
-Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Click on `Run`&rarr;`Run`. Make sure that your Nucleo device is connected to your computer via USB or else this will not work.
-
-![image](https://user-images.githubusercontent.com/71603173/187026727-ed899673-5d2f-4e45-a1f8-ba794714ba96.png)
+```bash
+./scripts/build.sh --src <path/to/led/project> --flash
+```
 
 Now press down on the button and see if the LED properly lights up. If they do, congratulations! You have completed your first ESW project!
 
@@ -118,6 +115,7 @@ Be sure to show a demo of your project to an ESW lead.
 If you need help debugging, feel free to ask any of the subteam leads or any of the other members.
 
 ## Useful Resources
+
 You may or may not need all of these links in the future.
 
 1. [Board Reference Manual](https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)

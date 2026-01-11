@@ -17,6 +17,8 @@ dependencies = [
     "cantools~=41.0.2",
     "moteus~=0.3.96",
     "moteus-gui~=0.3.96",
+    "mkdocs~=1.6.1",
+    "pymdown-extensions~=10.17.2",
     "pyserial~=3.5",
     "python-can~=4.6.1",
 ]

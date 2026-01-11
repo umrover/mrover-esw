@@ -9,6 +9,7 @@ motors, and various other components.
 New to ESW? Check out the [getting started page](getting-started/intro.md) for developer setup and starter projects.
 
 ## Overview
+
 ESW is split into two groups: Controls and Telemetry. The main difference is simply the subject
 matter of their projects.
 
@@ -19,4 +20,3 @@ already fully custom and developed by us.
 
 Telemetry handles the data and sensing systems on the rover, dealing mainly with the science system.
 <!---TODO: ADD MORE INFO-->
-

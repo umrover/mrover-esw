@@ -11,7 +11,7 @@ so please reach out if you ever get stuck!
 
 ## Prerequisites
 
-- STM32CubeIDE [installed](../../stm32cubeide/index.md)
+- STM32Cube [installed](../../stm32cube/index.md)
 - LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
 - Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
 - STM32G431RB Nucleo
@@ -56,9 +56,7 @@ Then, create a new branch for yourself
 git switch -c starter/your-first-name
 ```
 
-Open STM32CubeIDE and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`). Follow the following
-[guide](../../stm32cubeide/index.md#opening-an-existing-project) to open an existing project if you do not
-know how to do so.
+Open STM32CubeMX and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`).
 
 ### 2. PWM timer configuration
 
@@ -87,7 +85,7 @@ Having a servo object will make it easier to adjust the number servos or where t
 in the future, so for good practice, we will create a Servo class and declare any member variables
 and member functions in a header file.
 
-On the menu to the left, in `Core`&rarr;`Inc`, open the header file named `servo.hpp`.
+On the menu to the left, in `Inc`, open the header file named `servo.hpp`.
 
 Here, we can see the interface for the Servo class that we will be implementing.
 
@@ -106,7 +104,7 @@ It also has 3 member functions:
 
 Now that we know the interface for the Servo class, it's time to implement the functions.
 
-On the menu to the left, in `Core`&rarr;`Src`, open the C++ source file named `servo.cpp`.
+On the menu to the left, in `Src`, open the C++ source file named `servo.cpp`.
 
 To start the servo, you must initialize the timer used to generate the PWM signal. To do this,
 use `HAL_TIM_PWM_Start(TIM_HandleTypeDef *htim, uint32_t Channel)`. Find more information about this
@@ -139,17 +137,17 @@ to determine this. In order to set the CCR register to change the PWM signal, yo
 
 Now that we have implemented our Servo class, it's time to test it out.
 
-Since this is a C++ project, we will not be using the `main.c`. Instead, navigate to `Core`&rarr;`Src`
-and open `new_main.cpp`.
+Since this is a C++ project, we will not be using the `main.c`. Instead, navigate to `Src`
+and open `driver.cpp`.
 
 In the `new_main()` function, create a new Servo using the constructor. The timer parameter for
-should be a `TIM_HandleTypeDef*`. The name for the TIM_Handle that is being used is at the top of
-`new_main.c`. The channel parameter should correspond with which timer channel you are using
+should be a `TIM_HandleTypeDef*`. The name for the Timer Handle that is being used is at the top of
+`driver.cpp`. The channel parameter should correspond with which timer channel you are using
 (remember we set our pin to TIM1_CH1).
 
 Now, we can start the servo using the `start_servo()` function we created.
 
-Then, in the `while(1)` loop, change the angle of the servo a few times to make sure your
+Then, in the `for ( ;; )` loop, change the angle of the servo a few times to make sure your
 `set_servo_angle()` function works and that the PSC and ARR you selected in the .ioc are correct.
 Between each function call make sure to add a delay (Hint: there is a built in HAL function for delays).
 

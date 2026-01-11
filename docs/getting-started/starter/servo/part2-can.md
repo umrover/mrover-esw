@@ -15,7 +15,7 @@ a read. It will get you start on the basics of CAN communication. ***Do not read
 
 ## Prerequisites
 
-* STM32CubeIDE [installed](../../stm32cubeide/index.md)
+* STM32Cube [installed](../../stm32cube/index.md)
 * LED Starter Project [completed](../led/index.md) and shown to an ESW lead
 * Servo Part 1 Starter Project [completed](part1-pwm.md) and shown to an ESW lead
 * STM32G431RB Nucleo
