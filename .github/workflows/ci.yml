@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [ "src/tests/serial" ]
+        dir: [ "src/pdlb", "src/tests/serial" ]
         preset: [ Debug, Release ]
 
     steps:
