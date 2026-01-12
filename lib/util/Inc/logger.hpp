@@ -35,7 +35,7 @@ namespace mrover {
             return inst;
         }
 
-        auto set_level(Level level) -> void {
+        auto set_level(Level const level) -> void {
             m_level = level;
         }
 
@@ -113,9 +113,9 @@ namespace mrover {
         template<typename... Args>
         static auto init(Args&&... args) -> void {}
 
-        static auto get_instance() -> Logger* {
+        static auto instance() -> Logger& {
             static Logger inst{};
-            return &inst;
+            return inst;
         }
         template<typename... Args>
         auto set_level(Args&&... args) -> void {}
@@ -136,9 +136,9 @@ namespace mrover {
         template<typename... Args>
         static auto init(Args&&... args) -> void {}
 
-        static auto get_instance() -> Logger* {
+        static auto instance() -> Logger& {
             static Logger inst{};
-            return &inst;
+            return inst;
         }
         template<typename... Args>
         auto set_level(Args&&... args) -> void {}
