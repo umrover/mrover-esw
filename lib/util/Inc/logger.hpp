@@ -15,111 +15,87 @@ namespace mrover {
 #ifdef DEBUG
     class Logger {
     public:
-        enum class log_level_t : uint8_t {
-            LOG_DEBUG,
-            LOG_INFO,
-            LOG_WARNING,
-            LOG_ERROR,
-            LOG_NONE
+        enum class Level : uint8_t {
+            Debug = 0,
+            Info,
+            Warning,
+            Error,
+            None
         };
 
         Logger() = delete;
 
-        static auto init(UART_HandleTypeDef* huart, log_level_t const level = log_level_t::LOG_INFO) -> void {
-            s_huart = huart;
+        static auto init(UART* uart, Level const level = Level::Info) -> void {
+            s_uart  = uart;
             s_level = level;
         }
 
-        static auto get_instance() -> Logger* {
-            static Logger inst{s_huart, s_level};
-            return &inst;
+        static auto instance() -> Logger& {
+            static Logger inst{s_level};
+            return inst;
         }
 
-        auto set_level(log_level_t const level) -> void {
+        auto set_level(Level level) -> void {
             m_level = level;
         }
 
-        auto debug(const char* format, ...) const -> void {
-            if (log_level_t::LOG_DEBUG >= m_level) {
-                va_list args;
-                va_start(args, format);
-                vlog(log_level_t::LOG_DEBUG, "DEBUG: ", format, args);
-                va_end(args);
-            }
+        auto debug(const char* fmt, ...) const -> void {
+            va_list args;
+            va_start(args, fmt);
+            vlog(Level::Debug, "DEBUG: ", fmt, args);
+            va_end(args);
         }
 
-        auto info(const char* format, ...) const -> void {
-            if (log_level_t::LOG_INFO >= m_level) {
-                va_list args;
-                va_start(args, format);
-                vlog(log_level_t::LOG_INFO, "INFO: ", format, args);
-                va_end(args);
-            }
+        auto info(const char* fmt, ...) const -> void {
+            va_list args;
+            va_start(args, fmt);
+            vlog(Level::Info, "INFO: ", fmt, args);
+            va_end(args);
         }
 
-        auto warn(const char* format, ...) const -> void {
-            if (log_level_t::LOG_WARNING >= m_level) {
-                va_list args;
-                va_start(args, format);
-                vlog(log_level_t::LOG_WARNING, "WARNING: ", format, args);
-                va_end(args);
-            }
+        auto warn(const char* fmt, ...) const -> void {
+            va_list args;
+            va_start(args, fmt);
+            vlog(Level::Warning, "WARN: ", fmt, args);
+            va_end(args);
         }
 
-        auto error(const char* format, ...) const -> void {
-            if (log_level_t::LOG_ERROR >= m_level) {
-                va_list args;
-                va_start(args, format);
-                vlog(log_level_t::LOG_ERROR, "ERROR: ", format, args);
-                va_end(args);
-            }
-        }
-
-        auto debug(std::string_view const message) const -> void {
-            log(log_level_t::LOG_DEBUG, "DEBUG: ", message);
-        }
-
-        auto info(std::string_view const message) const -> void {
-            log(log_level_t::LOG_INFO, "INFO: ", message);
-        }
-
-        auto warn(std::string_view const message) const -> void {
-            log(log_level_t::LOG_WARNING, "WARNING: ", message);
-        }
-
-        auto error(std::string_view const message) const -> void {
-            log(log_level_t::LOG_ERROR, "ERROR: ", message);
+        auto error(const char* fmt, ...) const -> void {
+            va_list args;
+            va_start(args, fmt);
+            vlog(Level::Error, "ERROR: ", fmt, args);
+            va_end(args);
         }
 
     private:
-        UART m_uart;
-        log_level_t m_level;
+        explicit Logger(Level level) : m_level{level} {}
 
-        static inline UART_HandleTypeDef* s_huart = nullptr;
-        static inline auto s_level = log_level_t::LOG_INFO;
-
-        explicit Logger(UART_HandleTypeDef* huart, log_level_t const level) : m_uart{huart}, m_level{level} {}
-
-        auto vlog(log_level_t const level, std::string_view const prefix,
-                  const char* format, va_list const args) const -> void {
-            if (level < m_level) return;
+        auto vlog(
+            Level const level,
+            std::string_view const prefix,
+            const char* fmt,
+            va_list const args
+        ) const -> void {
+            if (!s_uart) return;
+            if (level < m_level || m_level == Level::None) return;
 
             static char buffer[LOG_BUFFER_SIZE];
-            if (auto const len = std::vsnprintf(buffer, LOG_BUFFER_SIZE, format, args); len > 0 && static_cast<size_t>(len) < LOG_BUFFER_SIZE) {
-                m_uart.transmit(prefix);
-                m_uart.transmit(std::string_view(buffer, len));
-                m_uart.transmit("\r\n");
-            } else {
-                m_uart.transmit("LOGGER: format buffer error.\r\n");
-            }
+
+            int const len = std::vsnprintf(buffer, sizeof(buffer), fmt, args);
+            if (len <= 0) return;
+
+            auto const out_len = static_cast<size_t>(len);
+            if (out_len >= sizeof(buffer)) return;
+
+            s_uart->transmit(prefix);
+            s_uart->transmit(std::string_view{buffer, out_len});
+            s_uart->transmit("\r\n");
         }
 
-        auto log(log_level_t const level, std::string_view const prefix, std::string_view const message) const -> void {
-            if (level < m_level) return;
-            m_uart.transmit(prefix);
-            m_uart.transmit(message);
-            m_uart.transmit("\r\n");
-        }
+        Level m_level{Level::Info};
+
+        static inline UART* s_uart = nullptr;
+        static inline auto s_level = Level::Info;
     };
 #else // DEBUG
     class Logger {
