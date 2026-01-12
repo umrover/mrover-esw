@@ -21,7 +21,11 @@ jobs:
 
       - id: load
         run: |
-          echo "dirs=$(cat ci.json)" >> "$GITHUB_OUTPUT"
+          {
+            echo "dirs<<EOF"
+            cat ci.json
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
   build-docker-image:
     # skip for forked PRs (can't push to ghcr)
