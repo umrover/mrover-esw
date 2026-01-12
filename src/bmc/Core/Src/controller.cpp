@@ -34,7 +34,7 @@ extern TIM_HandleTypeDef htim17;
 namespace mrover {
 
     static constexpr ADC_HandleTypeDef* ADC = &hadc1;
-    static constexpr UART_HandleTypeDef* UART = &hlpuart1;
+    static constexpr UART_HandleTypeDef* LPUART = &hlpuart1;
     static constexpr FDCAN_HandleTypeDef* CAN = &hfdcan1;
 
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
@@ -44,6 +44,9 @@ namespace mrover {
 
     bmc_config_t config;
     bool initialized = false;
+
+    UART lpuart;
+    // NOTE: FDCAN is not here as the CANHandler instance requires ownership of it
 
     Pin can_tx;
     Pin can_rx;
@@ -60,10 +63,10 @@ namespace mrover {
      */
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         if (!initialized) return;
-        // can_tx.set();
+        can_tx.set();
         can_receiver.send(msg, config.get<bmc_config_t::can_id>());
-        Logger::get_instance()->debug("CAN Message Sent");
-        // can_tx.reset();
+        Logger::instance().debug("CAN Message Sent");
+        can_tx.reset();
     }
 
     /**
@@ -93,21 +96,25 @@ namespace mrover {
      * Initialization sequence for BMC.
      */
     auto init() -> void {
+        // initialize peripherals
+        lpuart = UART{LPUART, get_uart_options()};
+
         // initialize logger
-        Logger::init(UART);
-        Logger::get_instance()->info("Initializing...");
+        Logger::init(&lpuart);
+        auto const& logger = Logger::instance();
+        logger.info("Initializing");
 
         // setup debug LEDs
-        Logger::get_instance()->info("...CAN LEDs");
+        logger.info("...CAN LEDs");
         can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
         can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
         // setup can transceiver
-        Logger::get_instance()->info("...CAN Transceiver");
+        logger.info("...CAN Transceiver");
         can_receiver = CANBus1Handler{FDCAN{CAN, get_can_options()}};
 
         // setup motor instance
-        Logger::get_instance()->info("...Motor");
+        logger.info("...Motor");
         motor = Motor{
             HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
             AD8418A{AnalogPin{ADC, ADC_CHANNEL_0}},
@@ -116,13 +123,13 @@ namespace mrover {
         };
 
         // setup timers
-        Logger::get_instance()->info("...Timers");
+        logger.info("...Timers");
         tx_tim = Timer{TX_TIM, true, "TX Timer"};  // transmit timer (on interrupt)
         can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"};  // can watchdog timer (on interrupt)
         control_tim = Timer{CONTROL_TIM, true, "Control Timer"};  // control timer (update driven output, on interrupt)
 
         // set initialization state and initial error state
-        Logger::get_instance()->info("BMC Initialized");
+        logger.info("BMC Initialized");
         initialized = true;
     }
 
@@ -138,9 +145,19 @@ namespace mrover {
         } else if (htim == CAN_WWDG_TIM) {
             can_wwdg_tim.stop();
             motor.tx_watchdog_lapsed();
-            Logger::get_instance()->warn("TX Watchdog Lapsed");
-        }else if (htim == CONTROL_TIM) {
+            Logger::instance().warn("TX Watchdog Lapsed");
+        } else if (htim == CONTROL_TIM) {
             motor.drive_output();
+        }
+    }
+
+    /**
+     * Callback enabling asynchronous serial logs via UART/DMA.
+     * @param huart UART handle from callback
+     */
+    auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
+        if (huart == LPUART) {
+            lpuart.handle_tx_complete();
         }
     }
 
@@ -158,6 +175,10 @@ extern "C" {
 
     void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
         mrover::receive_can_message();
+    }
+
+    void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
+        mrover::uart_tx_callback(huart);
     }
 
     // TODO(eric) implement

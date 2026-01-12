@@ -53,7 +53,7 @@ def stream_serial_data(port_name: Path, baud_rate: int, log_level=logging.DEBUG)
     try:
         esw_logger.info(f"Connecting to {port_name}")
         with serial.Serial(
-            port=port_name,
+            port=str(port_name),
             baudrate=baud_rate,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,

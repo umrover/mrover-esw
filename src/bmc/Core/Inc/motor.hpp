@@ -66,7 +66,7 @@ namespace mrover {
          * Should be called after configuration is updated.
          */
         auto init() -> void {
-            Logger::get_instance()->info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
+            Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
             m_hbridge.change_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
             m_hbridge.change_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
@@ -77,12 +77,12 @@ namespace mrover {
 
         template <typename T>
         auto handle(T const& _) const -> void {
-            Logger::get_instance()->debug("Received Unhandled Message Type");
+            Logger::instance().debug("Received Unhandled Message Type");
         }
 
         auto handle(BMCProbe const& msg) const -> void {
             // acknowledge probe
-            Logger::get_instance()->info("BMC Probed with data %u", msg.data);
+            Logger::instance().info("BMC Probed with data %u", msg.data);
             m_message_tx_f(BMCAck{msg.data});
         }
 
@@ -92,24 +92,24 @@ namespace mrover {
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
             }
-            Logger::get_instance()->info("Mode set to %u", m_mode);
+            Logger::instance().info("Mode set to %u", m_mode);
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
-            Logger::get_instance()->info("Received Target Command");
+            Logger::instance().info("Received Target Command");
             if (!msg.target_valid) return;
-            Logger::get_instance()->info("Received Valid Target Command");
+            Logger::instance().info("Received Valid Target Command");
             switch (m_mode) {
             case mode_t::STOPPED:
             case mode_t::FAULT:
                 m_target = 0.0f;
-                Logger::get_instance()->info("STOPPED | FAULT: Set Target to %.2f", m_target);
+                Logger::instance().info("STOPPED | FAULT: Set Target to %.2f", m_target);
                 break;
             case mode_t::THROTTLE:
             case mode_t::POSITION:
             case mode_t::VELOCITY:
                 m_target = msg.target;
-                Logger::get_instance()->info("Set Target to %.2f", m_target);
+                Logger::instance().info("Set Target to %.2f", m_target);
                 break;
             }
         }
@@ -118,25 +118,25 @@ namespace mrover {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
-                    Logger::get_instance()->info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
+                    Logger::instance().info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
                     // re-initialize after configuration is modified
                     init();
                 } else {
-                    Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
+                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
                 }
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
                     m_message_tx_f(BMCAck{val});
                 } else {
-                    Logger::get_instance()->warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
+                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
                 }
             }
         }
 
         auto handle(BMCResetCmd const& msg) -> void {
             reset();
-            Logger::get_instance()->info("BMC Reset Received");
+            Logger::instance().info("BMC Reset Received");
         }
 
     public:

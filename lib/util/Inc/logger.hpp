@@ -79,17 +79,26 @@ namespace mrover {
             if (!s_uart) return;
             if (level < m_level || m_level == Level::None) return;
 
-            static char buffer[LOG_BUFFER_SIZE];
+            char buffer[LOG_BUFFER_SIZE];
+            char tx_buffer[LOG_BUFFER_SIZE + 32];
 
             int const len = std::vsnprintf(buffer, sizeof(buffer), fmt, args);
             if (len <= 0) return;
 
-            auto const out_len = static_cast<size_t>(len);
-            if (out_len >= sizeof(buffer)) return;
+            size_t const content_len = std::min(static_cast<size_t>(len), sizeof(buffer) - 1);
 
-            s_uart->transmit(prefix);
-            s_uart->transmit(std::string_view{buffer, out_len});
-            s_uart->transmit("\r\n");
+            int const tx_len = std::snprintf(
+                tx_buffer,
+                sizeof(tx_buffer),
+                "%.*s%.*s\r\n",
+                static_cast<int>(prefix.size()), prefix.data(),
+                static_cast<int>(content_len), buffer
+            );
+
+            if (tx_len <= 0) return;
+
+            size_t const final_len = std::min(static_cast<size_t>(tx_len), sizeof(tx_buffer) - 1);
+            s_uart->transmit(std::string_view{tx_buffer, final_len});
         }
 
         Level m_level{Level::Info};

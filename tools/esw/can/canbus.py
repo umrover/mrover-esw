@@ -1,6 +1,5 @@
 import queue
 import struct
-from time import sleep
 from typing import Any, Callable, Tuple
 
 import can
@@ -113,9 +112,6 @@ class CANBus:
             esw_logger.error(f"CAN ERROR: failed to send message: {e}")
         except Exception as e:
             esw_logger.error(f"CAN ERROR: exception when sending message {message_name}: {e}")
-        
-        finally:
-            sleep(0.01)
 
     def recv(self, block: bool = True, timeout: float | None = None) -> Tuple[str, dict[str, Any], int] | None:
         try:

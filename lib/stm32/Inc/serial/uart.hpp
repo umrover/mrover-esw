@@ -89,6 +89,7 @@ namespace mrover {
          * Callback to enable asynchronous data transmission via DMA.
          *
          * This function MUST be called from `HAL_UART_TxCpltCallback` for correct operation.
+         * Also ensure global interrupts are enabled for the UART peripheral.
          */
         auto handle_tx_complete() const -> void {
             m_is_busy = false;

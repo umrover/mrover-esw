@@ -54,7 +54,7 @@ namespace mrover {
                 check(start_no_it() == HAL_OK, Error_Handler);
                 is_en = true;
             }
-            Logger::get_instance()->info("%s @%.2f Hz", name.c_str(), get_update_frequency().rep);
+            Logger::instance().info("%s @%.2f Hz", name.c_str(), get_update_frequency().rep);
         }
 
         auto stop() -> void {

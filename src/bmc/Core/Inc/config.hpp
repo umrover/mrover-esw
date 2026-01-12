@@ -187,7 +187,7 @@ namespace mrover {
      *
      * Delay compensation needs to be enabled to allow BRS.
      *
-     * @return CAN option for BMC
+     * @return CAN options for BMC
      */
     inline auto get_can_options() -> FDCAN::Options {
         auto can_opts = FDCAN::Options{};
@@ -195,6 +195,19 @@ namespace mrover {
         can_opts.tdc_offset = 13;
         can_opts.tdc_filter = 1;
         return can_opts;
+    }
+
+    /**
+     * Get the BMC UART settings.
+     *
+     * DMA must be enabled to allow non-blocking logging functionality.
+     *
+     * @return UART options for BMC
+     */
+    inline auto get_uart_options() -> UART::Options {
+        UART::Options options;
+        options.use_dma = true;
+        return options;
     }
 
 } // namespace mrover
