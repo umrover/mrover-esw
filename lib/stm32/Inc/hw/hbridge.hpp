@@ -31,7 +31,6 @@ namespace mrover {
             } else {
                 pin_state = (duty_cycle > 0_percent) ? GPIO_PIN_RESET : GPIO_PIN_SET;
             }
-
             m_direction_pin.write(pin_state);
         }
 

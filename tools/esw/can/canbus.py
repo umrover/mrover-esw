@@ -1,4 +1,6 @@
 import queue
+import struct
+from time import sleep
 from typing import Any, Callable, Tuple
 
 import can
@@ -85,9 +87,15 @@ class CANBus:
             esw_logger.error("CAN ERROR: CAN Bus Not Active")
             return
 
+        processed_signals = signals.copy()
+
+        for key, value in processed_signals.items():
+            if isinstance(value, float):
+                processed_signals[key] = struct.unpack('<I', struct.pack('<f', value))[0]
+
         try:
             dbc_msg = self._dbc.get_message_by_name(message_name)
-            data = dbc_msg.encode(signals)
+            data = dbc_msg.encode(processed_signals)
             msg = can.Message(
                 arbitration_id=dbc_msg.frame_id + node_id,
                 data=data,
@@ -97,7 +105,7 @@ class CANBus:
                 check=True
             )
             self._bus.send(msg)
-            esw_logger.info(f"CAN SEND {message_name}: {signals}")
+            esw_logger.info(f"CAN SEND {message_name}: {processed_signals}")
 
         except KeyError:
             esw_logger.error(f"CAN ERROR: Message '{message_name}' not in DBC")
@@ -105,6 +113,9 @@ class CANBus:
             esw_logger.error(f"CAN ERROR: failed to send message: {e}")
         except Exception as e:
             esw_logger.error(f"CAN ERROR: exception when sending message {message_name}: {e}")
+        
+        finally:
+            sleep(0.01)
 
     def recv(self, block: bool = True, timeout: float | None = None) -> Tuple[str, dict[str, Any], int] | None:
         try:

@@ -16,7 +16,7 @@ public:
         ADC_ChannelConfTypeDef sConfig{};
         sConfig.Channel = m_channel;
         sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+        sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES_5;  // ADC_SAMPLETIME_3CYCLES;
 
         HAL_ADC_ConfigChannel(m_adc, &sConfig);
 

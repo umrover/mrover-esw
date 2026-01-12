@@ -2,6 +2,7 @@
 #include <functional>
 
 #include <hw/hbridge.hpp>
+#include <hw/ad8418a.hpp>
 #include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
@@ -15,6 +16,7 @@
 #include "CANBus1.hpp"
 
 
+extern ADC_HandleTypeDef hadc1;
 extern UART_HandleTypeDef hlpuart1;
 extern FDCAN_HandleTypeDef hfdcan1;
 
@@ -31,6 +33,7 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
+    static constexpr ADC_HandleTypeDef* ADC = &hadc1;
     static constexpr UART_HandleTypeDef* UART = &hlpuart1;
     static constexpr FDCAN_HandleTypeDef* CAN = &hfdcan1;
 
@@ -57,10 +60,10 @@ namespace mrover {
      */
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         if (!initialized) return;
-        can_tx.set();
+        // can_tx.set();
         can_receiver.send(msg, config.get<bmc_config_t::can_id>());
         Logger::get_instance()->debug("CAN Message Sent");
-        can_tx.reset();
+        // can_tx.reset();
     }
 
     /**
@@ -75,13 +78,14 @@ namespace mrover {
             can_wwdg_tim.start();
         }
 
-        if (auto const recv = can_receiver.receive(config.get<bmc_config_t::can_id>()); recv) {
-            can_rx.set();
-            Logger::get_instance()->debug("CAN Message Received");
-            auto const& msg = *recv;
-            motor.receive(msg);
-            can_wwdg_tim.reset();
-            can_rx.reset();
+        while (can_receiver.get_driver().messages_to_process() > 0) {
+            if (auto const recv = can_receiver.receive(config.get<bmc_config_t::can_id>()); recv) {
+                can_rx.set();
+                auto const& msg = *recv;
+                motor.receive(msg);
+                can_wwdg_tim.reset();
+                can_rx.reset();
+            }
         }
     }
 
@@ -106,6 +110,7 @@ namespace mrover {
         Logger::get_instance()->info("...Motor");
         motor = Motor{
             HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
+            AD8418A{AnalogPin{ADC, ADC_CHANNEL_0}},
             send_can_message,
             &config,
         };

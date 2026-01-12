@@ -2,6 +2,7 @@
 
 #include <variant>
 #include <hw/hbridge.hpp>
+#include <hw/ad8418a.hpp>
 #include <err.hpp>
 #include <CANBus1.hpp>
 #include <cinttypes>
@@ -18,6 +19,7 @@ namespace mrover {
         using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
 
         HBridge m_hbridge;
+        AD8418A m_current_sensor;
         tx_exec_t m_message_tx_f;
 
         bmc_config_t* m_config_ptr;
@@ -86,10 +88,8 @@ namespace mrover {
 
         auto handle(BMCModeCmd const& msg) -> void {
             // stop if not enabled, consume mode only if enabled
-            Logger::get_instance()->info("Received Mode Command");
             if (!msg.enable) m_mode = mode_t::STOPPED;
             else {
-                Logger::get_instance()->info("Received Enabled Mode Command");
                 m_mode = static_cast<mode_t>(msg.mode);
             }
             Logger::get_instance()->info("Mode set to %u", m_mode);
@@ -103,6 +103,7 @@ namespace mrover {
             case mode_t::STOPPED:
             case mode_t::FAULT:
                 m_target = 0.0f;
+                Logger::get_instance()->info("STOPPED | FAULT: Set Target to %.2f", m_target);
                 break;
             case mode_t::THROTTLE:
             case mode_t::POSITION:
@@ -117,7 +118,7 @@ namespace mrover {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
-                    Logger::get_instance()->debug("Written 0x%08" PRIX32 "to address 0x%02" PRIX32, msg.value, msg.address);
+                    Logger::get_instance()->info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
                     // re-initialize after configuration is modified
                     init();
                 } else {
@@ -143,10 +144,12 @@ namespace mrover {
 
         explicit Motor(
             HBridge const& motor_driver,
+            AD8418A const& current_sensor,
             tx_exec_t const& message_tx_f,
             bmc_config_t* config
         ) :
             m_hbridge{motor_driver},
+            m_current_sensor{current_sensor},
             m_message_tx_f{message_tx_f},
             m_config_ptr{config},
             m_mode{mode_t::STOPPED},

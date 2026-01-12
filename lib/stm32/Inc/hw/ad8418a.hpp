@@ -1,7 +1,7 @@
 #pragma once
 
 #include <optional>
-#include <analog_pin.hpp>
+#include <hw/analog_pin.hpp>
 
 #include "main.h"
 
@@ -17,12 +17,21 @@
 
 
 namespace mrover {
-    class ad8418a {
+    class AD8418A {
+        AnalogPin m_analog_pin;
+        bool m_valid{false};
+        bool m_enabled{true};
+        float m_gain{20.0f};
+        float m_shunt_resistance{0.0005};
+        float m_vref{3.3f};
+        float m_vcm{1.65f};
+        uint16_t m_adc_resolution{4095};
+        float m_current{};
     public:
-        ad8418a() = default;
+        AD8418A() = default;
 
         //-GMS - Create an instance with the sensor Analog Pin  
-        explicit ad8418a(AnalogPin const& analogPin) : m_analog_pin{analogPin} {}
+        explicit AD8418A(AnalogPin const& analogPin) : m_analog_pin{analogPin} {}
 
         /**
         * @brief Initializes the analog current sensor (AD8418A).
@@ -123,16 +132,5 @@ namespace mrover {
         * last measured current to 0 to reset the state of the sensor.
         */
         auto disable() -> void { m_enabled = false; m_current = 0.0f; }
-
-    private:
-        AnalogPin m_analog_pin;
-        bool m_valid{false};
-        bool m_enabled{true};
-        float m_gain{20.0f};
-        float m_shunt_resistance{0.0005};
-        float m_vref{3.3f};
-        float m_vcm{1.65f};
-        uint16_t m_adc_resolution{4095};
-        float m_current{};
     };
 } // namespace mrover

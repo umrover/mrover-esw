@@ -17,20 +17,19 @@ if __name__ == "__main__":
         bus.send("BMCConfigCmd", {"address": 0x00, "value": 0x00, "apply": 0x0}, node_id=0)
         bus.send("BMCConfigCmd", {"address": 0x24, "value": 0x00, "apply": 0x0}, node_id=0)
         # set max pwm of board
-        bus.send("BMCConfigCmd", {"address": 0x24, "value": 100, "apply": 0x1}, node_id=0)
+        bus.send("BMCConfigCmd", {"address": 0x24, "value": 100.0, "apply": 0x1}, node_id=0)
         # set motor en on board
         bus.send("BMCConfigCmd", {"address": 0x01, "value": 0b00000001, "apply": 0x1}, node_id=0)
         # request pwm, motor en of board
         bus.send("BMCConfigCmd", {"address": 0x24, "value": 0x00, "apply": 0x0}, node_id=0)
         bus.send("BMCConfigCmd", {"address": 0x01, "value": 0x00, "apply": 0x0}, node_id=0)
-        sleep(1)
         # set mode to throttle
         bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, node_id=0)
         sleep(2)
         for _ in range(5):
-            bus.send("BMCTargetCmd", {"target": 25, "target_valid": 1}, node_id=0)
+            bus.send("BMCTargetCmd", {"target": 10, "target_valid": 1}, node_id=0)
             sleep(5)
         for _ in range(5):
-            bus.send("BMCTargetCmd", {"target": -25, "target_valid": 1}, node_id=0)
+            bus.send("BMCTargetCmd", {"target": -10, "target_valid": 1}, node_id=0)
             sleep(5)
-
+        sleep(5)
