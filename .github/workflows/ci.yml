@@ -11,6 +11,18 @@ permissions:
   packages: write
 
 jobs:
+
+  generate-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      dirs: ${{ steps.load.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: load
+        run: |
+          echo "dirs=$(cat ci.json)" >> "$GITHUB_OUTPUT"
+
   build-docker-image:
     # skip for forked PRs (can't push to ghcr)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -54,7 +66,9 @@ jobs:
           provenance: false
 
   test-build:
-    needs: build-docker-image
+    needs:
+      - build-docker-image
+      - generate-test-matrix
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/arm-gnu:13.3
@@ -62,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [ "src/tests/serial" ]
+        dir: ${{ fromJSON(needs.generate-test-matrix.outputs.dirs) }}
         preset: [ Debug, Release ]
 
     steps:
