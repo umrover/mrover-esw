@@ -2,3 +2,4 @@ src/**/Core/**/*.c
 src/**/Core/**/*.h
 src/**/Drivers/**/*.c
 src/**/Drivers/**/*.h
+**/*build*/**/*
