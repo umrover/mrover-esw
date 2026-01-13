@@ -1,20 +1,20 @@
 #pragma once
 
-#include <string>
-#include <cstdio>
 #include <cstdarg>
+#include <cstdio>
+#include <string>
 
 namespace mrover {
 
-    inline auto debug(const std::string& input) -> void {
+    inline auto debug(std::string const& input) -> void {
         printf("%s\n\r", input.c_str());
     }
 
-    inline auto debug(const char* input) -> void {
+    inline auto debug(char const* input) -> void {
         printf("%s\n\r", input);
     }
 
-    inline auto debugf(const char* format, ...) -> void {
+    inline auto debugf(char const* format, ...) -> void {
         va_list args;
         va_start(args, format);
         vprintf(format, args);

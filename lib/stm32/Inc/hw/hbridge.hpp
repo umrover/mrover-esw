@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 #include <units.hpp>
 #include <util.hpp>
@@ -49,11 +49,10 @@ namespace mrover {
     public:
         HBridge() = default;
 
-        explicit HBridge(TIM_HandleTypeDef* timer, std::uint32_t channel, Pin direction_pin) :
-            m_direction_pin{direction_pin},
-            m_timer{timer},
-            m_channel{channel},
-            m_max_pwm{0_percent} {
+        explicit HBridge(TIM_HandleTypeDef* timer, std::uint32_t channel, Pin direction_pin) : m_direction_pin{direction_pin},
+                                                                                               m_timer{timer},
+                                                                                               m_channel{channel},
+                                                                                               m_max_pwm{0_percent} {
             // Initialize CCR to 0 (no pulse generated)
             start();
         }
@@ -88,7 +87,7 @@ namespace mrover {
             m_is_inverted = inverted;
         }
     };
-#else // HAL_TIM_MODULE_ENABLED
+#else  // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::HBridge"))) HBridge {
     public:
         template<typename... Args>

@@ -1,14 +1,14 @@
 #pragma once
 
-#include <variant>
-#include <hw/hbridge.hpp>
-#include <hw/ad8418a.hpp>
-#include <err.hpp>
 #include <CANBus1.hpp>
 #include <cinttypes>
+#include <err.hpp>
 #include <functional>
+#include <hw/ad8418a.hpp>
+#include <hw/hbridge.hpp>
 #include <pidf.hpp>
 #include <units.hpp>
+#include <variant>
 
 #include "config.hpp"
 
@@ -38,24 +38,24 @@ namespace mrover {
         auto write_output_pwm() -> void {
             if (m_enabled) {
                 switch (m_mode) {
-                case mode_t::STOPPED:
-                    if (m_hbridge.is_on()) m_hbridge.stop();
-                    break;
-                case mode_t::FAULT:
-                    if (m_hbridge.is_on()) m_hbridge.stop();
-                    break;
-                case mode_t::THROTTLE:
-                    if (!m_hbridge.is_on()) m_hbridge.start();
-                    m_hbridge.write(m_target);
-                    break;
-                case mode_t::POSITION:
-                    if (m_hbridge.is_on()) m_hbridge.stop();
-                    // TODO(eric) PID calcs here
-                    break;
-                case mode_t::VELOCITY:
-                    if (m_hbridge.is_on()) m_hbridge.stop();
-                    // TODO(eric) PID calcs here
-                    break;
+                    case mode_t::STOPPED:
+                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        break;
+                    case mode_t::FAULT:
+                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        break;
+                    case mode_t::THROTTLE:
+                        if (!m_hbridge.is_on()) m_hbridge.start();
+                        m_hbridge.write(m_target);
+                        break;
+                    case mode_t::POSITION:
+                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        // TODO(eric) PID calcs here
+                        break;
+                    case mode_t::VELOCITY:
+                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        // TODO(eric) PID calcs here
+                        break;
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace mrover {
             // TODO(eric) add absolute encoders
         }
 
-        template <typename T>
+        template<typename T>
         auto handle(T const& _) const -> void {
             Logger::instance().debug("Received Unhandled Message Type");
         }
@@ -88,7 +88,8 @@ namespace mrover {
 
         auto handle(BMCModeCmd const& msg) -> void {
             // stop if not enabled, consume mode only if enabled
-            if (!msg.enable) m_mode = mode_t::STOPPED;
+            if (!msg.enable)
+                m_mode = mode_t::STOPPED;
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
             }
@@ -100,17 +101,17 @@ namespace mrover {
             if (!msg.target_valid) return;
             Logger::instance().info("Received Valid Target Command");
             switch (m_mode) {
-            case mode_t::STOPPED:
-            case mode_t::FAULT:
-                m_target = 0.0f;
-                Logger::instance().info("STOPPED | FAULT: Set Target to %.2f", m_target);
-                break;
-            case mode_t::THROTTLE:
-            case mode_t::POSITION:
-            case mode_t::VELOCITY:
-                m_target = msg.target;
-                Logger::instance().info("Set Target to %.2f", m_target);
-                break;
+                case mode_t::STOPPED:
+                case mode_t::FAULT:
+                    m_target = 0.0f;
+                    Logger::instance().info("STOPPED | FAULT: Set Target to %.2f", m_target);
+                    break;
+                case mode_t::THROTTLE:
+                case mode_t::POSITION:
+                case mode_t::VELOCITY:
+                    m_target = msg.target;
+                    Logger::instance().info("Set Target to %.2f", m_target);
+                    break;
             }
         }
 
@@ -143,19 +144,16 @@ namespace mrover {
         Motor() = default;
 
         explicit Motor(
-            HBridge const& motor_driver,
-            AD8418A const& current_sensor,
-            tx_exec_t const& message_tx_f,
-            bmc_config_t* config
-        ) :
-            m_hbridge{motor_driver},
-            m_current_sensor{current_sensor},
-            m_message_tx_f{message_tx_f},
-            m_config_ptr{config},
-            m_mode{mode_t::STOPPED},
-            m_error{bmc_error_t::NONE},
-            m_target{0.0f}
-        {
+                HBridge const& motor_driver,
+                AD8418A const& current_sensor,
+                tx_exec_t const& message_tx_f,
+                bmc_config_t* config) : m_hbridge{motor_driver},
+                                        m_current_sensor{current_sensor},
+                                        m_message_tx_f{message_tx_f},
+                                        m_config_ptr{config},
+                                        m_mode{mode_t::STOPPED},
+                                        m_error{bmc_error_t::NONE},
+                                        m_target{0.0f} {
             reset();
             init();
         }
@@ -163,20 +161,21 @@ namespace mrover {
         auto receive(CANBus1Msg_t const& v) -> void {
             std::visit([this](auto&& value) {
                 handle(value);
-            }, v);
+            },
+                       v);
         }
 
         auto send_state() const -> void {
             m_message_tx_f(BMCMotorState{
-                static_cast<uint8_t>(m_mode), // mode
-                static_cast<uint8_t>(m_error), // fault-code
-                0.0, // position
-                0.0, // velocity
-                0, // timestamp
-                0, // limit_a_set
-                0, // limit_b_set
-                0, // is_stalled
-                0.0 // current
+                    static_cast<uint8_t>(m_mode),  // mode
+                    static_cast<uint8_t>(m_error), // fault-code
+                    0.0,                           // position
+                    0.0,                           // velocity
+                    0,                             // timestamp
+                    0,                             // limit_a_set
+                    0,                             // limit_b_set
+                    0,                             // is_stalled
+                    0.0                            // current
             });
         }
 
@@ -191,6 +190,5 @@ namespace mrover {
             m_mode = mode_t::FAULT;
             m_error = bmc_error_t::WWDG_EXPIRED;
         }
-
     };
 } // namespace mrover

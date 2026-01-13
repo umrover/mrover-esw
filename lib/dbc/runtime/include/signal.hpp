@@ -121,4 +121,4 @@ namespace mrover::dbc_runtime {
         std::string m_comment{};
     };
 
-} // namespace mrover::dbc
+} // namespace mrover::dbc_runtime

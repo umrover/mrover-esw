@@ -1,19 +1,19 @@
 #pragma once
 
-#include <optional>
 #include <hw/analog_pin.hpp>
+#include <optional>
 
 #include "main.h"
 
 // Brief Code Overview:
 // ---------------------------------------------------------------------------
-// The sensor measures the voltage drop accross the shunt resistor (0.5mOhms) 
+// The sensor measures the voltage drop accross the shunt resistor (0.5mOhms)
 // and determines the current using Ohms law. The voltage drop is amplified by
-// the sensor by a factor of 20 (by default), which is divided out in the     
-// current calculation. `initialize` must me called to set the valid bool to  
-// true, allowing data to be read. `update_sensor` will update the current    
-// variable, and `current` will return the variable. Consider making these 
-// into one function if prefered. 
+// the sensor by a factor of 20 (by default), which is divided out in the
+// current calculation. `initialize` must me called to set the valid bool to
+// true, allowing data to be read. `update_sensor` will update the current
+// variable, and `current` will return the variable. Consider making these
+// into one function if prefered.
 
 
 namespace mrover {
@@ -27,10 +27,11 @@ namespace mrover {
         float m_vcm{1.65f};
         uint16_t m_adc_resolution{4095};
         float m_current{};
+
     public:
         AD8418A() = default;
 
-        //-GMS - Create an instance with the sensor Analog Pin  
+        //-GMS - Create an instance with the sensor Analog Pin
         explicit AD8418A(AnalogPin const& analogPin) : m_analog_pin{analogPin} {}
 
         /**
@@ -55,7 +56,7 @@ namespace mrover {
         * @param adc_resolution    The maximum numeric value of the ADC conversion (e.g. 4095 for 12-bit ADC,
         *                          1023 for 10-bit ADC).
         */
-        auto initialize(float shunt_resistance=0.0005, float gain = 20.0f,
+        auto initialize(float shunt_resistance = 0.0005, float gain = 20.0f,
                         bool enabled = true, float voltage_reference = 3.3f,
                         uint16_t adc_resolution = 4095) -> void {
             m_valid = true;
@@ -67,7 +68,6 @@ namespace mrover {
             m_adc_resolution = adc_resolution;
             m_current = 0.0f;
         }
-
 
 
         /**
@@ -123,7 +123,7 @@ namespace mrover {
         * is enabled, allowing measurements can be taken from it.
         */
         auto enable() -> void { m_enabled = true; }
-        
+
         /**
         * @brief Sets enabled bool to false, disabling sensor readings
         *
@@ -131,6 +131,9 @@ namespace mrover {
         * is disabled, blocking measurements can be taken from it. Also resets
         * last measured current to 0 to reset the state of the sensor.
         */
-        auto disable() -> void { m_enabled = false; m_current = 0.0f; }
+        auto disable() -> void {
+            m_enabled = false;
+            m_current = 0.0f;
+        }
     };
 } // namespace mrover

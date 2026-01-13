@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <string_view>
-#include <cstdio>
 #include <cstdarg>
+#include <cstdint>
+#include <cstdio>
+#include <string_view>
 
 #include <serial/uart.hpp>
 
@@ -26,7 +26,7 @@ namespace mrover {
         Logger() = delete;
 
         static auto init(UART* uart, Level const level = Level::Info) -> void {
-            s_uart  = uart;
+            s_uart = uart;
             s_level = level;
         }
 
@@ -39,28 +39,28 @@ namespace mrover {
             m_level = level;
         }
 
-        auto debug(const char* fmt, ...) const -> void {
+        auto debug(char const* fmt, ...) const -> void {
             va_list args;
             va_start(args, fmt);
             vlog(Level::Debug, "DEBUG: ", fmt, args);
             va_end(args);
         }
 
-        auto info(const char* fmt, ...) const -> void {
+        auto info(char const* fmt, ...) const -> void {
             va_list args;
             va_start(args, fmt);
             vlog(Level::Info, "INFO: ", fmt, args);
             va_end(args);
         }
 
-        auto warn(const char* fmt, ...) const -> void {
+        auto warn(char const* fmt, ...) const -> void {
             va_list args;
             va_start(args, fmt);
             vlog(Level::Warning, "WARN: ", fmt, args);
             va_end(args);
         }
 
-        auto error(const char* fmt, ...) const -> void {
+        auto error(char const* fmt, ...) const -> void {
             va_list args;
             va_start(args, fmt);
             vlog(Level::Error, "ERROR: ", fmt, args);
@@ -71,11 +71,10 @@ namespace mrover {
         explicit Logger(Level level) : m_level{level} {}
 
         auto vlog(
-            Level const level,
-            std::string_view const prefix,
-            const char* fmt,
-            va_list const args
-        ) const -> void {
+                Level const level,
+                std::string_view const prefix,
+                char const* fmt,
+                va_list const args) const -> void {
             if (!s_uart) return;
             if (level < m_level || m_level == Level::None) return;
 
@@ -88,12 +87,11 @@ namespace mrover {
             size_t const content_len = std::min(static_cast<size_t>(len), sizeof(buffer) - 1);
 
             int const tx_len = std::snprintf(
-                tx_buffer,
-                sizeof(tx_buffer),
-                "%.*s%.*s\r\n",
-                static_cast<int>(prefix.size()), prefix.data(),
-                static_cast<int>(content_len), buffer
-            );
+                    tx_buffer,
+                    sizeof(tx_buffer),
+                    "%.*s%.*s\r\n",
+                    static_cast<int>(prefix.size()), prefix.data(),
+                    static_cast<int>(content_len), buffer);
 
             if (tx_len <= 0) return;
 
@@ -106,9 +104,10 @@ namespace mrover {
         static inline UART* s_uart = nullptr;
         static inline auto s_level = Level::Info;
     };
-#else // DEBUG
+#else  // DEBUG
     class Logger {
         Logger() = default;
+
     public:
         template<typename... Args>
         static auto init(Args&&... args) -> void {}
@@ -129,9 +128,10 @@ namespace mrover {
         auto error(Args&&... args) const -> void {}
     };
 #endif // DEBUG
-#else // HAL_UART_MODULE_ENABLED
+#else  // HAL_UART_MODULE_ENABLED
     class Logger {
         Logger() = default;
+
     public:
         template<typename... Args>
         static auto init(Args&&... args) -> void {}

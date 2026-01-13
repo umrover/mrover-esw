@@ -26,7 +26,7 @@ namespace mrover {
         auto const& logger = Logger::instance();
         logger.info("Hello World!");
 
-        for (auto i = 0 ; ; ++i) {
+        for (auto i = 0;; ++i) {
             logger.info("Hello World! for the %uth time", i);
             HAL_Delay(1000);
         }
@@ -42,12 +42,11 @@ namespace mrover {
 
 extern "C" {
 
-    void Init() {
-        mrover::init();
-    }
+void Init() {
+    mrover::init();
+}
 
-    void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
-        mrover::uart_tx_callback(huart);
-    }
-
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
+    mrover::uart_tx_callback(huart);
+}
 }

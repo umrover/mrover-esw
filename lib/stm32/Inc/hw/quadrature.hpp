@@ -1,8 +1,8 @@
 #pragma once
 
-#include <units.hpp>
 #include <filtering.hpp>
 #include <timer.hpp>
+#include <units.hpp>
 
 #include "main.h"
 
@@ -24,11 +24,10 @@ namespace mrover {
         QuadratureEncoderReader() = default;
 
         QuadratureEncoderReader(
-            TIM_HandleTypeDef* tick_timer,
-            const ElapsedTimer& elapsed_timer,
-            Ratio multiplier,
-            Ticks cpr
-        );
+                TIM_HandleTypeDef* tick_timer,
+                ElapsedTimer const& elapsed_timer,
+                Ratio multiplier,
+                Ticks cpr);
 
         [[nodiscard]] auto read() const -> std::optional<QuadratureEncoderReading>;
 
@@ -51,9 +50,9 @@ namespace mrover {
         Radians m_position;
         RunningMeanFilter<RadiansPerSecond, VELOCITY_BUFFER_SIZE> m_velocity_filter;
     };
-#else // HAL_TIM_MODULE_ENABLED
+#else  // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::QuadratureEncoderReader"))) QuadratureEncoderReader {
-        public:
+    public:
         template<typename... Args>
         explicit QuadratureEncoderReader(Args&&... args) {}
     };

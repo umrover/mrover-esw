@@ -53,8 +53,6 @@ namespace mrover {
 
     template<IsUnit T>
     class ButterworthFilter {
-
-
     };
 
 } // namespace mrover

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <string_view>
-#include <span>
 #include <atomic>
+#include <cstdint>
+#include <span>
+#include <string_view>
 
 #include <util.hpp>
 
@@ -32,12 +32,9 @@ namespace mrover {
         UART() = default;
 
         explicit UART(
-            UART_HandleTypeDef* huart,
-            Options const& options = Options()
-        ) :
-            m_huart{huart},
-            m_options{options}
-        {}
+                UART_HandleTypeDef* huart,
+                Options const& options = Options()) : m_huart{huart},
+                                                      m_options{options} {}
 
         UART(const UART&) = delete;
         UART& operator=(const UART&) = delete;
@@ -67,7 +64,7 @@ namespace mrover {
                 return;
             }
 
-            for (char const c : data) {
+            for (char const c: data) {
                 size_t const next = (m_head + 1) % TX_BUF_SIZE;
                 if (next != m_tail) {
                     m_ring_buffer[m_head] = static_cast<uint8_t>(c);
@@ -82,7 +79,7 @@ namespace mrover {
          * @param byte Byte to be sent on wire
          */
         auto transmit(uint8_t const byte) -> void {
-            transmit(std::string_view(reinterpret_cast<const char*>(&byte), 1));
+            transmit(std::string_view(reinterpret_cast<char const*>(&byte), 1));
         }
 
         /**
@@ -174,7 +171,7 @@ namespace mrover {
         }
     };
 
-#else // HAL_UART_MODULE_ENABLED
+#else  // HAL_UART_MODULE_ENABLED
     class __attribute__((unavailable("enable 'UART' in STM32CubeMX to use mrover::UART"))) UART {
     public:
         template<typename... Args>

@@ -1,14 +1,14 @@
 #include <cstdint>
 #include <functional>
 
-#include <hw/hbridge.hpp>
 #include <hw/ad8418a.hpp>
+#include <hw/hbridge.hpp>
 #include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
 
-#include "main.h"
 #include "config.hpp"
+#include "main.h"
 #include "motor.hpp"
 #include "stm32g431xx.h"
 #include "stm32g4xx_hal_tim.h"
@@ -38,8 +38,8 @@ namespace mrover {
     static constexpr FDCAN_HandleTypeDef* CAN = &hfdcan1;
 
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
-    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;  // 10 Hz
-    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16;  // 0.1 Hz
+    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 10 Hz
+    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 0.1 Hz
     static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 100 Hz
 
     bmc_config_t config;
@@ -116,17 +116,17 @@ namespace mrover {
         // setup motor instance
         logger.info("...Motor");
         motor = Motor{
-            HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
-            AD8418A{AnalogPin{ADC, ADC_CHANNEL_0}},
-            send_can_message,
-            &config,
+                HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
+                AD8418A{AnalogPin{ADC, ADC_CHANNEL_0}},
+                send_can_message,
+                &config,
         };
 
         // setup timers
         logger.info("...Timers");
-        tx_tim = Timer{TX_TIM, true, "TX Timer"};  // transmit timer (on interrupt)
-        can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"};  // can watchdog timer (on interrupt)
-        control_tim = Timer{CONTROL_TIM, true, "Control Timer"};  // control timer (update driven output, on interrupt)
+        tx_tim = Timer{TX_TIM, true, "TX Timer"};                       // transmit timer (on interrupt)
+        can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"}; // can watchdog timer (on interrupt)
+        control_tim = Timer{CONTROL_TIM, true, "Control Timer"};        // control timer (update driven output, on interrupt)
 
         // set initialization state and initial error state
         logger.info("BMC Initialized");
@@ -165,27 +165,27 @@ namespace mrover {
 
 extern "C" {
 
-    void PostInit() {
-        mrover::init();
-    }
+void PostInit() {
+    mrover::init();
+}
 
-    void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
-        mrover::timer_elapsed_callback(htim);
-    }
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+    mrover::timer_elapsed_callback(htim);
+}
 
-    void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
-        mrover::receive_can_message();
-    }
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
+    mrover::receive_can_message();
+}
 
-    void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
-        mrover::uart_tx_callback(huart);
-    }
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
+    mrover::uart_tx_callback(huart);
+}
 
-    // TODO(eric) implement
-    void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {}
-    void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef* hfdcan) {}
-    void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef* hfdcan, uint32_t ErrorStatusITs) {}
-    void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {}
-    void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {}
-    void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {}
+// TODO(eric) implement
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {}
+void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef* hfdcan) {}
+void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef* hfdcan, uint32_t ErrorStatusITs) {}
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {}
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {}
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {}
 }
