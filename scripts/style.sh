@@ -2,14 +2,14 @@
 
 set -euo pipefail
 
-RED="\e[1;31m"
-GREEN="\e[1;32m"
-BLUE="\e[1;34m"
-YELLOW="\e[1;33m"
-NC="\e[0m"
+BOLD="\033[1m"
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+BLUE="\033[1;34m"
+YELLOW="\033[1;33m"
+NC="\033[0m"
 
-shopt -s nullglob globstar
-GLOBIGNORE="*venv*/*"
+shopt -s nullglob
 
 collect_cpp_files() {
     # skips symlinks
@@ -18,7 +18,10 @@ collect_cpp_files() {
         \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) \
         ! -path '*/venv/*'
 }
-mapfile -t CPP_FILES < <(collect_cpp_files)
+CPP_FILES=()
+while IFS= read -r file; do
+    CPP_FILES+=("$file")
+done < <(collect_cpp_files)
 readonly CPP_FILES
 
 readonly PYTHON_DIRS=(
@@ -48,6 +51,7 @@ FORMAT_MODE=0
 LINT_MODE=0
 FIX_MODE=0
 VERBOSE_MODE=0
+EXIT_CODE=0
 
 for arg in "$@"; do
     case "$arg" in
@@ -101,8 +105,9 @@ find_executable() {
     printf '%s\n' "$path"
 }
 
-readonly CLANG_FORMAT_PATH=$(find_executable clang-format-21 21.1)
+readonly CLANG_FORMAT_PATH=$(find_executable clang-format 21.1)
 readonly RUFF_PATH=$(find_executable ruff 0.14)
+readonly TY_PATH=$(find_executable ty)
 readonly SHELLCHECK_PATH=$(find_executable shellcheck)
 
 RUFF_ARGS=("--respect-gitignore")
@@ -129,9 +134,13 @@ if ((FORMAT_MODE)); then
             CLANG_FORMAT_ARGS+=("--verbose")
         fi
 
-        printf "%b\n" "formatting with ${BLUE}clang-format${NC}..."
-        "${CLANG_FORMAT_PATH}" "${CLANG_FORMAT_ARGS[@]}" "${CPP_FILES[@]}"
-        printf "%b\n" "${GREEN}done!${NC}"
+        printf "%b\n" "${BOLD}formatting with ${BLUE}clang-format${NC}..."
+        if "${CLANG_FORMAT_PATH}" "${CLANG_FORMAT_ARGS[@]}" "${CPP_FILES[@]}"; then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}clang-format found issues${NC}"
+        fi
     fi
 
     # ===== ruff (Python) =====
@@ -142,9 +151,13 @@ if ((FORMAT_MODE)); then
         fi
 
         printf "\n"
-        printf "%b\n" "formatting with ${BLUE}ruff${NC}..."
-        "${RUFF_PATH}" format "${RUFF_ARGS[@]}" "${RUFF_FORMAT_ARGS[@]}" "${PYTHON_DIRS[@]}"
-        printf "%b\n" "${GREEN}done!${NC}"
+        printf "%b\n" "${BOLD}formatting with ${BLUE}ruff${NC}..."
+        if "${RUFF_PATH}" format "${RUFF_ARGS[@]}" "${RUFF_FORMAT_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}ruff format found issues${NC}"
+        fi
     fi
 fi
 
@@ -162,19 +175,47 @@ if ((LINT_MODE)); then
         fi
 
         printf "\n"
-        printf "%b\n" "linting with ${BLUE}ruff${NC}..."
-        "${RUFF_PATH}" check "${RUFF_ARGS[@]}" "${RUFF_CHECK_ARGS[@]}" "${PYTHON_DIRS[@]}"
-        printf "%b\n" "${GREEN}done!${NC}"
+        printf "%b\n" "${BOLD}linting with ${BLUE}ruff${NC}..."
+        if "${RUFF_PATH}" check "${RUFF_ARGS[@]}" "${RUFF_CHECK_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}ruff check found issues${NC}"
+        fi
+    fi
+
+    # ===== ty (Python) =====
+    if ((${#PYTHON_DIRS[@]})); then
+        TY_ARGS=("--respect-ignore-files")
+        if ((VERBOSE_MODE)); then
+            TY_ARGS+=("--verbose")
+        fi
+
+        printf "\n"
+        printf "%b\n" "${BOLD}type checking with ${BLUE}ty${NC}..."
+        if "${TY_PATH}" check "${TY_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}ty found issues${NC}"
+        fi
     fi
 
     # ===== shellcheck (Bash) =====
     if ((${#SHELL_FILES[@]})); then
         printf "\n"
-        printf "%b\n" "linting with ${BLUE}shellcheck${NC}..."
-        if ((${#SHELL_FILES[@]})); then
-            # SC2155 is separate declaration and command.
-            "${SHELLCHECK_PATH}" --exclude=SC2155 "${SHELL_FILES[@]}"
+        printf "%b\n" "${BOLD}linting with ${BLUE}shellcheck${NC}..."
+        if ((VERBOSE_MODE)); then
+            printf "%s\n" "${SHELL_FILES[@]}"
         fi
-        printf "%b\n" "${GREEN}done!${NC}"
+        # SC2155 is separate declaration and command.
+        if "${SHELLCHECK_PATH}" --exclude=SC2155 "${SHELL_FILES[@]}"; then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}shellcheck found issues${NC}"
+        fi
     fi
 fi
+
+exit "$EXIT_CODE"
