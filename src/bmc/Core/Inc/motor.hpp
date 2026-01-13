@@ -68,8 +68,8 @@ namespace mrover {
         auto init() -> void {
             Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
-            m_hbridge.change_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
-            m_hbridge.change_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
+            m_hbridge.set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
+            m_hbridge.set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
             // TODO(eric) add limit switches
             // TODO(eric) add quad encoders
             // TODO(eric) add absolute encoders

@@ -80,11 +80,11 @@ namespace mrover {
             set_duty_cycle(output, m_max_pwm);
         }
 
-        auto change_max_pwm(Percent const max_pwm) -> void {
+        auto set_max_pwm(Percent const max_pwm) -> void {
             m_max_pwm = max_pwm;
         }
 
-        auto change_inverted(bool const inverted) -> void {
+        auto set_inverted(bool const inverted) -> void {
             m_is_inverted = inverted;
         }
     };
