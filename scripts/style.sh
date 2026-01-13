@@ -86,7 +86,6 @@ fi
 
 find_executable() {
     local -r executable="$1"
-    local -r version_pattern="${2-}"
 
     local path
     if ! path=$(command -v "$executable" 2>/dev/null); then
@@ -94,19 +93,27 @@ find_executable() {
         exit 1
     fi
 
-    if [[ -n "$version_pattern" ]]; then
-        if ! "$path" --version 2>&1 | grep -q "$version_pattern"; then
-            printf "%b\n" \
-                "${RED}error: wrong ${executable} version (expected something matching '${version_pattern}')${NC}" >&2
-            exit 1
+    local version_output
+    version_output=$("$path" --version 2>&1)
+
+    if [[ -n "$version_output" ]]; then
+        local version
+        version=$(echo "$version_output" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1)
+        if [[ -n "$version" ]]; then
+            printf "%b\n" "${GREEN}${executable} version: ${version}${NC}" >&2
+        else
+            printf "%b\n" "${YELLOW}${executable} version: found, but version string hidden${NC}" >&2
         fi
+    else
+        printf "%b\n" "${YELLOW}${executable} version: unavailable${NC}" >&2
     fi
 
     printf '%s\n' "$path"
 }
 
-readonly CLANG_FORMAT_PATH=$(find_executable clang-format 21.1)
-readonly RUFF_PATH=$(find_executable ruff 0.14)
+
+readonly CLANG_FORMAT_PATH=$(find_executable clang-format)
+readonly RUFF_PATH=$(find_executable ruff)
 readonly TY_PATH=$(find_executable ty)
 readonly SHELLCHECK_PATH=$(find_executable shellcheck)
 
