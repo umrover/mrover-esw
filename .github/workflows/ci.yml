@@ -79,11 +79,9 @@ jobs:
 
       - name: Create python venv
         run: |
-          pushd tools
-          cmake -S . -B build
-          cmake --build build --target python_env_ready
-          rm -rf build/
-          popd
+          cmake -S ./tools -B ./tools/build
+          cmake --build ./tools/build --target python_env_ready
+          rm -rf tools/build/
 
       - name: Run style (format and lint)
         run: |
