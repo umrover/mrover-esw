@@ -85,7 +85,7 @@ jobs:
 
       - name: Run style (format and lint)
         run: |
-          source tools/venv/bin/activate
+          . tools/venv/bin/activate
           chmod +x scripts/style.sh
           ./scripts/style.sh --format --lint
 
