@@ -9,7 +9,7 @@
 
 #include "message.hpp"
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
 
     struct CanFrame {
         uint32_t id;

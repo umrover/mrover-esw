@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
 
     [[nodiscard]] auto CanMessageDescription::name() const -> std::string { return m_name; }
     void CanMessageDescription::set_name(std::string&& name) { m_name = name; }

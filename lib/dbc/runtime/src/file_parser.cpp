@@ -11,7 +11,7 @@
 #include <system_error>
 #include <vector>
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
     using std::string_view;
 
     static constexpr auto MESSAGE_HEADER = "BO_ ";

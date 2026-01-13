@@ -1,6 +1,6 @@
 #include "signal.hpp"
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
 
     auto CanSignalValue::is_integral() const -> bool {
         return std::holds_alternative<int8_t>(*this) ||

@@ -1,10 +1,10 @@
-#include "dbc.hpp"
+#include "dbc_runtime.hpp"
 
 #include <cassert>
 #include <iomanip>
 #include <iostream>
 
-using namespace mrover::dbc;
+using namespace mrover::dbc_runtime;
 
 template<typename T>
 auto to_le_bytes(T value) -> std::array<uint8_t, sizeof(T)> {
@@ -20,7 +20,7 @@ auto main(int argc, char** argv) -> int {
         return 1;
     }
     std::string dbc_filename = argv[1];
-    mrover::dbc::CanDbcFileParser parser;
+    CanDbcFileParser parser;
     if (!parser.parse(dbc_filename)) {
         std::cerr << "Failed to parse DBC file: " << dbc_filename << std ::endl;
         std::cerr << "Error after parsing " << parser.lines_parsed() << " lines." << std::endl;

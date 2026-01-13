@@ -18,7 +18,7 @@
         {VAL_} - textual descriptions for raw signal values.
 */
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
     class CanDbcFileParser {
 
 #define FOREACH_ERROR(ERROR)           \

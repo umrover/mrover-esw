@@ -5,7 +5,7 @@
 #include <string>
 #include <variant>
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
 
     enum class Endianness {
         BigEndian = 0,

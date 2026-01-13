@@ -8,7 +8,7 @@
 
 #include "signal.hpp"
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
 
     class CanMessageDescription {
     public:

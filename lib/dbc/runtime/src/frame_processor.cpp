@@ -4,7 +4,7 @@
 #include <concepts>
 #include <vector>
 
-namespace mrover::dbc {
+namespace mrover::dbc_runtime {
     void CanFrameProcessor::add_message_description(CanMessageDescription message) {
         uint32_t const id = message.id();
         m_message_descriptions.emplace(id, std::move(message));
