@@ -1,6 +1,6 @@
 import queue
 import struct
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, cast
 
 import can
 from cantools.database import Database
@@ -29,11 +29,7 @@ class CANBus:
     def __enter__(self):
         if self._bus is None:
             esw_logger.info("Opening CAN Bus")
-            self._bus = can.interface.Bus(
-                channel=self._channel,
-                interface=self._interface,
-                fd=self._can_fd
-            )
+            self._bus = can.interface.Bus(channel=self._channel, interface=self._interface, fd=self._can_fd)
             esw_logger.info("Starting CAN Notifier")
             self._notifier = can.Notifier(self._bus, [self._on_message])
         return self
@@ -64,7 +60,8 @@ class CANBus:
             try:
                 dbc_msg = self._dbc.get_message_by_frame_id(candidate_base_id)
                 node_id = offset
-                decoded_signals = dbc_msg.decode(msg.data)
+                raw_data = bytes(msg.data) if msg.data is not None else b""
+                decoded_signals = cast(dict[str, Any], dbc_msg.decode(raw_data))
                 self._rx_queue.put((dbc_msg.name, decoded_signals, node_id))
                 esw_logger.debug(f"CAN RECV {dbc_msg.name} (Node {hex(node_id)}): {decoded_signals}")
                 self._on_msg((dbc_msg.name, decoded_signals, node_id))
@@ -90,7 +87,7 @@ class CANBus:
 
         for key, value in processed_signals.items():
             if isinstance(value, float):
-                processed_signals[key] = struct.unpack('<I', struct.pack('<f', value))[0]
+                processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
 
         try:
             dbc_msg = self._dbc.get_message_by_name(message_name)
@@ -101,7 +98,7 @@ class CANBus:
                 is_extended_id=dbc_msg.is_extended_frame,
                 is_fd=self._can_fd,
                 bitrate_switch=self._can_brs,
-                check=True
+                check=True,
             )
             self._bus.send(msg)
             esw_logger.info(f"CAN SEND {message_name}: {processed_signals}")

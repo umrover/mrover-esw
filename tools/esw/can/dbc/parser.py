@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def get_c_type(signal) -> str:
     if signal.is_float:
         return "float" if signal.length <= 32 else "double"
@@ -34,16 +35,14 @@ def prepare_context(dbc_db, dbc_name):
                 "byte_length": byte_len,
             }
 
-        messages[msg.frame_id] = {
-            "name": msg.name,
-            "byte_length": msg.length,
-            "signal_dict": signal_dict
-        }
+        messages[msg.frame_id] = {"name": msg.name, "byte_length": msg.length, "signal_dict": signal_dict}
 
-        messages_for_handler.append({
-            "id": int(msg.frame_id),
-            "name": msg.name,
-        })
+        messages_for_handler.append(
+            {
+                "id": int(msg.frame_id),
+                "name": msg.name,
+            }
+        )
 
     message_types = sorted(list(set(m["name"] for m in messages_for_handler)))
 

@@ -7,7 +7,7 @@ from esw.can.canbus import CANBus
 
 def on_msg_recv(msg):
     msg_name, signals, node_id = msg
-    if msg_name != "BMCMotorState": 
+    if msg_name != "BMCMotorState":
         esw_logger.info(f"CAN RECV {msg_name} (Node {hex(node_id)}): {signals}")
 
 

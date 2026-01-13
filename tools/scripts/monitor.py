@@ -11,8 +11,7 @@ def _logging_level_type(level_string):
     # TODO: should it?
     if level is None or level == logging.NOTSET or level == logging.CRITICAL:
         raise argparse.ArgumentTypeError(
-            f"Invalid logging level: '{level_string}'. Must be one of: "
-            f"DEBUG, INFO, WARNING, ERROR"
+            f"Invalid logging level: '{level_string}'. Must be one of: DEBUG, INFO, WARNING, ERROR"
         )
     return level
 
@@ -25,7 +24,7 @@ if __name__ == "__main__":
         "-l",
         type=_logging_level_type,
         default=logging.INFO,
-        help="Set the logging level (e.g., INFO, DEBUG, WARNING, ERROR). Default: INFO"
+        help="Set the logging level (e.g., INFO, DEBUG, WARNING, ERROR). Default: INFO",
     )
     args = parser.parse_args()
 
