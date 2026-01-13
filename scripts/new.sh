@@ -3,9 +3,6 @@
 set -euo pipefail
 
 RED="\e[1;31m"
-# GREEN="\e[1;32m"
-# BLUE="\e[1;34m"
-# YELLOW="\e[1;33m"
 NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
