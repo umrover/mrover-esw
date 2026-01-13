@@ -111,4 +111,4 @@ namespace mrover::dbc_runtime {
 #undef FOREACH_ERROR
     };
 
-} // namespace mrover::dbc
+} // namespace mrover::dbc_runtime

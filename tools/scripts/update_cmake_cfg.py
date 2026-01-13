@@ -16,13 +16,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--root", "-r", type=Path, required=True, help="ESW Root Directory")
     parser.add_argument("--ctx", "-c", type=Path, required=True, help="Template Directory")
-    parser.add_argument(
-        "--lib",
-        "-l",
-        action="append",
-        default=[],
-        help="Libraries to Include in Generated Project"
-    )
+    parser.add_argument("--lib", "-l", action="append", default=[], help="Libraries to Include in Generated Project")
     args = parser.parse_args()
 
     name = args.src.name

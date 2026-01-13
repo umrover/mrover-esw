@@ -277,4 +277,4 @@ namespace mrover::dbc_runtime {
         return std::unexpected(Error::InvalidSignalDescription);
     }
 
-} // namespace mrover::dbc
+} // namespace mrover::dbc_runtime

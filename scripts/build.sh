@@ -113,7 +113,7 @@ if [[ "$DO_FLASH" == "true" ]]; then
     FLASH_CMD=(STM32_Programmer_CLI --connect port="$PORT" freq="$FREQ" reset="$RESET")
     FLASH_CMD+=(--write "$ELF")
     FLASH_CMD+=(--verify)
-    FLASH_CMD+=(--start)
+    FLASH_CMD+=(--start)  # TODO: should this be conditional?
 
     run_step "flash mcu" "${FLASH_CMD[@]}"
 fi

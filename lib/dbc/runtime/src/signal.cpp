@@ -204,4 +204,4 @@ namespace mrover::dbc_runtime {
         return os;
     }
 
-} // namespace mrover::dbc
+} // namespace mrover::dbc_runtime

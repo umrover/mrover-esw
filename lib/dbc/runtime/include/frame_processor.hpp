@@ -61,4 +61,4 @@ namespace mrover::dbc_runtime {
 #undef GENERATE_STRING
 #undef FOREACH_ERROR
     };
-} // namespace mrover::dbc
+} // namespace mrover::dbc_runtime

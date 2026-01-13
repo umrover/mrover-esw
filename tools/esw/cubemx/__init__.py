@@ -33,9 +33,8 @@ def get_installation():
     return cubemx
 
 
-
 def run_cubemx_script(script_content: str, return_output_on_failure: bool = False) -> Union[bool, tuple[bool, str]]:
-    with NamedTemporaryFile(delete=True, mode='w+t') as temp_file:
+    with NamedTemporaryFile(delete=True, mode="w+t") as temp_file:
         esw_logger.debug(f"Temporary file created: {temp_file.name}")
         temp_file.write(script_content)
         temp_file.flush()
@@ -43,7 +42,7 @@ def run_cubemx_script(script_content: str, return_output_on_failure: bool = Fals
         cmd = [str(get_installation()), "-q", str(temp_file.name)]
         esw_logger.debug(f"Command: {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False, encoding='utf-8')
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False, encoding="utf-8")
         except FileNotFoundError:
             error_msg = "CubeMX executable not found. Check installation path."
             esw_logger.error(error_msg)
@@ -53,7 +52,7 @@ def run_cubemx_script(script_content: str, return_output_on_failure: bool = Fals
 
         if "KO" in result.stdout:
             output = result.stdout
-            esw_logger.warning(f"CubeMX Script Command FAILED (indicated by 'KO' in stdout)")
+            esw_logger.warning("CubeMX Script Command FAILED (indicated by 'KO' in stdout)")
             esw_logger.info(f"CubeMX Full Output:\n{output}")
 
             if return_output_on_failure:

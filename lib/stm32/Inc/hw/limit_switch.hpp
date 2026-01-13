@@ -68,4 +68,3 @@ namespace mrover {
         float m_associated_position{};
     };
 } // namespace mrover
-

@@ -11,6 +11,22 @@ permissions:
   packages: write
 
 jobs:
+
+  generate-test-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      dirs: ${{ steps.load.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: load
+        run: |
+          {
+            echo "dirs<<EOF"
+            cat ci.json
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
   build-docker-image:
     # skip for forked PRs (can't push to ghcr)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -53,8 +69,30 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
-  test-build:
+  style:
     needs: build-docker-image
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/arm-gnu:13.3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create python venv
+        run: |
+          cmake -S ./tools -B ./tools/build
+          cmake --build ./tools/build --target python_env_ready
+          rm -rf tools/build/
+
+      - name: Run style (format and lint)
+        run: |
+          . tools/venv/bin/activate
+          chmod +x scripts/style.sh
+          ./scripts/style.sh --format --lint
+
+  test-build:
+    needs:
+      - build-docker-image
+      - generate-test-matrix
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/arm-gnu:13.3
@@ -62,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [ "src/pdlb", "src/tests/serial" ]
+        dir: ${{ fromJSON(needs.generate-test-matrix.outputs.dirs) }}
         preset: [ Debug, Release ]
 
     steps:

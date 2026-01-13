@@ -10,6 +10,7 @@ Release/
 RemoteSystemsTempFiles/
 Drivers/
 src/**/cmake/stm32cubemx/
+.mxproject
 
 *.chm
 *.settings.xml
@@ -42,5 +43,10 @@ _deps
 CMakeUserPresets.json
 *-prefix/
 
+# Editors
 .idea
 .vscode
+
+# cache dirs
+tools/fdcanusb
+
