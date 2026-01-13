@@ -10,6 +10,7 @@ Release/
 RemoteSystemsTempFiles/
 Drivers/
 src/**/cmake/stm32cubemx/
+.mxproject
 
 *.chm
 *.settings.xml
