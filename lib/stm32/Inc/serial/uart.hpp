@@ -47,9 +47,9 @@ namespace mrover {
             if (this != &other) {
                 m_huart = other.m_huart;
                 m_options = other.m_options;
-                m_head = other.m_head.load();
-                m_tail = other.m_tail.load();
-                m_is_busy = other.m_is_busy.load();
+                m_head = other.m_head;
+                m_tail = other.m_tail;
+                m_is_busy = other.m_is_busy;
                 register_dma_instance();
             }
             return *this;
@@ -60,7 +60,7 @@ namespace mrover {
          * Can be synchronous or asynchronous depending on configured options of instance.
          * @param data Data to be sent on wire
          */
-        auto transmit(std::string_view const data) const -> void {
+        auto transmit(std::string_view const data) -> void {
             if (!m_options.use_dma) {
                 auto* ptr = reinterpret_cast<uint8_t const*>(data.data());
                 HAL_UART_Transmit(m_huart, const_cast<uint8_t*>(ptr), static_cast<uint16_t>(data.size()), m_options.timeout_ms);
@@ -81,7 +81,7 @@ namespace mrover {
          * Transmit single byte of serial data.
          * @param byte Byte to be sent on wire
          */
-        auto transmit(uint8_t const byte) const -> void {
+        auto transmit(uint8_t const byte) -> void {
             transmit(std::string_view(reinterpret_cast<const char*>(&byte), 1));
         }
 
@@ -91,7 +91,7 @@ namespace mrover {
          * This function MUST be called from `HAL_UART_TxCpltCallback` for correct operation.
          * Also ensure global interrupts are enabled for the UART peripheral.
          */
-        auto handle_tx_complete() const -> void {
+        auto handle_tx_complete() -> void {
             m_is_busy = false;
             resume_dma_transmission();
         }
@@ -137,10 +137,10 @@ namespace mrover {
         UART_HandleTypeDef* m_huart{};
         Options m_options{};
 
-        mutable std::array<uint8_t, TX_BUF_SIZE> m_ring_buffer{};
-        mutable std::atomic<size_t> m_head{0};
-        mutable std::atomic<size_t> m_tail{0};
-        mutable std::atomic<bool> m_is_busy{false};
+        std::array<uint8_t, TX_BUF_SIZE> m_ring_buffer{};
+        size_t m_head{0};
+        size_t m_tail{0};
+        bool m_is_busy{false};
 
         auto register_dma_instance() -> void {
             if (m_options.use_dma) {
@@ -151,19 +151,26 @@ namespace mrover {
         static inline UART* s_dma_instance = nullptr;
         friend void ::HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart);
 
-        auto resume_dma_transmission() const -> void {
-            if (m_is_busy || m_head == m_tail) return;
+        auto resume_dma_transmission() -> void {
+            __disable_irq();
+
+            if (m_is_busy || m_head == m_tail) {
+                __enable_irq();
+                return;
+            }
 
             m_is_busy = true;
             size_t const h = m_head;
             size_t const t = m_tail;
             size_t const len = (h > t) ? (h - t) : (TX_BUF_SIZE - t);
 
-            if (HAL_UART_Transmit_DMA(m_huart, &m_ring_buffer[t], static_cast<uint16_t>(len)) == HAL_OK) {
+            if (HAL_UART_Transmit_DMA(m_huart, &m_ring_buffer[t], len) == HAL_OK) {
                 m_tail = (t + len) % TX_BUF_SIZE;
             } else {
                 m_is_busy = false;
             }
+
+            __enable_irq();
         }
     };
 
