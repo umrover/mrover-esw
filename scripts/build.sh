@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -38,11 +38,11 @@ EOF
 run_step() {
     local desc="$1"
     shift
-    echo -e "${BLUE}step: ${desc}${NC}"
+    printf "%b\n" "${BLUE}step: ${desc}${NC}"
     if "$@"; then
-        echo -e "${GREEN}✓ success: ${desc}${NC}"
+        printf "%b\n" "${GREEN}✓ success: ${desc}${NC}"
     else
-        echo -e "${RED}✗ failed: ${desc}${NC}"
+        printf "%b\n" "${RED}✗ failed: ${desc}${NC}"
         exit 1
     fi
 }
@@ -52,7 +52,7 @@ check_deps() {
     [[ "$DO_FLASH" == "true" ]] && deps+=("STM32_Programmer_CLI")
     for cmd in "${deps[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
-            echo -e "${RED}✗ error: command '$cmd' not found in PATH${NC}"
+            printf "%b\n" "${RED}✗ error: command '$cmd' not found in PATH${NC}"
             exit 1
         fi
     done
@@ -66,18 +66,18 @@ while [[ $# -gt 0 ]]; do
         -f|--flash)     DO_FLASH=true; shift ;;
         -c|--clean)     DO_CLEAN=true; shift ;;
         -h|--help)      usage ;;
-        *)              echo -e "${RED}✗ unknown option: $1${NC}"; usage ;;
+        *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
     esac
 done
 
 if [[ -z "$SRC" ]]; then
-    echo -e "${RED}✗ error: -s/--src required${NC}"
+    printf "%b\n" "${RED}✗ error: -s/--src required${NC}"
     usage
 fi
 
 SRC_DIR="$ESW_ROOT/$SRC"
 if [ ! -d "$SRC_DIR" ]; then
-    echo -e "${RED}✗ failed: directory $SRC_DIR does not exist${NC}"
+    printf "%b\n" "${RED}✗ failed: directory $SRC_DIR does not exist${NC}"
     exit 1
 fi
 
@@ -87,7 +87,7 @@ fi
 
 check_deps
 
-echo -e "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======${NC}"
+printf "%b\n" "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======${NC}"
 
 pushd "$SRC_DIR" > /dev/null
 BUILD_DIR="build/$PRESET"
@@ -106,7 +106,7 @@ run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
 if [[ "$DO_FLASH" == "true" ]]; then
     ELF="$BUILD_DIR/${TARGET_NAME}.elf"
     if [[ ! -f "$ELF" ]]; then
-        echo -e "${RED}✗ flash failed: Could not find elf file at $ELF${NC}"
+        printf "%b\n" "${RED}✗ flash failed: Could not find elf file at $ELF${NC}"
         exit 1
     fi
 
@@ -119,4 +119,4 @@ if [[ "$DO_FLASH" == "true" ]]; then
 fi
 
 popd > /dev/null
-echo -e "${GREEN}====== success ======${NC}"
+printf "%b\n" "${GREEN}====== success ======${NC}"
