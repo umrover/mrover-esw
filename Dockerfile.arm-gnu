@@ -6,7 +6,13 @@ ENV ARM_GNU_NAME=arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi
 
 
 RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y zsh build-essential git bzip2 wget cmake ninja-build software-properties-common python3-venv && \
+    apt-get install -y zsh build-essential git bzip2 wget cmake ninja-build \
+    software-properties-common python3-venv python3-pip lsb-release wget gnupg && \
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" && \
+    apt-get update && \
+    apt-get install -y clang-format-21 shellcheck && \
+    ln -s /usr/bin/clang-format-21 /usr/bin/clang-format && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     mkdir -p ${ARM_GNU_PATH}
 

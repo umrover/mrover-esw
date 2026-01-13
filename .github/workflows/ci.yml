@@ -69,6 +69,28 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
+  style:
+    needs: build-docker-image
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/arm-gnu:13.3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create python venv
+        run: |
+          pushd tools
+          cmake -S . -B build
+          cmake --build build --target python_env_ready
+          rm -rf build/
+          popd
+
+      - name: Run style (format and lint)
+        run: |
+          source tools/venv/bin/activate
+          chmod +x scripts/style.sh
+          ./scripts/style.sh --format --lint
+
   test-build:
     needs:
       - build-docker-image
