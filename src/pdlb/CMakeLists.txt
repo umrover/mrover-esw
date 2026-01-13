@@ -23,8 +23,8 @@ endif()
 set(CMAKE_PROJECT_NAME pdlb)
 
 # Set source settings
-set(MX_SRC_DIR "${CMAKE_SOURCE_DIR}/Src")
-set(MX_INC_DIR "${CMAKE_SOURCE_DIR}/Inc")
+set(MX_SRC_DIR "${CMAKE_SOURCE_DIR}/Core/Src")
+set(MX_INC_DIR "${CMAKE_SOURCE_DIR}/Core/Inc")
 set(MX_STARTUP_S "${CMAKE_SOURCE_DIR}/startup_stm32g431xx.s")
 
 # Enable compile command to ease indexing with e.g. clangd
