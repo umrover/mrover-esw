@@ -9,10 +9,18 @@ def on_msg_recv(msg):
     msg_name, signals, node_id = msg
     if msg_name != "BMCMotorState":
         esw_logger.info(f"CAN RECV {msg_name} (Node {hex(node_id)}): {signals}")
+    else:
+        # pass
+        esw_logger.info(f"CAN RECV {signals})")
 
 
 if __name__ == "__main__":
     with CANBus(get_dbc(dbc_name="CANBus1"), "vcan0", on_recv=on_msg_recv) as bus:
+        n = 0
+        while True:
+            bus.send("BMCProbe", {"data": n}, node_id=0)
+            sleep(1)
+            n += 1
         # request can id, max pwm of board
         bus.send("BMCConfigCmd", {"address": 0x00, "value": 0x00, "apply": 0x0}, node_id=0)
         bus.send("BMCConfigCmd", {"address": 0x24, "value": 0x00, "apply": 0x0}, node_id=0)
