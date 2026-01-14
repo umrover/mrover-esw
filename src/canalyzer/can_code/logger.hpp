@@ -46,6 +46,10 @@ class Logger {
         bool log_all = false;
         bool debug = false;
 
+        int read_error_count = 0;                   //read error on the can bus
+        int read_error_count_incomplete = 0;        //if size is less than frame.
+        int influx_post_error_count = 0;
+
         void _init_bus();
         void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile);
     
@@ -59,6 +63,6 @@ class Logger {
 
 };
 
-void logger_factory(std::vector<Logger> &loggers, std::string path, bool debug = false);
+void logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string path, bool debug = false);
 
 }
