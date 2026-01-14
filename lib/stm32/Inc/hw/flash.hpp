@@ -98,19 +98,32 @@ struct validated_config_t {
 // --------------------------------------------------------------------
 // FLASH CLASS
 // --------------------------------------------------------------------
+  template<typename T>
+  concept mem_layout_t = requires {
+    { T::FLASH_BEGIN_ADDR } -> std::convertible_to<uint32_t>;
+    { T::FLASH_END_ADDR } -> std::convertible_to<uint32_t>;
+    { T::PAGE_SIZE } -> std::convertible_to<int>;
+    { T::NUM_PAGES } -> std::convertible_to<int>;
+  };
 
-
+  /*
   constexpr uint32_t LAST_PAGE_START = 0x0801F800;
   constexpr uint32_t LAST_PAGE_END = 0x0801FFFF;
   constexpr uint32_t PAGE_SIZE = 2048;
-  constexpr uint32_t LAST_PAGE_NUM = 63;
+  constexpr uint32_t NUM_PAGES = 64;
+  */
 
-  template <config_t Config>
+  template <config_t Config, mem_layout_t Mem>
   class Flash {
   private:
-    std::array<uint8_t, PAGE_SIZE> m_page_buffer;
+    std::array<uint8_t, Mem::PAGE_SIZE> m_page_buffer;
     uint32_t m_loaded_page_num;
     bool m_dirty;
+    static constexpr uint32_t m_flash_end = Mem::FLASH_END_ADDR;
+    static constexpr uint32_t m_flash_begin = Mem::FLASH_END_ADDR;
+    static constexpr int m_page_size = Mem::PAGE_SIZE;
+    static constexpr int m_num_pages = Mem::NUM_PAGES; 
+    uint32_t m_last_page_start = m_flash_begin + m_page_size * (m_num_pages - 1);
 
     // Unlock/lock the flash protection
     void unlock() {
@@ -122,7 +135,7 @@ struct validated_config_t {
 
     void load_page( uint32_t page_num) {
       uint32_t curr_addr = get_page_start(page_num);
-      for (size_t i = 0; i < PAGE_SIZE; ++i) {
+      for (size_t i = 0; i < m_page_size; ++i) {
         uint8_t byte = read_byte(curr_addr + i);
         m_page_buffer[i] = byte;
       }
@@ -132,17 +145,17 @@ struct validated_config_t {
 
     // Calculate what page of flash an address is in.
     auto get_page(uint32_t address) -> uint32_t  {
-      return (address - 0x08000000) / PAGE_SIZE;
+      return (address - 0x08000000) / m_page_size;
     }
 
     // Calculate start address of page page_num
     auto get_page_start(uint32_t page_num) -> uint32_t {
-      return 0x08000000 + (page_num * PAGE_SIZE);
+      return 0x08000000 + (page_num * m_page_size);
     }
 
     // get physical address from custom address
     auto get_physical_addr(uint32_t address) -> uint32_t {
-      return info.start + address;
+      return m_region_start + address;
     }
     
     // get start address of double word custom address is located in
@@ -152,10 +165,10 @@ struct validated_config_t {
     }
 
     /// Erase the entirety of the managed flash section.
-    void erase_page(const uint32_t &page_num = LAST_PAGE_NUM) {
+    void erase_page(const uint32_t &page_num = (m_num_pages - 1) ) {
       unlock();
 
-      // uint32_t page_number = ((uint32_t)info.start - 0x08000000) / 0x800;
+      // uint32_t page_number = ((uint32_t)m_region_start - 0x08000000) / 0x800;
       uint32_t start_page_number = page_num;
       uint32_t end_page_number = page_num;
       uint32_t num_pages = ((end_page_number - start_page_number)/FLASH_PAGE_SIZE) +1;
@@ -177,8 +190,8 @@ struct validated_config_t {
     }
 
   public:
-    uint32_t m_region_start = LAST_PAGE_START; // default to last page only
-    uint32_t m_region_end = LAST_PAGE_END;  
+    uint32_t m_region_start = m_last_page_start; // default to last page only
+    uint32_t m_region_end = m_flash_end;  
 
     Flash() {
       static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
@@ -187,22 +200,11 @@ struct validated_config_t {
     Flash (uint32_t start_addr) {
       static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
       m_region_start = start_addr;
-      m_region_end = LAST_PAGE_END;
-    };
-   
-    struct Info {
-      uint32_t start = 0;
-      uint32_t end = 0;
-    };
-
-    // LAST PAGE OF FLASH ONLY
-    Info info {
-      info.start = LAST_PAGE_START,
-      info.end = LAST_PAGE_END
+      m_region_end = m_flash_end;
     };
 
     auto get_start() -> uint32_t {
-      return info.start;
+      return m_region_start;
     }
 
     /// Write a double word into flash.
@@ -262,7 +264,7 @@ struct validated_config_t {
       uint32_t start_addr = get_page_start(m_loaded_page_num);
       erase_page(m_loaded_page_num);
 
-      for (size_t i = 0; i < PAGE_SIZE / 8; ++i) {
+      for (size_t i = 0; i < m_page_size/ 8; ++i) {
         uint64_t double_word = 0;
         for (int j = 0; j < 8; ++j) {
           double_word |= ((uint64_t)m_page_buffer[i * 8 + j]) << (8 * j);
