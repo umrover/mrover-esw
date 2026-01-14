@@ -181,6 +181,8 @@ namespace mrover {
                     0,                             // is_stalled
                     m_current_sensor.current()     // current
             });
+
+            Logger::instance().info("Current: %f", m_current_sensor.current());
         }
 
         auto drive_output() -> void {
