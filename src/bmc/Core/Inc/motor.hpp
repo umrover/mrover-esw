@@ -70,6 +70,7 @@ namespace mrover {
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
             m_hbridge.set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
             m_hbridge.set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
+            m_current_sensor.init(get_current_sensor_options());
             // TODO(eric) add limit switches
             // TODO(eric) add quad encoders
             // TODO(eric) add absolute encoders
@@ -165,7 +166,9 @@ namespace mrover {
                        v);
         }
 
-        auto send_state() const -> void {
+        auto send_state() -> void {
+            m_current_sensor.update_sensor();
+
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
@@ -175,7 +178,7 @@ namespace mrover {
                     0,                             // limit_a_set
                     0,                             // limit_b_set
                     0,                             // is_stalled
-                    0.0                            // current
+                    m_current_sensor.current()     // current
             });
         }
 
