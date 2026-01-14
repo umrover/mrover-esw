@@ -4,7 +4,19 @@
 int main() {
     std::vector<std::unique_ptr<logger::Logger>> loggers;
     std::cout << "before factory\n";
-    logger::logger_factory(loggers, "./logger_start.yaml", true);
+    try {
+        logger::logger_factory(loggers, "./logger_start.yaml", true);
+
+        if (loggers.empty()) {
+            std::cerr << "no loggers were configured \n";
+            return 1;
+        }
+
+    } catch (const std::exception &e) {
+        std::cerr << "logger factory broke :(, " << e.what() << "\n";
+        return 1;
+    }
+    
     std::cout << "after factory\n";
 
     std::vector<std::thread> threads;
@@ -13,7 +25,7 @@ int main() {
     threads.emplace_back([&, i]() {
         try {
             std::cerr << "[Thread " << i << "] starting";
-            loggers[i].start();
+            loggers[i]->start();
         } catch (const std::exception &e) {
             std::cerr << "[Thread " << i << "] crashed: " << e.what() << std::endl;
         } catch (...) {
