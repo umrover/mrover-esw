@@ -4,22 +4,21 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
-#include "influxdb.hpp"
+#include <vector>
+#include <memory>
+#include <queue>
+#include <chrono>
+
 #include <linux/can.h>
-#include <unistd.h>
+#include <linux/can/raw.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <linux/can.h>
-#include <linux/can/raw.h>
-#include <queue>
-#include <chrono>
-#include "Yaml.hpp"
-#include <iomanip>
+#include <unistd.h>
+#include <fcntl.h>
 
-#include <sys/stat.h>   // for mkdir
-#include <sys/types.h>
-#include <filesystem>   
+#include "influxdb.hpp"
+#include "Yaml.hpp"
 
 namespace logger {
 
@@ -54,6 +53,10 @@ class Logger {
         Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path, bool debug/*, std::istream &is*/);
         void start();
         void print(std::ostream &os);
+
+        Logger(const Logger&) = delete;
+        Logger& operator=(const Logger&) = delete;
+
 };
 
 void logger_factory(std::vector<Logger> &loggers, std::string path, bool debug = false);

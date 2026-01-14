@@ -2,13 +2,10 @@
 #include <thread>
 
 int main() {
-    std::vector<logger::Logger> loggers;
+    std::vector<std::unique_ptr<logger::Logger>> loggers;
     std::cout << "before factory\n";
     logger::logger_factory(loggers, "./logger_start.yaml", true);
     std::cout << "after factory\n";
-    for (size_t i = 0; i < loggers.size(); ++i) {
-        loggers[i].print(std::cout);
-    }
 
     std::vector<std::thread> threads;
     threads.reserve(loggers.size());
@@ -24,7 +21,7 @@ int main() {
         }
     });
 }
-    while (true) {
-        sleep(1);   //may be not needed
+    for (int i = 0; i < threads.size(); ++i) {
+        threads[i].join();
     }
 }

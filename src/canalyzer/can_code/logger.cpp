@@ -1,5 +1,11 @@
 #include "logger.hpp"
 
+#include <cstring>
+#include <iomanip>
+#include <filesystem>
+#include <stdexcept>
+
+
 
 std::string logger::make_can_timestamp() {
     using namespace std::chrono;
@@ -24,20 +30,25 @@ long long logger::now_ns() {
 
 void logger::Logger::_init_bus() {
     bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (bus_socket < 0) {
+        throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
+    }
     struct ifreq ifr;
     struct sockaddr_can addr;
+
     strcpy(ifr.ifr_name, can_bus_name.c_str());
 
     if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
-        std::cerr << "ioctl broke" << std::endl;
+        throw std::runtime_error("ioctl broke: " + can_bus_name);
         //blow up exit(1)?
     }
+
+    std::memset(&addr, 0, sizeof(addr));
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
     if (bind(bus_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        std::cerr << "bind bus_socket broke" << std::endl;
-        //blow up exit(1)?
+        throw std::runtime_error("bind broke: " + can_bus_name);   
     }
 
     int enable_canfd = 1;
@@ -48,7 +59,9 @@ void logger::Logger::_init_bus() {
 }
         
 void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
-    std::cout << "file_status in " << name << ": " << outputFile.is_open() << "\n";
+    if (!outputFile.is_open()) return;
+    
+
     outputFile << make_can_timestamp() << can_bus_name << " ";
 
     //TODO fix this! should be the proper CAN id
@@ -79,19 +92,24 @@ logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_s
 }
 
 void logger::Logger::start() {
-    logger::Logger::_init_bus();
+    _init_bus();
 
     std::filesystem::path dir = std::filesystem::path(file_path).parent_path();
-    if (!std::filesystem::exists(dir)) {
+    if (!dir.empty() && !std::filesystem::exists(dir)) {
         std::filesystem::create_directories(dir);
         std::cout << "Created directory: " << dir << std::endl;
     }
 
     // Open log file (ofstream will create it if it doesn't exist)
     std::ofstream file(file_path, std::ios::app); // use app to append
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open log file: " + file_path);
+    }
 
+    if (debug) std::cout << "Logger started for " << can_bus_name << std::endl;
 
     struct canfd_frame cfd;
+
     while (true) {                                                              //catch an interupt instead?
 
         //read a vcan message from bus (can_id)
@@ -150,7 +168,7 @@ void logger::Logger::print(std::ostream &os) {
 }
 
 
-void logger::logger_factory(std::vector<Logger> &loggers, std::string path, bool debug) {
+void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string path, bool debug) {
     //will init a vector of configured Loggers from a yaml found at path
 
     int size = 0;
