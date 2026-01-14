@@ -192,6 +192,26 @@ The tools to be added are as follows.
 - STLink-gdb-server
 - STM32CubeProgrammer
 
+## Steps for MacOS Users
+
+1\. *Download*
+Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) for MacOS. By default your `Downloads` folder should now contain two [tar](https://en.wikipedia.org/wiki/Tar_(computing)) files, one for each tool.
+
+2\. *Install*
+Double click on each tar file. One tar file will expand into a .app bundle: double click this item and follow the installation steps. The other tar file should expand into a folder with two .pkg files: click on each one respectively and follow the steps for installation. 
+
+3\. *Update your PATH*
+The `scripts/new.sh` script (see below) needs to know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify in our paths file. 
+
+Run the command `sudo nano /opt/paths` to open a text editor in the terminal where we can update this file. 
+
+Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line. Once you are done, make sure you write out (`^O`) and exit (`^X`).
+
+![veryify macos path](./verify-paths-macos.webp)
+
+4\. *Next Steps*
+You should now be able to create a new project following the steps below. 
+
 ## Creating a New Project
 
 This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
