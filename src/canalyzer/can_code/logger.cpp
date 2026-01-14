@@ -119,17 +119,25 @@ void logger::Logger::start() {
         //done
 
         ssize_t bytes_read = read(bus_socket, &cfd, CANFD_MTU);               //CANFD_MTU is macro for sizeof(canfd_frame)
-        if (bytes_read == CANFD_MTU) {
-            buffer.emplace(cfd);
+        
+        if (bytes_read < 0) {
+            ++read_error_count;
+            std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << std::endl;
+            continue;
         }
-        cfd = buffer.front();
-        buffer.pop();
+        if (bytes_read < (ssize_t)CAN_MTU) {
+            ++read_error_count_incomplete;
+            continue;
+        }
+
+
+        logger::Logger::_log_ascii(cfd.data, can_bus_name, file);
+
         std::string resp;
 
         
         //std::string decoded_message = decode(cfd.can_id);                      //calling decode
         std::string decoded_message = "";
-        logger::Logger::_log_ascii(cfd.data, can_bus_name, file);
         long long ts = logger::now_ns();
         
         int ret = influxdb_cpp::builder()
@@ -141,6 +149,7 @@ void logger::Logger::start() {
             .post_http(si, &resp);
         if (ret != 0) {
             std::cerr << "Nonzero return code: " << ret << std::endl; //fix idk if return nonzero is actually bad
+            ++influx_post_error_count;
         }
     }
 }
@@ -177,7 +186,7 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
     try {
         Yaml::Parse(root, path.c_str());
     } catch (const Yaml::Exception &e) {
-        std::cerr << "caught YAML error while parsing: " << e.what() << std::endl;
+        throw std::runtime_error("yaml parse broke");
     }
     if (debug) std::cout << "parsing 1" << std::endl;
     size = root["logger_bus_size"].As<int>();
@@ -220,4 +229,5 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
         loggers.emplace_back(name, auth, log_ids, log_all, file_path, debug);
         if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << file_path << std::endl;
     }
+
 }
