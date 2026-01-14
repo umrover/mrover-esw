@@ -23,7 +23,17 @@ namespace mrover {
     }
   };
 
-  Flash<bmc_config_t> flash(LAST_PAGE_START);
+  struct G431RB {
+
+    static constexpr uint32_t FLASH_BEGIN_ADDR = 0x08000000;
+    static constexpr uint32_t FLASH_END_ADDR = 0x0801FFFF;
+    static constexpr uint32_t LAST_PAGE_START = 0x0801F800;
+    static constexpr int PAGE_SIZE = 2048;
+    static constexpr int NUM_PAGES = 64;
+
+  };
+
+  Flash<bmc_config_t, G431RB> flash(G431RB::LAST_PAGE_START);
   // FlashPageManager mgr(flash);
   int count;
   uint32_t start_addr;
@@ -37,7 +47,7 @@ namespace mrover {
   auto init() -> void {
     printf("===== RESET =====\n\r");
     count = 1;
-    start_addr = (uint32_t)flash.info.start;
+    start_addr = (uint32_t)flash.m_region_start;
     // printf("Init start_addr: %lx\n\r", start_addr);
     curr_addr = start_addr;
     // printf("Init curr_addr: %lx\n\r", curr_addr);
@@ -88,7 +98,6 @@ namespace mrover {
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
         HAL_Delay(100);
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-        
         
         read_32 = flash.read<uint32_t>(0x00);
         read_16 = flash.read<uint16_t>(0x04);
