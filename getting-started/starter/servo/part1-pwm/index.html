@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>Part 1 - PWM - MRover ESW</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Part 1 - PWM";
+        var mkdocs_page_input_path = "getting-started/starter/servo/part1-pwm.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../../../intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" >Starter Projects</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../../led/">LED</a>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" >Servo</a>
+    <ul class="current">
+                <li class="toctree-l3 current"><a class="reference internal current" href="#">Part 1 - PWM</a>
+    <ul class="current">
+    <li class="toctree-l4"><a class="reference internal" href="#prerequisites">Prerequisites</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#intro">Intro</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#guide">Guide</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../../info/archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Getting Started</li>
+          <li class="breadcrumb-item">Starter Projects</li>
+          <li class="breadcrumb-item">Servo</li>
+      <li class="breadcrumb-item active">Part 1 - PWM</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/getting-started/starter/servo/part1-pwm.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="servo-starter-project-part-1-pwm">Servo Starter Project - Part 1 - PWM</h1>
+<p>This starter project is made up of two parts: PWM and CAN. This is Part 1 - PWM.</p>
+<p>By the end of this part, you should have an understanding of timers and PWM (pulse width modulation)
+signals.</p>
+<p>Just as a reminder, if you have any questions, feel free to reach out to any
+of the ESW leads or members. This project isn't meant to be high-stakes,
+so please reach out if you ever get stuck!</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>STM32Cube <a href="../../../stm32cube/">installed</a></li>
+<li>LED Project <a href="https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project">completed</a> and shown to an ESW lead</li>
+<li>Git <a href="https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git">setup</a></li>
+<li>STM32G431RB Nucleo</li>
+<li>SG90 Servo</li>
+</ul>
+<h2 id="intro">Intro</h2>
+<p>As mentioned earlier, by the end of the project you should be able to drive a servo.
+This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
+While you are working through the project, keep the following in mind:</p>
+<ul>
+<li>How could you document your code so that others can easily read and understand it?</li>
+<li>How could you write your code so that it can easily be adjusted for different pins, different number of servos, etc.?</li>
+</ul>
+<h2 id="guide">Guide</h2>
+<h3 id="1-setting-up-the-project">1. Setting up the project</h3>
+<p>Since you already have practice creating a project, you will only need to clone and open the
+premade STM32 project for this starter project.</p>
+<p>Go to <a href="https://github.com/umrover/mrover-esw">this repository</a>, click the "Code" tab, and copy the SSH URL.
+<img alt="opened &quot;Code&quot; tab with boxes showing how to copy the SSH URL" src="../copy-git-repo.webp" /></p>
+<p>You now have the URL you need to clone the project.</p>
+<p>Clone the project onto your local computer by running the following command in your terminal:</p>
+<pre class="highlight"><code class="language-sh">git clone link-copied-in-above-step</code></pre>
+<p>Enter the directory:</p>
+<pre class="highlight"><code class="language-sh">cd mrover-esw</code></pre>
+<p>Then, create a new branch for yourself</p>
+<pre class="highlight"><code class="language-sh">git switch -c starter/your-first-name</code></pre>
+<p>Open STM32CubeMX and open the Servo <strong><em>Part 1</em></strong> starter project (the directory named <code>p1-pwm</code>).</p>
+<h3 id="2-pwm-timer-configuration">2. PWM timer configuration</h3>
+<p>Once the .ioc is open, configure the pins for PWM.</p>
+<ol>
+<li>Select the PC0 pin on the chip in the .ioc and change it to TIM1_CH1.</li>
+<li>On the left side of the .ioc file, under Timers, select TIM1 (shown below).</li>
+<li>Change Channel1 from "Disable" to "PWM Generation CH1" (shown below).</li>
+</ol>
+<p><img alt="timer 1 configuration in stm32cubeide" src="../servo-timer-config.webp" /></p>
+<p>We will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
+correctly set up this PWM timer. These values are located in the "Parameter Settings" and must be
+calculated. Refer to the timer <a href="../../../../info/timers/">reference guide</a> for information on
+calculating these values.</p>
+<p>Read the <a href="http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf">datasheet</a> for
+the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.</p>
+<p>Once you have determined and edited the timer config, save the file and generate code. Note: you can
+always come back to the .ioc to make changes.</p>
+<h3 id="3-opening-the-header-file">3. Opening the header file</h3>
+<p>Having a servo object will make it easier to adjust the number servos or where the servos are
+in the future, so for good practice, we will create a Servo class and declare any member variables
+and member functions in a header file.</p>
+<p>On the menu to the left, in <code>Inc</code>, open the header file named <code>servo.hpp</code>.</p>
+<p>Here, we can see the interface for the Servo class that we will be implementing.</p>
+<p>The Servo class has 2 member variables:</p>
+<ul>
+<li><code>TIM_HandleTypeDef *timer</code> : this tells the STM which timer is being used to generate the PWM signal</li>
+<li><code>uint32_t channel</code> : this tells the STM which channel is being used for the PWM signal</li>
+</ul>
+<p>It also has 3 member functions:</p>
+<ul>
+<li>A constructor that takes in the timer and channel for the PWM signal</li>
+<li>A function <code>start_servo()</code> that starts the PWM generation</li>
+<li>A function <code>set_servo_angle(int angle)</code> that moves the servo to the specified angle</li>
+</ul>
+<h3 id="4-implementing-servo-functions">4. Implementing Servo functions</h3>
+<p>Now that we know the interface for the Servo class, it's time to implement the functions.</p>
+<p>On the menu to the left, in <code>Src</code>, open the C++ source file named <code>servo.cpp</code>.</p>
+<p>To start the servo, you must initialize the timer used to generate the PWM signal. To do this,
+use <code>HAL_TIM_PWM_Start(TIM_HandleTypeDef *htim, uint32_t Channel)</code>. Find more information about this
+built-in HAL function <a href="http://www.disca.upv.es/aperles/arm_cortex_m3/llibre/st/STM32F439xx_User_Manual/group__tim__exported__functions__group3.html">here</a>.</p>
+<p>When implementing set_servo_angle, keep in mind what PWM signal corresponds to what angle.
+Check back on the <a href="http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf">servo datasheet</a>
+to determine this. In order to set the CCR register to change the PWM signal, you can use
+<code>__HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)</code>. Below is information on this function:</p>
+<pre class="highlight"><code class="language-c">/**
+  * @brief  Set the TIM Capture Compare Register value on runtime without calling another time ConfigChannel function.
+  * @param  __HANDLE__ TIM handle.
+  * @param  __CHANNEL__ TIM Channels to be configured.
+  *          This parameter can be one of the following values:
+  *            @arg TIM_CHANNEL_1: TIM Channel 1 selected
+  *            @arg TIM_CHANNEL_2: TIM Channel 2 selected
+  *            @arg TIM_CHANNEL_3: TIM Channel 3 selected
+  *            @arg TIM_CHANNEL_4: TIM Channel 4 selected
+  *            @arg TIM_CHANNEL_5: TIM Channel 5 selected
+  *            @arg TIM_CHANNEL_6: TIM Channel 6 selected
+  * @param  __COMPARE__ specifies the Capture Compare register new value.
+  * @retval None
+  */
+#define __HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)</code></pre>
+<h3 id="5-testing-your-servo-functions">5. Testing your servo functions</h3>
+<p>Now that we have implemented our Servo class, it's time to test it out.</p>
+<p>Since this is a C++ project, we will not be using the <code>main.c</code>. Instead, navigate to <code>Src</code>
+and open <code>driver.cpp</code>.</p>
+<p>In the <code>new_main()</code> function, create a new Servo using the constructor. The timer parameter for
+should be a <code>TIM_HandleTypeDef*</code>. The name for the Timer Handle that is being used is at the top of
+<code>driver.cpp</code>. The channel parameter should correspond with which timer channel you are using
+(remember we set our pin to TIM1_CH1).</p>
+<p>Now, we can start the servo using the <code>start_servo()</code> function we created.</p>
+<p>Then, in the <code>for ( ;; )</code> loop, change the angle of the servo a few times to make sure your
+<code>set_servo_angle()</code> function works and that the PSC and ARR you selected in the .ioc are correct.
+Between each function call make sure to add a delay (Hint: there is a built in HAL function for delays).</p>
+<p>When you are satisfied with your code, make sure it builds and then get a Nucleo, a logic analyzer,
+and some jumper cables to check your PWM signals. If you think the PWM signals are correct based on the
+<a href="http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf">datasheet</a>, you can test
+your code on a servo. If you are unsure, just ask for help!</p>
+<h4 id="logic-analyzer">Logic Analyzer</h4>
+<p>The simplest method for debugging a digital signal is often to use a logic analyzer. Please install <a href="https://www.saleae.com/downloads/">Logic</a> on your laptop.</p>
+<p>To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
+Play around with Logic:</p>
+<ul>
+<li>Zoom in and out</li>
+<li>Pause the display</li>
+<li>Mouse over the different parts of the signal</li>
+<li>Try to understand what all the different numbers mean</li>
+</ul>
+<h4 id="wiring-the-servo">Wiring the Servo</h4>
+<p>In order to properly wire the servo, first consult the <a href="http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf">datasheet</a>.</p>
+<ul>
+<li>How much voltage does the servo need?</li>
+<li>Which wires are signal, power, and ground?</li>
+</ul>
+<h4 id="using-a-breadboard">Using a Breadboard</h4>
+<p>A breadboard is broken into two sets of long rails on the outside edges of the board and multiple shorter rails on the inner part of the board. These rails allow for easy connections between wires on the same rail. Below is a picture depicting these rails. </p>
+<p><img alt="breadboard" src="../breadboard_diagram.webp" /></p>
+<p>In order for the signal to work, the servo and the Nucleo must have a common ground. Connect the servo's ground wire to one of the ground pins on the Nucleo, the power to the appropriate power pin on the Nucleo, and the signal wire to PC0.</p>
+<p>If you have any questions, don't be afraid to reach out to an ESW lead or SAM(s).</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../led/" class="btn btn-neutral float-left" title="LED"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../part2-can/" class="btn btn-neutral float-right" title="Part 2 - CAN">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../../led/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../part2-can/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../../../..";</script>
+    <script src="../../../../js/theme_extra.js"></script>
+    <script src="../../../../js/theme.js"></script>
+      <script src="../../../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

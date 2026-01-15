@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>CMake Toolchain - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "CMake Toolchain";
+        var mkdocs_page_input_path = "info/cmake-tools.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">CMake Toolchain</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#installing">Installing</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#creating-a-new-cubemx-project">Creating a New CubeMX Project</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#adding-cmake-dependencies-to-projects">Adding CMake Dependencies to Projects</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#removing-dependency-on-generated-hal-drivers">Removing Dependency on Generated HAL Drivers</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#adding-lib-dependencies">Adding lib/ Dependencies</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#building-and-flashing">Building and Flashing</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Useful Information</li>
+      <li class="breadcrumb-item active">CMake Toolchain</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/info/cmake-tools.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="cmake-cubemxcubeclt-toolchain">CMake + CubeMX/CubeCLT Toolchain</h1>
+<h2 id="installing">Installing</h2>
+<ol>
+<li>Install <a href="https://www.st.com/en/development-tools/stm32cubemx.html#get-software">CubeMX</a>. This is the <code>.ioc</code> file editor.</li>
+<li>Install <a href="https://www.st.com/en/development-tools/stm32cubeclt.html#get-software">CubeCLT</a>.
+   This is the command-line toolset that contains all the software necessary to build and deploy the codebase.</li>
+<li>Install <a href="https://www.st.com/en/development-tools/st-mcu-finder-pc.html#get-software">CubeMCUFinder</a>.</li>
+<li>Install the corresponding extension for your editor. In each case, the extension will need to be provided the location to CubeMX and CubeCLT.<ol>
+<li><a href="https://www.jetbrains.com/help/clion/embedded-stm32.html">CLion</a></li>
+<li><a href="https://www.st.com/content/st_com/en/campaigns/stm32-vs-code-extension-z11.html">VS Code</a></li>
+</ol>
+</li>
+</ol>
+<h2 id="creating-a-new-cubemx-project">Creating a New CubeMX Project</h2>
+<ol>
+<li>Open CubeMX and navigate to <code>File</code>&#8594;<code>New Project</code>.</li>
+<li>A window should pop up. In this window, select your desired MCU or development board.
+   To search, use the "Commercial Part Number" search bar.</li>
+<li>When you have selected your MCU/board, click <code>Start Project</code> in the top right.</li>
+<li>Navigate to the <code>Project Manager</code> tab.</li>
+<li>Give your project a name and set the <code>Project Location</code> to the desired directory.</li>
+<li>Set the <code>Toolchain / IDE</code> dropdown to <code>CMake</code>.</li>
+<li>Now, still in the <code>Project Manager</code> tab, navigate to the <code>Code Generator</code> settings on the left menu.</li>
+<li>Select <code>Copy only the necessary library files</code>. This will reduce bloat on your computer by only bringing in the necessary HAL files for your specific project instead of all 900+.</li>
+<li>Save the project by navigating to <code>File</code>&#8594;<code>Save Project</code> or by pressing <code>Ctrl + S</code>.</li>
+<li>Click <code>Generate Code</code> in the top right. CubeMX will generate the project files in the specified directory.
+   For example, if the project name is <code>myproject</code> and the location is <code>/home/user/mrover-esw/src/</code>,
+   the generated files will be in <code>/home/user/mrover-esw/src/myproject/</code>.</li>
+</ol>
+<h2 id="adding-cmake-dependencies-to-projects">Adding CMake Dependencies to Projects</h2>
+<h3 id="removing-dependency-on-generated-hal-drivers">Removing Dependency on Generated HAL Drivers</h3>
+<p>By default, CubeMX generates HAL drivers and includes them in the project. The top level
+CMakeLists.txt then includes these generated HAL drivers in the build with the following
+line:</p>
+<pre class="highlight"><code class="language-cmake">add_subdirectory(cmake/stm32cubemx)</code></pre>
+<p>If you take a look inside the CMakeLists.txt inside the <code>cmake/stm32cubemx/</code> directory,
+you will see that it includes all of the generated HAL drivers for the selected MCU. This
+CMakeLists.txt is automatically generated by CubeMX to include the necessary HAL drivers
+your project requires. For example:</p>
+<pre class="highlight"><code class="language-cmake">set(STM32_Drivers_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/system_stm32g4xx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+)</code></pre>
+<p>These generated HAL drivers total over 900 files, which is unnecessary and would bloat
+the repository if committed. In order to prevent this, we remove the dependency on the
+generated HAL drivers for each project and instead use a shared HAL driver library which
+is hosted as a git submodule in <code>lib/extern/STM32CubeG4</code>.</p>
+<p>To do this, we create our own CMakeLists.txt file in a new directory <code>cmake/stm32cubemx_extern/</code>.
+This CMakeLists.txt file will replace the generated one and instead link to the shared
+HAL driver library. For example, the above generated CMakeLists.txt would be replaced with the following:</p>
+<pre class="highlight"><code class="language-cmake">set(STM32_Drivers_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/system_stm32g4xx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+)</code></pre>
+<p>You can see that instead of navigating to the <code>Drivers/STM32G4xx_HAL_Driver/</code> directory
+that is autogenerated for every project, we instead navigate to the shared HAL driver library
+in <code>lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/</code>.</p>
+<p>To use this new CMakeLists.txt file instead of the autogenerated one, simply replace the
+following line in the top-level CMakeLists.txt:</p>
+<pre class="highlight"><code class="language-cmake">add_subdirectory(cmake/stm32cubemx)</code></pre>
+<p>with</p>
+<pre class="highlight"><code class="language-cmake">add_subdirectory(cmake/stm32cubemx_extern)</code></pre>
+<p>Keep in mind that whenever you generate code from CubeMX which requires a new HAL driver file,
+you will need to manually add that file to the <code>cmake/stm32cubemx_extern/CMakeLists.txt</code> file.
+For example, if you enable the I2C peripheral in CubeMX and regenerate code, CubeMX will
+generate the file <code>stm32g4xx_hal_i2c.c</code>. You will then need to add the following line to the
+<code>cmake/stm32cubemx_extern/CMakeLists.txt</code> file where the other HAL driver files are listed:</p>
+<pre class="highlight"><code class="language-cmake">${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_i2c.c</code></pre>
+<div class="admonition note">
+<p class="admonition-title">TODO</p>
+<p><em>We should create a script to automate this process of creating and updating the <code>cmake/stm32cubemx_extern/CMakeLists.txt</code> file.</em></p>
+</div>
+<h3 id="adding-lib-dependencies">Adding <code>lib/</code> Dependencies</h3>
+<p>To add <code>lib/</code> dependencies to a CubeMX project, add the following to <code>CMakeLists.txt</code>.</p>
+<pre class="highlight"><code class="language-cmake"># Add fwlib dependency
+add_subdirectory(../../lib fwlib)
+
+# Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    stm32cubemx
+
+    # Add user defined libraries
+    stm32
+    units
+    util
+)</code></pre>
+<h2 id="building-and-flashing">Building and Flashing</h2>
+<ol>
+<li><code>./scripts/build.sh --src &lt;PROJECT&gt;</code> will build the project</li>
+<li><code>./scripts/flash.sh --src &lt;PROJECT&gt;</code> will flash the project to the MCU connected to the STLINK</li>
+</ol>
+<p>For example, if the project is named <code>myproject</code> and is located in <code>/home/user/mrover-esw/src/</code>,
+the command to build would be:</p>
+<pre class="highlight"><code class="language-sh">./scripts/build.sh --src myproject</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In order to use the scripts to build and flash, ensure all <code>*/bin</code> directories from CubeCLT are included in <code>$PATH</code></p>
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../stm32-boot/" class="btn btn-neutral float-left" title="STM32 Boot"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../archive/" class="btn btn-neutral float-right" title="Archived Docs">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../stm32-boot/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../archive/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

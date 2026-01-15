@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>STM32 Boot - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "STM32 Boot";
+        var mkdocs_page_input_path = "info/stm32-boot.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">STM32 Boot</a>
+    <ul class="current">
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Useful Information</li>
+      <li class="breadcrumb-item active">STM32 Boot</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/info/stm32-boot.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h3 id="ever-wondered-what-that-boot0-pin-does-in-the-stm32cube-ide-ioc-file-or-stm32-chip-want-to-set-the-boot0-pin-to-an-alternate-function-such-as-an-i2c-clk-here-is-what-you-need-to-know-before-doing-so">Ever wondered what that BOOT0 pin does in the STM32Cube IDE .ioc file or stm32 chip? Want to set the BOOT0 pin to an alternate function such as an I2C CLK? Here is what you need to know before doing so.</h3>
+<h2 id="the-boot0-pin">The BOOT0 pin</h2>
+<p>The BOOT0 pin only really matters for the first 4 clock cycles of the boot sequence after reset has been released. However, it decides where the chip will boot from: Main Flash, System Memory, or Embedded SRAM. (Maybe more or less options depending on the chip). By default, holding BOOT0 LOW will make the chip boot from the main flash - this is most likely where your code is. (When using CubeIDE, this is where it is typically flashed)</p>
+<p>If it is held high, for example let's say you are using it as an I2C CLK line with an external pull up resistor, this can cause make the chip boot from a region other than flash, which could lead to erratic behavior and floating pins.</p>
+<h2 id="alternate-boot-options">Alternate Boot Options</h2>
+<p>As you can see from the table below, there are actually other ways of selecting the boot region. In fact, there is one option (row 2) that completely bypasses the BOOT0 pin in order to boot from flash. This is the option we want if using the BOOT0 pin for its alternate functions.\
+<img alt="image" src="https://github.com/umrover/mrover-ros/assets/55666129/a1fa6c0d-9d32-4765-aa1d-42b851ef1ac6" />\
+<em><a href="https://www.st.com/resource/en/reference_manual/dm00355726-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf">STM32 G4 Series Manual</a></em></p>
+<h2 id="configuring-boot-options">Configuring Boot Options</h2>
+<p>The following code was taken from a great <a href="https://stackoverflow.com/questions/30449912/how-to-boot-stm32-from-user-flash">stack overflow post</a>. It configures the boot option register and sets nBOOT0 to 1 and nSWBOOT0 to 0.</p>
+<pre class="highlight"><code>if ((FLASH-&gt;OPTR &amp; FLASH_OPTR_nSWBOOT0_Msk) != 0x0 || ((FLASH-&gt;OPTR &amp; FLASH_OPTR_nBOOT0_Msk) == 0x0))
+{
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;KEYR = 0x45670123;
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;KEYR = 0xCDEF89AB;
+
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;OPTKEYR = 0x08192A3B;
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;OPTKEYR = 0x4C5D6E7F;
+
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;OPTR = (FLASH-&gt;OPTR &amp; ~(FLASH_OPTR_nSWBOOT0_Msk)) | FLASH_OPTR_nBOOT0_Msk;
+
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+    FLASH-&gt;CR = FLASH-&gt;CR | FLASH_CR_OPTSTRT;
+
+    while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }
+}</code></pre>
+<p>Here I explain it with some more detail.\
+<code>while ((FLASH-&gt;SR &amp; FLASH_SR_BSY_Msk) != 0x0) { ; }</code> Polls the flash status register and waits until it is no longer busy.</p>
+<p><code>FLASH-&gt;KEYR = 0x45670123;</code>\
+<code>FLASH-&gt;KEYR = 0xCDEF89AB;</code> Is the sequence of register writes needed to unlock flash for writing/reading.</p>
+<p><code>FLASH-&gt;OPTKEYR = 0x08192A3B;</code>\
+<code>FLASH-&gt;OPTKEYR = 0x4C5D6E7F;</code> Is the sequence of register writes needed to unlock the Options register.</p>
+<p><code>FLASH-&gt;OPTR = (FLASH-&gt;OPTR &amp; ~(FLASH_OPTR_nSWBOOT0_Msk)) | FLASH_OPTR_nBOOT0_Msk;</code> Sets nBOOT0 to 1 and nSWBOOT0 to 0.</p>
+<h2 id="other-resources">Other Resources</h2>
+<p>STM has other methods of programming these option bits, including using HAL functions. See the following resources for more info. Also make sure to look at the STM reference manual for your particular chip regarding boot options.\
+<a href="https://community.st.com/t5/stm32-mcus/how-to-program-stm32-option-bytes-with-the-hal-api/ta-p/49660">How to program STM32 Option Bytes with the HAL API</a>\
+<a href="https://community.st.com/t5/stm32-mcus/what-are-option-bytes-in-stm32-and-how-do-i-use-them/ta-p/49451">What are option bytes in STM32 and how do I use them?</a></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../nucleos/" class="btn btn-neutral float-left" title="Nucleo Information"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../cmake-tools/" class="btn btn-neutral float-right" title="CMake Toolchain">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../nucleos/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../cmake-tools/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

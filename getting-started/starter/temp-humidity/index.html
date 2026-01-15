@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>Temp-Humidity - MRover ESW</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Temp-Humidity";
+        var mkdocs_page_input_path = "getting-started/starter/temp-humidity/index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../../intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" >Starter Projects</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="../led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Temp-Humidity</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#about">About</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hardware">Hardware</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#data-sheets-and-pinouts">Data Sheets and Pinouts</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hexadecimal">Hexadecimal</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#what-are-lsb-and-msb">What are LSB and MSB?</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#what-is-i2c">What is I2C?</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#what-is-an-i2c-address">What is an I2C address?</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#what-are-callbacks">What are Callbacks?</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#starter-code">Starter code</a>
+    </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Getting Started</li>
+          <li class="breadcrumb-item">Starter Projects</li>
+      <li class="breadcrumb-item active">Temp-Humidity</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/getting-started/starter/temp-humidity/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="temperature-and-humidity-starter-project">Temperature and Humidity Starter Project</h1>
+<h2 id="about">About</h2>
+<p>The purpose of this starter project is to guide you through reading data from the AHT20 Temperature and Humidity Sensor using I2C with an STM32 Nucleo</p>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Nucleo STM32G431RB</li>
+</ul>
+<p><img alt="stm32g431rb nucleo" src="g431rb.webp" /></p>
+<ul>
+<li>AHT20 Temperature and Humidity Sensor</li>
+</ul>
+<p><img alt="aht20 sensor" src="aht20.webp" /></p>
+<ul>
+<li>Lots of female-to-male, male-to-male, and female-to-female wires!</li>
+<li>1 USB A to mini B cable</li>
+<li>Breadboard</li>
+</ul>
+<h2 id="data-sheets-and-pinouts">Data Sheets and Pinouts</h2>
+<p><a href="https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf">AHT20 Sensor datasheet</a></p>
+<p><a href="https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf">Nucleo STM32G431RB User Manual (pinout on page 29)</a></p>
+<h2 id="hexadecimal">Hexadecimal</h2>
+<p>Hexadecimal is a numbering system which uses base-16. Unlike our usual base-10 decimal system (0123456789) or the base-2 binary system (01), hexadecimal has a total of 16 different digits (0123456789ABCDEF). We tend to use hexadecimal to express our binary-based ideas because it is easier to read and easy to convert to and from binary. Each hexadecimal digit is equal to four bits (binary digits). For example, Hex number 0xA is equivalent to binary number 0b1010, or decimal number 10. Because of this a byte can be represented by two hexadecimal digits (8 bits).</p>
+<p>Most numbers in the datasheet will be expressed in hexadecimal, especially when referring to addresses, memory locations, or registers.</p>
+<p><a href="https://www.rapidtables.com/convert/number/hex-to-decimal.html">Here</a> is a good online converter for going from binary to hex. Go ahead and use that calculator to convert the binary string to hex. A thing to note about hex values is that they are commonly prefixed by <code>0x</code>.</p>
+<h2 id="what-are-lsb-and-msb">What are LSB and MSB?</h2>
+<p>We may have to work with data values which are many bytes long. However, sometimes we are restricted to working with just one byte at a time. Therefore, we split large data values into "most significant" and "least significant" bytes.</p>
+<p>The AHT20 returns temperature and humidity values as 2.5 byte raw values. However, each byte is sent individually, so to get the full raw temperature and humidity values we will need to combine the 2.5 bytes using the logical left shift operator (&lt;&lt;).</p>
+<p>As a decimal analogy to this, imagine you have the number 2048. In MSB/LSB format it could be split up as 20 and 48. In order to combine the two correctly, you have to shift 20 over 2 decimal places (multiply by 10^2) and then add it to 48.
+When it comes to retrieving and combining the data of the 2.5 bytes, the idea is the same. </p>
+<p>Splitting the data to be sent into multiple registers allows for higher precision data to be sent. <a href="https://bit-calculator.com/most-and-least-significant-bit">More in depth info</a>.</p>
+<h2 id="what-is-i2c">What is I2C?</h2>
+<p>I2C offers two-way communication between a device such as the AHT20 (slave) and the Nucleo (master). Notice the SDA (Serial Data) and SCL (Serial Clock) pins on both the AHT20 sensor and the Nucleo.</p>
+<p>I2C relies on the clock line (SCL) to keep time between the devices connected so that they can communicate at the same rate. The data line (SDA) is a shared data line between the devices.</p>
+<p>Each device enabled with I2C also has a 7 bit address. Try to find the address for the AHT20 sensor in the <a href="https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf">datasheet</a>.</p>
+<p>Read <a href="https://learn.sparkfun.com/tutorials/i2c/all">this</a> if you want to learn more about I2C.</p>
+<h2 id="what-is-an-i2c-address">What is an I2C address?</h2>
+<p>A master device can have multiple slaves. Therefore, each slave device needs a distinct address which the master can use to select the correct device to communicate with over the I2C bus.</p>
+<p>The AHT20 I2C address we will need to write to and read from is found <a href="https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf">here</a>.</p>
+<h2 id="what-are-callbacks">What are Callbacks?</h2>
+<p>A callback is a function that is called automatically when an operation finishes (like I2C read and write operations). We don't need to make these function calls ourselves, the microcontroller instead does it for us. We will use I2C transmit and recieve callbacks to handle communicating with the AHT20 sensor without having to block other code from finishing while we wait for transmits/recieves to finish.</p>
+<h2 id="starter-code">Starter code</h2>
+<p>If you already cloned mrover-esw for the <a href="https://github.com/umrover/mrover-esw">other starter projects</a>, you do <strong>not</strong> need to do it again for the temperature and humidity sensor.</p>
+<p>To get the starter code, open up a new terminal window, clone the mrover-esw repository, and make a tutorial branch for yourself\
+<code>$ git clone https://github.com/umrover/mrover-esw</code> (if not already cloned)\
+<code>$ cd mrover-esw</code>\
+<code>$ git checkout -b starter/&lt;name&gt;</code></p>
+<p>Open up the Cube IDE project by opening the folder and double clicking on the .project file. Make sure that you already have Cube IDE installed.</p>
+<h1 id="wiring-and-set-up">Wiring and Set up</h1>
+<p>Notice that the AHT20 sensor has 4 pins: VIN (voltage input), GND (ground), SCL (I2C clock line), and SDA (I2C data line). We will use the jumper wires and breadboard from the hardware step to make appropriate connections to all four pins. </p>
+<p>To wire the sensor connect the VIN pin on the AHT20 sensor to the 3.3V pin on the nucleo and the GND pin on the AHT20 sensor to the GND pin on the nucleo. To use I2C we will need to connect the clock and data pins of the AHT20 sensor to the clock and data pins on the nucleo that we configured in our .ioc file. To see which pins we are using for I2C on the nucleo open the .ioc file and search for the pins set to I2C3_SCL and I2C3_SDA. Finally, make connections to the pins corresponding to I2C3_SCL and I2C3_SDA on the nucleo using the pinout found on page 29 <a href="https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf">here</a>.</p>
+<h2 id="getting-started">Getting Started</h2>
+<p>Notice that the starter file for the project already contains multiple variable definitions. To begin set the value of the <code>TEMP_HUM_ADDRESS</code> constant to the AHT20 address found earlier. We will use this constant throughout our code when interacting with the sensor over I2C. Also notice the init() function which is called once, and has the job of pointing the "i2c" pointer to the hi2c3 object and also calling the <code>eventLoop()</code> function, which is the infinite loop that we will use to constantly send and receive data from the AHT20 sensor.</p>
+<p>The process for receiving data from the AHT20 sensor can be broken into 3 main steps:
+- Transmit a command (found in the datasheet) to the sensor to start a measurement, using the <code>HAL_I2C_Master_Transmit_IT</code> function.
+- Implement the <code>HAL_I2C_MasterTxCpltCallback</code> callback function, which will be called when the sensor has finished measuring and storing the new temperature and humidity values. We need these values so you will need to request them using the <code>HAL_I2C_Master_Receive_IT</code> function and by providing the buffer defined earlier in the code. The buffer will be the location in which the received bytes will be stored.
+- Finally implement the <code>HAL_I2C_MasterRxCpltCallback</code> callback function, which will be called when the sensor has sent us the raw values and the buffer is populated. You will then need to convert the raw values to the actual temperature and humidity values found in the datasheet.</p>
+<h2 id="important-notes-and-tips">Important Notes and Tips</h2>
+<ul>
+<li>Define functions for transmitting, receiving, and converting values to and from the AHT20 sensor outside of the eventLoop and I2C callback functions and then call these functions when necessary.</li>
+<li>As described in the <a href="https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf">datasheet</a> the AHT20 requires a delay after powering on the sensor. Find the delay and add it to the start of your code.</li>
+<li>The address parameters of the HAL I2C receive and transmit functions will need to be provided with 8 bits, bits 1-7 will be the AHT20's ID and bit 0 represents whether you are writing/reading (0/1) to the sensor. You can accomplish this using the logical left shift operator (&lt;&lt;) and the bitwise or operator (|).</li>
+<li>When converting the raw values from the buffer to the actual sensor values use the datasheet to determine which bytes from the buffer correspond to temperature/humidity and use the logical left shift operator (&lt;&lt;) to combine them into a single value. Then use the conversion formula from the datasheet to find the actual temperature and humidity values.</li>
+</ul>
+<h2 id="testing">Testing</h2>
+<p>In this tutorial we do not print out data anywhere. Because of this you will have to use the debugger to view the temperature and humidity measurements you get from the sensor. This is good practice for what you may expect to see in the future.</p>
+<h2 id="debugging-in-cube-ide">Debugging in Cube IDE</h2>
+<p>Make sure that your Nucleo is properly connected to your computer and that you can build your project.</p>
+<p>Click on Run -&gt; Debug As -&gt; 1 STM32 C/C++ Application.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187034571-1534e835-80e1-4117-8cce-3df1fcd97ed2.png" /></p>
+<p>On the following screen, you can just press OK.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187034618-9685525a-bb68-4f5f-811a-8acc590128ce.png" /></p>
+<p>If your device is unable to detect the Nucleo connected to it, you may see the following screen.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187034645-783616cc-3026-48ea-a764-046620800200.png" /></p>
+<p>Retry the previous steps and if that does not work, then either double check your connections, or seek a new Nucleo board.</p>
+<p>In the future, you may be able to get away with just clicking on Run -&gt; Debug, or using the keyboard shortcut F11. This does not work the first time if you have never clicked on the Debug As button.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187034475-aed0cb57-d641-4014-979b-3b876b6396a4.png" /></p>
+<p>Now that you're in the debug mode, you may set breakpoints and run through your code or pause at any given moment. When paused, we can also see the values of certain variables. We will use this feature to view if the data we are reading for our temperature and humidity sensor is reasonable.</p>
+<h2 id="congratulations">Congratulations!</h2>
+<p>You have completed the temperature and humidity sensor starter project! Contact one the ESW leads for further instructions. </p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../servo/part2-can/" class="btn btn-neutral float-left" title="Part 2 - CAN"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../../../projects/overview26/" class="btn btn-neutral float-right" title="ESW 2025-2026 Projects">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../servo/part2-can/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../../../projects/overview26/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../../..";</script>
+    <script src="../../../js/theme_extra.js"></script>
+    <script src="../../../js/theme.js"></script>
+      <script src="../../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

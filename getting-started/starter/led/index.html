@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../../img/favicon.ico" />
+    <title>LED - MRover ESW</title>
+    <link rel="stylesheet" href="../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "LED";
+        var mkdocs_page_input_path = "getting-started/starter/led/index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../../intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" >Starter Projects</a>
+    <ul class="current">
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">LED</a>
+    <ul class="current">
+    <li class="toctree-l3"><a class="reference internal" href="#about">About</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#instructions">Instructions</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#guide">Guide</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#useful-resources">Useful Resources</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../info/archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Getting Started</li>
+          <li class="breadcrumb-item">Starter Projects</li>
+      <li class="breadcrumb-item active">LED</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/getting-started/starter/led/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="led-starter-project">LED Starter Project</h1>
+<h2 id="about">About</h2>
+<p>This tutorial is intended to get you more familiar with a Nucleo
+(with STM32G431RB MCU) and the Cube Tool Suite.
+You will be asked to develop code such that the LED on the Nucleo
+will light up whenever the Nucleo’s button is pressed down.</p>
+<p>Just as a reminder, if you have any questions, feel free to reach out to any
+of the ESW leads or members. This project isn't meant to be high-stakes,
+so please reach out if you ever get stuck!</p>
+<h2 id="instructions">Instructions</h2>
+<p>As mentioned earlier, the goal is to make sure that the button is able to activate the LED.</p>
+<p>As you walk through the guide, keep the following questions in mind:</p>
+<ul>
+<li>Which pin is linked to the button and which pin is linked to the LED?</li>
+<li>Are those pins activated on the .ioc file?</li>
+<li>Have you looked through the HAL drivers to see how to read from and write to pins?</li>
+<li>Do you know which pins have to be read from and which pins need to be written to?</li>
+<li>Do you know what to write to the pin that needs to be written to and when?</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>STM32CubeMX <a href="../../stm32cube/">installed</a></li>
+<li>STM32G431RB Nucleo (pictured below)</li>
+</ul>
+<p><img alt="stm32g431rb nucleo" src="nucleo-g431.webp" /></p>
+<h2 id="guide">Guide</h2>
+<p>Open up CubeMX and create a new project called tutorial by following the steps in the <a href="../../stm32cube/#creating-a-new-project">CubeMX New Project Guide</a>.</p>
+<p>When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit <a href="https://os.mbed.com/platforms/ST-Nucleo-G474RE/">this</a> page.</p>
+<p>On this page, you will find some pinouts. Based on the pinouts, you should be able to tell that the button is connected to pin PC13 and that the LED is connected to PA5.</p>
+<p><img alt="g4 pinout showing button connected to pc13" src="g4-button-pin.webp" /></p>
+<p><img alt="g4 pinout showing led connected to pa5" src="g4-led-pin.webp" /></p>
+<p>Head back to the CubeMX and open the .ioc file if it is not open already. You should be able to see a graphical interface with the chip on it.</p>
+<p>The first thing we want to do is set PC13 pin (which is connected to the push button) to be a GPIO input. This means that the pin will be set so that we can choose to read digital input in our code. Reading digital input means that we can read 3.3V as high (logic 1) and read 0V as low (logic 0). This is relevant because this means that we can be able to tell if the push button is pressed down or released.</p>
+<p>On the graphical interface (also called the .ioc file), locate PC13 and click on it. Then select GPIO_Input to change its configuration.</p>
+<p><img alt="pc13" src="pc13.webp" /></p>
+<p>The next thing we want to do is set PA5 (which is connected to the LED) to be a GPIO output. This means that we will be able to make the pin either be set to 3.3V (high) or 0V (low). By default, the pin starts off as low.</p>
+<p>On the .ioc file, locate PA5 and click on it. Select GPIO_Output to change its configuration. You may need to scroll down a bit. Note that the pin may already be set to GPIO_Output by default, so you may choose to not do anything new.</p>
+<p><img alt="pa5" src="pa5.webp" /></p>
+<p>Optionally, right click on PC13 and select "Enter User Label" can give it a useful name, such as <code>BUTTON</code>. Do the same for PA5, but call it <code>LED</code>.</p>
+<p>Make sure to save your changes by saving the file. Either run the keyboard shortcut Ctrl + S on your keyboard or click on File -&gt; Save.</p>
+<p>Now that you are finished modifying the .ioc file, select "GENERATE CODE" in the top right. Once generated successfully, close the confirmation window.</p>
+<p>We have now successfully configured our pins and generated the code for it. Now it is time to write the logic to link the button and the LED together.</p>
+<p>Begin by opening up the <code>Src/main.c</code> file in an editor of your choice.</p>
+<p>When writing code, you will only want to write in specific sections. A good rule of thumb is to only put your code in between where it says
+<code>USER CODE BEGIN</code> and <code>USER CODE END</code>. This is necessary because otherwise, the automatic code generation from the CubeMX
+will overwrite and delete your code.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187026017-329a2cf3-b442-4004-b9d0-447986f27ceb.png" /></p>
+<p>We will be using the HAL library so that we can call a single function to perform operations such as reading digital input and writing digital output.</p>
+<p>The HAL functions that we are interested in are <code>HAL_GPIO_ReadPin(gpio-port, gpio-pin)</code> and <code>HAL_GPIO_WritePin(gpio-port, gpio-pin, pin-state)</code>.</p>
+<p>See below for a demo on how we can access data in our case.</p>
+<p><img alt="image" src="https://user-images.githubusercontent.com/71603173/187026399-f7aaea9b-1071-4b00-bc8c-94914f84419c.png" /></p>
+<p>When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high.
+In our case, the button is active high. This means that when the button is pushed down, the value returned is a 1.</p>
+<p>Based on this information, you should now be able to implement logic on how to link the button to the LED. If you need additional resources, you may choose to refer to <a href="https://medium.com/vicara-hardware-university/stm32-guide-gpio-and-buttons-8303e6c8cb44">this</a> guide on how to GPIO pins and buttons. Also, you are always welcome to ask another member for help!</p>
+<p>After writing your code, you will most certainly want to build and run your program on actual hardware.</p>
+<p>Connect an STM32G431RB Nucleo board to your computer via USB. Ask an experienced member or an ESW lead if you need assistance in obtaining such hardware.</p>
+<p>Before building your program, ensure that all relevant files have been saved to ensure that code generation has been done.</p>
+<p>Then, build your project by running the build script from the root of the repository on your command line. The command might look something as follows.</p>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;path/to/led/project&gt;</code></pre>
+<p>After building your project, you should also look over the warnings if you have any since those hint at potential problems in your code.</p>
+<p>Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Ensure the Nucleo is plugged into your machine,
+and run the build script again with the <code>--flash</code> option. This will use STM32CubeProgrammer (bundled with STM32CubeCLT) to flash the compiled binary onto the Nucleo. The command will look as follows.</p>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;path/to/led/project&gt; --flash</code></pre>
+<p>Now press down on the button and see if the LED properly lights up. If they do, congratulations! You have completed your first ESW project!</p>
+<p>Be sure to show a demo of your project to an ESW lead.</p>
+<p>If you need help debugging, feel free to ask any of the subteam leads or any of the other members.</p>
+<h2 id="useful-resources">Useful Resources</h2>
+<p>You may or may not need all of these links in the future.</p>
+<ol>
+<li><a href="https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf">Board Reference Manual</a></li>
+<li><a href="https://www.st.com/resource/en/datasheet/stm32g431c6.pdf">Chip Datasheet</a></li>
+<li><a href="https://www.st.com/resource/en/user_manual/dm00122016-description-of-stm32f3-hal-and-low-layer-drivers-stmicroelectronics.pdf">HAL-Driver</a></li>
+<li><a href="https://os.mbed.com/platforms/ST-Nucleo-G474RE/">Pinout</a></li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../stm32cube/" class="btn btn-neutral float-left" title="STM32Cube"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../servo/part1-pwm/" class="btn btn-neutral float-right" title="Part 1 - PWM">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../../stm32cube/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../servo/part1-pwm/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../../..";</script>
+    <script src="../../../js/theme_extra.js"></script>
+    <script src="../../../js/theme.js"></script>
+      <script src="../../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

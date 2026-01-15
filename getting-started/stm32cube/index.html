@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>STM32Cube - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "STM32Cube";
+        var mkdocs_page_input_path = "getting-started/stm32cube/index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">STM32Cube</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#about">About</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#downloading-and-installing-cubemx">Downloading and Installing CubeMX</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-download-cubemx">1. Download CubeMX</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-install-cubemx">2. Install CubeMX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#downloading-and-installing-cubeclt">Downloading and Installing CubeCLT</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-download-cubeclt">1. Download CubeCLT</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-install-cubeclt">2. Install CubeCLT</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#cubemx-and-cubeclt-for-macos-users">CubeMX and CubeCLT for macOS Users</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#1-download">1. Download</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#2-install">2. Install</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#3-update-your-path">3. Update your PATH</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#4-next-steps">4. Next Steps</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#creating-a-new-project">Creating a New Project</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#guide">Guide</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../info/archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Getting Started</li>
+      <li class="breadcrumb-item active">STM32Cube</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/getting-started/stm32cube/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="stm32cube">STM32Cube*</h1>
+<h2 id="about">About</h2>
+<p>STM32CubeMX and STM32CubeCLT allow the user to write, compile, and flash code to the STM32 microcontroller!
+STM32CubeCLT contains the GCC compiler and GDB debugging tool for firmware compilation and debugging, and
+STM32CubeMX contains the interface for configuring the microcontroller and project environment, and provides
+a very powerful interface for automatic code generation, allowing the user to initialize an entire module with
+a few clicks of a button, and have that code show up automatically in the main file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you've taken EECS 373, you have used STM32CubeIDE, which is an IDE that packages both of these tools
+together. However, STM32CubeIDE is a very heavy program, so we choose to use the lighter weight STM32CubeMX
+and STM32CubeCLT tools in combination with CMake and your favorite text editor or IDE.</p>
+</div>
+<h2 id="downloading-and-installing-cubemx">Downloading and Installing CubeMX</h2>
+<h3 id="1-download-cubemx">1. Download CubeMX</h3>
+<ol>
+<li>
+<p>Go to the CubeMX <a href="https://www.st.com/en/development-tools/stm32cubemx.html">download page</a> and scroll down to "Get Software."
+   <img alt="get cubemx" src="get-cubemx.webp" /></p>
+</li>
+<li>
+<p><strong><em>For this walkthrough, we will be using the Linux installer for UBUNTU USERS.</em></strong>
+   Click on "Select Version", then select the <strong>newest version</strong> for the <strong><em>correct OS you are running!!!</em></strong></p>
+</li>
+<li>
+<p>Click on Accept for the License Agreement pop up.</p>
+</li>
+<li>
+<p>You will then be prompted to log in, create an account, or continue as a guest. You will need a
+   MyST account in the future, so it is best to create one now. You may use any email address.</p>
+</li>
+<li>
+<p>After logging in and being brought back to the download page, the download should start automatically.
+   Scroll down and select the correct version from "Get Software" if it does not.</p>
+</li>
+</ol>
+<h3 id="2-install-cubemx">2. Install CubeMX</h3>
+<p><strong>Note</strong>: This install guide is for <strong>Linux</strong>. Please make sure to install the correct version
+for the OS you are running.</p>
+<p>1. Open a new terminal (<a href="https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/">guide</a>).</p>
+<p>2. The downloaded installer zip file should be in your <code>Downloads</code> folder. You can navigate to this
+folder by entering the following command in your terminal:</p>
+<pre class="highlight"><code class="language-sh">cd ~/Downloads</code></pre>
+<p>3. You should now be able to see the installer <code>.zip</code> file, if you run the following command:</p>
+<pre class="highlight"><code class="language-sh">ls</code></pre>
+<p>4. To unzip the installer, run the following command (this may take a second):</p>
+<pre class="highlight"><code class="language-sh">unzip &lt;zip_file_name&gt;</code></pre>
+<p>For example:</p>
+<pre class="highlight"><code class="language-sh">unzip stm32cubemx-lin-v6-16-0.zip</code></pre>
+<p>5. You should now be able to see the installer executable along with <code>Readme.html</code> and a Java runtime by running the following command:</p>
+<pre class="highlight"><code class="language-sh">ls</code></pre>
+<p>6. Run the installer by running the following (you may be prompted to enter your password):</p>
+<pre class="highlight"><code class="language-sh">sudo ./SetupSTM32CubeMX-&lt;version&gt;</code></pre>
+<p>For example:</p>
+<pre class="highlight"><code class="language-sh">sudo ./SetupSTM32CubeMX-6.16.0</code></pre>
+<p>7. In the UI that opens, select <code>Next</code> and accept the License and Terms of Use.</p>
+<p>8. Select an appropriate installation directory (we recommend <code>/usr/local/STMicroelectronics/STM32Cube/STM32CubeMX</code>)</p>
+<p>9. Once the installation completes, select <code>Done</code>.</p>
+<p>10. To clean the installation, remove all files in <code>~/Downloads</code> from the installer with the following:</p>
+<pre class="highlight"><code class="language-sh">rm -rf jre Readme.html SetupSTM32CubeMX* stm32cubemx-lin-*.zip</code></pre>
+<p>11. To use STM32CubeMX from the command line, it must be first added to the system path. To do this, we will use <code>vi</code> (<a href="https://opensource.com/article/19/3/getting-started-vim">guide</a>). Run the following command:</p>
+<pre class="highlight"><code class="language-sh">sudo vi /etc/environment</code></pre>
+<p>And append your installation directory (for example, <code>/usr/local/STMicroelectronics/STM32Cube/STM32CubeMX</code>) to <code>PATH</code>, separated from the other paths by a <code>:</code>.</p>
+<p>12. Reboot your machine, open a terminal, and verify that the following command can find STM32CubeMX (it should output the path used in step 11):</p>
+<pre class="highlight"><code class="language-sh">which STM32CubeMX</code></pre>
+<h2 id="downloading-and-installing-cubeclt">Downloading and Installing CubeCLT</h2>
+<h3 id="1-download-cubeclt">1. Download CubeCLT</h3>
+<ol>
+<li>
+<p>Go to the CubeCLT <a href="https://www.st.com/en/development-tools/stm32cubeclt.html">download page</a> and scroll down to "Get Software."
+   <img alt="get cubeclt" src="get-cubeclt.webp" /></p>
+</li>
+<li>
+<p><strong><em>For this walkthrough, we will be using the Debian Linux installer for UBUNTU USERS.</em></strong>
+   Click on "Select Version", then select the <strong>newest version</strong> for the <strong><em>correct OS you are running!!!</em></strong></p>
+</li>
+<li>
+<p>Click on Accept for the License Agreement pop up.</p>
+</li>
+<li>
+<p>You will then be prompted to log in, create an account, or continue as a guest. You will need a
+   MyST account in the future, so it is best to create one now. You may use any email address.</p>
+</li>
+<li>
+<p>After logging in and being brought back to the download page, the download should start automatically.
+   Scroll down and select the correct version from "Get Software" if it does not.</p>
+</li>
+</ol>
+<h3 id="2-install-cubeclt">2. Install CubeCLT</h3>
+<p><strong>Note</strong>: This install guide is for <strong>Debian Linux</strong>. Please make sure to install the correct version
+for the OS you are running.</p>
+<p>1. Open a new terminal (<a href="https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/">guide</a>).</p>
+<p>2. The downloaded installer zip file should be in your <code>Downloads</code> folder. You can navigate to this
+folder by entering the following command in your terminal:</p>
+<pre class="highlight"><code class="language-sh">cd ~/Downloads</code></pre>
+<p>3. You should now be able to see the installer <code>.zip</code> file, if you run the following command:</p>
+<pre class="highlight"><code class="language-sh">ls</code></pre>
+<p>4. To unzip the installer, run the following command (this may take a second):</p>
+<pre class="highlight"><code class="language-sh">unzip &lt;zip_file_name&gt;</code></pre>
+<p>For example:</p>
+<pre class="highlight"><code class="language-sh">unzip st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh.zip</code></pre>
+<p>5. You should now be able to see the installer script by running the following command:</p>
+<pre class="highlight"><code class="language-sh">ls</code></pre>
+<p>6. Run the installer by running the following (you may be prompted to enter your password):</p>
+<pre class="highlight"><code class="language-sh">sudo chomd +x &lt;script&gt;
+sudo ./&lt;script&gt;</code></pre>
+<p>For example:</p>
+<pre class="highlight"><code class="language-sh">sudo chmod +x st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh
+sudo ./st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh</code></pre>
+<p>7. Accept the License Agreement (<code>y</code> and then <code>Enter</code>).</p>
+<p>8. To clean the installation, remove all files in <code>~/Downloads</code> from the installer with the following:</p>
+<pre class="highlight"><code class="language-sh">rm st-stm32cubeclt*</code></pre>
+<p>9. To be able to use the various STM32CubeCLT components, add them all to path as was done with CubeMX.</p>
+<p>The install path to STM32CubeCLT is <code>/opt/st/</code>, but each tool included has its own <code>bin</code> directory that must be added
+to the path independently.</p>
+<p>The tools to be added are as follows.</p>
+<ul>
+<li>GNU-tools-for-STM32</li>
+<li>st-arm-clang</li>
+<li>STLink-gdb-server</li>
+<li>STM32CubeProgrammer</li>
+</ul>
+<h2 id="cubemx-and-cubeclt-for-macos-users">CubeMX and CubeCLT for macOS Users</h2>
+<h3 id="1-download">1. Download</h3>
+<p>Download <a href="https://www.st.com/en/development-tools/stm32cubeclt.html">STM32CubeCLT</a> and <a href="https://www.st.com/en/development-tools/stm32cubemx.html">STM32CubeMX</a> for macOS. By default your <code>Downloads</code> folder should now contain two <a href="https://en.wikipedia.org/wiki/Tar_(computing)">tar</a> files, one for each tool.</p>
+<h3 id="2-install">2. Install</h3>
+<p>Double click on each tar file. One tar file will expand into a <code>.app</code> bundle: double click this item
+and follow the installation steps. The other tar file should expand into a folder with two .pkg files:
+click on each one respectively and follow the steps for installation. </p>
+<h3 id="3-update-your-path">3. Update your PATH</h3>
+<p>The <code>scripts/new.sh</code> script (used when <a href="#creating-a-new-project">creating a new project</a>) needs to
+know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify by adding the location
+of the binaries to our <a href="https://en.wikipedia.org/wiki/PATH_(variable)"><code>PATH</code> environment variable</a>. </p>
+<p>There are multiple ways to do this, but the way we will choose is to add the paths to the system-wide
+<code>/etc/paths</code> file:</p>
+<ol>
+<li>
+<p>Run the command <code>sudo nano /etc/paths</code> to open a text editor in the terminal where we can update this file. </p>
+</li>
+<li>
+<p>Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line.
+Once you are done, make sure you write out (<code>^O</code>) and exit (<code>^X</code>).
+<img alt="verify macos path" src="verify-paths-macos.webp" /></p>
+</li>
+<li>
+<p>Restart your terminal. Ensure the paths you added have been added to your PATH environment variable
+by running the command <code>echo $PATH</code>. You should see all the paths you added somewhere in the output.</p>
+</li>
+</ol>
+<h3 id="4-next-steps">4. Next Steps</h3>
+<p>You should now be able to create a new project following the <a href="#creating-a-new-project">steps below</a>. </p>
+<h2 id="creating-a-new-project">Creating a New Project</h2>
+<p>This quick guide will teach you how to make a new project for your STM32G431RB Nucleo board that you
+will be developing on.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>STM32CubeMX and STM32CubeCLT <a href="./">installed</a></li>
+</ul>
+<h3 id="guide">Guide</h3>
+<p>To create a new project, use the <code>scripts/new.sh</code> script. The script accepts either an MCU or Development Board ID, project source, and optionally any number of cmake libraries defined under <code>lib</code>. To create a project for the Nucleo G431RB developer kit, run the following.</p>
+<pre class="highlight"><code class="language-bash">./scripts/new.sh --board NUCLEO-G431RB --src &lt;path/to/project&gt;</code></pre>
+<p>When prompted to select default peripheral configurations, select "Unselect All" and "continue".</p>
+<p>If this is the first time STM32CubeMX is being run on a machine, it may need to download the firmware repository. Select "Download" and continue.</p>
+<p>Once the script completes, try to build the generated project as follows.</p>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;path/to/project&gt;</code></pre>
+<p>If this completes successfully, then STM32CubeCLT is correctly installed on the system.</p>
+<p>Open the <code>&lt;project&gt;.ioc</code> file in STM32CubeMX to modify the project configuration.</p>
+<p><strong>Congratulations! You have successfully created a new project with CubeMX!</strong></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../intro/" class="btn btn-neutral float-left" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../starter/led/" class="btn btn-neutral float-right" title="LED">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../intro/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../starter/led/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

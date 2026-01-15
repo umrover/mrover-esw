@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Communication Protocols - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Communication Protocols";
+        var mkdocs_page_input_path = "info/communication-protocols/index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Communication Protocols</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#i2c">I2C</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#how-communication-works">How Communication Works</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#can">CAN</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#can-20">CAN 2.0</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#can-fd">CAN FD</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#can-bit-timing">CAN Bit Timing</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#can-bus">CAN Bus</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#using-the-kvaser-bit-timing-calculator">Using the Kvaser Bit Timing Calculator</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../stm32-boot/">STM32 Boot</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cmake-tools/">CMake Toolchain</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Useful Information</li>
+      <li class="breadcrumb-item active">Communication Protocols</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/master/docs/info/communication-protocols/index.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="communication-protocols">Communication Protocols</h1>
+<h2 id="i2c">I2C</h2>
+<p>I2C is a synchronous serial communication protocol that is commonly used in embedded systems. On MRover we often use I2C to interface with sensors. I2C has a single leader device and multiple follower devices (traditionally master and slave devices). An example of this is the science board being the leader and multiple sensors being the followers. The leader device controls the clock and initiates communication, while the followers respond when addressed. Each I2C device has a unique 7-bit address allowing for multiple devices to be placed on the same bus.</p>
+<p>I2C uses two wires, a clock line (SCL) and a data line (SDA). Both lines are open-drain and require pull-up resistors, meaning devices are only able to pull the line low and not drive it high, preventing possible damage. Below is a diagram of a sample I2C bus setup.</p>
+<p><img alt="i2c bus diagram" src="i2c-schema.webp" /></p>
+<h3 id="how-communication-works">How Communication Works</h3>
+<p>Each transaction between the leader and a follower begins with a start condition and ends with a stop condition.</p>
+<ul>
+<li>Start Condition: occurs when the leader pulls SDA low while SCL is held high.</li>
+<li>Stop Condition: occurs when the leader releases SDA high while SCL is held high.</li>
+</ul>
+<p>After a start condition the leader sends a message over the bus consisting of:</p>
+<ol>
+<li>7-bit address of follower</li>
+<li>Read/Write bit (0 = write, 1 = read)</li>
+<li>ACK bit (the addressed follower pulls SDA low to acknowledge its address was received)</li>
+</ol>
+<p>Then the actual data transfer begins, sending byte-by-byte with each byte followed by an ACK/NACK bit. After all data is sent the leader sends the stop condition and the bus waits for another transaction.</p>
+<h2 id="can">CAN</h2>
+<p>Controller Area Network (CAN) is a communication protocol that is used in many embedded systems,
+especially in industrial and automotive contexts where reliability is important. Devices speak to
+each other on a CAN bus, which is composed of two wires: CAN High (CANH) and CAN Low (CANL).
+CAN is a serial, multimaster, multicast protocol, which means that when the bus is free, any node
+can send a message (multimaster), and all nodes may receive and act on the message (multicast).</p>
+<p>The CAN protocol has evolved over time. It has three versions, introduced in chronological order:</p>
+<ol>
+<li>CAN 2.0A</li>
+<li>CAN 2.0B</li>
+<li>CAN FD</li>
+</ol>
+<p>Each version adds more features to the protocol while maintaining backwards compatibility.</p>
+<p>There are four types of CAN messages, or “frames:” the Data Frame, Remote Frame, Error Frame and
+Overload Frame. The data frame is the standard CAN message, broadcasting data from the transmitter
+to the other nodes on the bus. A remote frame is broadcast by a transmitter to request data from a
+specific node. An error frame may be transmitted by any node that detects a bus error. Overload
+frames are used to introduce additional delay between data or remote frames.</p>
+<p>The data frame is the most common frame type and is what this guide will cover. The data frame
+is made up of two important parts: the identifier and the data. The identifier can be used to
+determine the priority of the message. The lower the identifier, the higher the priority of the
+message. Furthermore, the identifier can be used to determine the source of the message, the
+destination of the message, or the type of message being sent. The data is the actual information
+being sent by the transmitter to the other nodes on the bus. The length of the identifier and data
+can vary depending on the version of CAN being used.</p>
+<p>There are many other fields in the data frame, but for the purposes of this guide, we will only cover
+the identifier and data. Refer to <a href="https://www.eecs.umich.edu/courses/eecs461/doc/CAN_notes.pdf">this document</a>
+for a more in-depth look at the CAN protocol.</p>
+<h3 id="can-20">CAN 2.0</h3>
+<p>CAN 2.0A is the original version of the CAN protocol. It supports an identifier up to 11 bits and
+data packets up to 8 bytes in length.</p>
+<p>CAN 2.0B is an extension of CAN 2.0A. It supports an identifier of either 11 bits or 29 bits and
+data packets up to 8 bytes in length. The 29-bit identifier allows for more unique identifiers
+to be used on the bus.</p>
+<p>All CAN 2.0 messages can be sent at a maximum rate of 1 Mbps.</p>
+<h3 id="can-fd">CAN FD</h3>
+<p>CAN FD is the latest version of the CAN protocol. It supports an identifier of either 11 bits or
+29 bits and data packets up to 64 bytes in length. The FD stands for Flexible Data-rate, which
+means that the data can be sent at a different rate than the rest of the message. This allows for
+a maximum data rate of 8 Mbps (although 5 Mbps is a more practical limit). The other parts of the
+message are sent at a maximum rate of 1 Mbps. The rate in which data is sent is often called the
+"data rate," while the rate in which the rest of the message is sent is called the "nominal rate."</p>
+<p>As a side note, although CAN FD can send up to 64 bytes of data in a single message, this does
+not mean that the data payload of the message can be any value up to 64 bytes. The data payload
+can be the following lengths: 0 to 8, 12, 16, 20, 24, 32, 48, or 64.</p>
+<h3 id="can-bit-timing">CAN Bit Timing</h3>
+<p>When using CAN, you will need to configure the bit timing. The bit timing determines how fast we
+send and receive messages on the CAN bus. The bit timing parameters are:</p>
+<ol>
+<li>Prescaler</li>
+<li>Sync Jump Width</li>
+<li>Time Seg 1</li>
+<li>Time Seg 2</li>
+</ol>
+<p>For CAN FD, data can be sent at a different rate than the rest of the message. So we end up
+with two different sets of bit timing parameters:</p>
+<ol>
+<li>Nominal Prescaler</li>
+<li>Nominal Sync Jump Width</li>
+<li>Nominal Time Seg 1</li>
+<li>Nominal Time Seg 2</li>
+<li>Data Prescaler</li>
+<li>Data Sync Jump Width</li>
+<li>Data Time Seg 1</li>
+<li>Data Time Seg 2</li>
+</ol>
+<p>For an in-depth guide on what these values mean, <a href="https://www.youtube.com/watch?v=se204xfyb4g">this video</a>,
+although long, is very informative.</p>
+<h3 id="can-bus">CAN Bus</h3>
+<p><img alt="can bus diagram" src="can-bus.webp" /></p>
+<p>As mentioned previously, the CAN bus is made up of two wires: CAN High (CANH) and CAN Low (CANL).
+Microcontrollers, however, do not have the capability to directly interface with the CAN bus. They
+require a CAN transceiver to convert the digital signals from the microcontroller to the analog
+signals on the CAN bus. The CAN transceiver also provides protection to the microcontroller from
+the high voltage on the CAN bus. This is why you will often see CAN TX and RX pins on a microcontroller,
+but no CANH or CANL pins. The TX and RX pins are connected to the CAN transceiver, which then
+connects to the CAN bus.</p>
+<p>Additionally, the CANH and CANL wires are connected to each other at the beginning and end of the bus. This is called
+termination. The termination is usually done with a 120&Omega; resistor at each end of the bus.
+Termination is important because it helps to reduce reflections on the bus, which can cause data
+errors.</p>
+<h4 id="using-the-kvaser-bit-timing-calculator">Using the Kvaser Bit Timing Calculator</h4>
+<p>We will go over finding these values for <strong><em>STM32 MCUs</em></strong> using an <a href="https://www.kvaser.com/support/calculators/can-fd-bit-timing-calculator/">online tool</a>
+provided by Kvaser. However, the process is similar for other microcontrollers and CAN hardware.</p>
+<p>The tool requires three values that are properties of the hardware you are using:</p>
+<ol>
+<li>Clock Frequency</li>
+<li>Clock Tolerance</li>
+<li>Node Delay</li>
+</ol>
+<p>The clock frequency of the FDCAN peripheral is based on the system clock. It can
+be found and modified by the user in the <code>Clock Configuration</code> tab of the .ioc in STM32CubeIDE.
+The example below shows a clock configuration where the FDCAN peripheral clock frequency is 64 MHz.</p>
+<p><img alt="stm32cubeide fdcan clock frequency in the ioc" src="fdcan-clock-frequency.webp" /></p>
+<p>The clock tolerance (measured in ppm) is a physical characteristic of the clock of the CAN FD hardware.
+Based on the specific clock configuration shown above, we can see that the FDCAN peripheral is using
+PCLK1 (FDCAN Clock Mux). PCLK1 is based on PLLCLK (System Clock Mux). Finally, PLLCLK is based on
+HSI16 (PLL Source Mux). We can find the characteristics in the datasheet. The table with the
+characteristics of the HSI16 oscillator for the STM32G431 is shown below.</p>
+<p>We then perform the following calculation:</p>
+<p>(16.08 - 16) / 16 = 0.005</p>
+<p>For these values, we can use an <a href="https://www.kvaser.com/support/calculators/can-fd-bit-timing-calculator/">online tool</a>
+provided by Kvaser.</p>
+<p>The tool requires three values that are properties of the hardware you are using:</p>
+<ol>
+<li>Clock Frequency</li>
+<li>Clock Tolerance</li>
+<li>Node Delay</li>
+</ol>
+<p>We will go over finding these values for <strong><em>STM32 MCUs</em></strong>.</p>
+<p>The clock frequency of the FDCAN peripheral is based on the system clock. It can
+be found and modified by the user in the <code>Clock Configuration</code> tab of the .ioc in STM32CubeIDE.
+The example below shows a clock configuration where the FDCAN peripheral clock frequency is 64 MHz.</p>
+<p><img alt="stm32cubeide fdcan clock frequency in the ioc" src="fdcan-clock-frequency.webp" /></p>
+<p>The clock tolerance (measured in ppm) is a physical characteristic of the clock of the CAN FD hardware.
+Based on the specific clock configuration shown above, we can see that the FDCAN peripheral is using
+PCLK1 (FDCAN Clock Mux). PCLK1 is based on PLLCLK (System Clock Mux). Finally, PLLCLK is based on
+HSI16 (PLL Source Mux). We can find the characteristics in the datasheet. The table with the
+characteristics of the HSI16 oscillator for the STM32G431 is shown below.</p>
+<p>We then perform the following calculation:</p>
+<p>(16.08 - 16) / 16 = 0.005</p>
+<p>0.005 * 1,000,000 = <strong>5,000 ppm</strong></p>
+<p><img alt="stm32g431 hsi16 characteristics datasheet table" src="g4-hsi16-characteristics.webp" /></p>
+<p>The node delay is the max input/output propagation delay of our CAN transceiver. This value is
+dependent on the CAN transceiver that we are using. For the TCAN1042, the max propagation delay is
+<strong>175 ns</strong> as shown below. Refer to the datasheet of the transceiver you are using to find this
+value.</p>
+<p><img alt="tcan1042 node delay datasheet table" src="tcan1042-node-delay.webp" /></p>
+<p>With these values, we can now use the <a href="https://www.kvaser.com/support/calculators/can-fd-bit-timing-calculator/">Kvaser tool</a>
+to calculate the bit timing values for our CAN bus.</p>
+<p>Scroll down to <strong>1. Device Characteristics</strong> and make sure to delete the default device that has been added.
+Then, input the clock frequency, clock tolerance, and node delay. Click <code>Add CAN Device</code>.</p>
+<p>Then, scroll down to <strong>2. Bitrates</strong> and input the desired bitrate for the CAN bus. Click <code>Recalculate</code>.</p>
+<p>Now in sections <strong>3.1</strong> and <strong>3.2</strong>, you can make changes to the nominal and data sample point
+percentages. Any percentage from 50% to 90% is acceptable. Many automotive applications use a value
+around 87.5% for nominal and around 70% - 80% for data.</p>
+<p>Finally, scroll down to <strong>4. Individual Bus Timing Parameters</strong> and you will see the values for the
+bit timing parameters. You may also modify the prescaler (the data prescaler must be equal to 1 or
+2).</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../timers/" class="btn btn-neutral float-left" title="Timers"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../brushed/" class="btn btn-neutral float-right" title="Brushed Motors">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../timers/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../brushed/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
