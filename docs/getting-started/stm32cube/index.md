@@ -2,15 +2,20 @@
 
 ## About
 
-STM32CubeMX and STM32 CubeCLT allow the user to write, compile, and flash code to the STM32 microcontroller!
+STM32CubeMX and STM32CubeCLT allow the user to write, compile, and flash code to the STM32 microcontroller!
 STM32CubeCLT contains the GCC compiler and GDB debugging tool for firmware compilation and debugging, and
 STM32CubeMX contains the interface for configuring the microcontroller and project environment, and provides
 a very powerful interface for automatic code generation, allowing the user to initialize an entire module with
 a few clicks of a button, and have that code show up automatically in the main file.
 
+!!! note
+    If you've taken EECS 373, you have used STM32CubeIDE, which is an IDE that packages both of these tools
+    together. However, STM32CubeIDE is a very heavy program, so we choose to use the lighter weight STM32CubeMX
+    and STM32CubeCLT tools in combination with CMake and your favorite text editor or IDE.
+
 ## Downloading and Installing CubeMX
 
-### Download CubeMX
+### 1. Download CubeMX
 
 1. Go to the CubeMX [download page](https://www.st.com/en/development-tools/stm32cubemx.html) and scroll down to "Get Software."
    ![get cubemx](get-cubemx.webp)
@@ -26,7 +31,7 @@ a few clicks of a button, and have that code show up automatically in the main f
 5. After logging in and being brought back to the download page, the download should start automatically.
    Scroll down and select the correct version from "Get Software" if it does not.
 
-### Install CubeMX
+### 2. Install CubeMX
 
 **Note**: This install guide is for **Linux**. Please make sure to install the correct version
 for the OS you are running.
@@ -104,7 +109,7 @@ which STM32CubeMX
 
 ## Downloading and Installing CubeCLT
 
-### Download CubeCLT
+### 1. Download CubeCLT
 
 1. Go to the CubeCLT [download page](https://www.st.com/en/development-tools/stm32cubeclt.html) and scroll down to "Get Software."
    ![get cubeclt](get-cubeclt.webp)
@@ -120,7 +125,7 @@ which STM32CubeMX
 5. After logging in and being brought back to the download page, the download should start automatically.
    Scroll down and select the correct version from "Get Software" if it does not.
 
-### Install CubeCLT
+### 2. Install CubeCLT
 
 **Note**: This install guide is for **Debian Linux**. Please make sure to install the correct version
 for the OS you are running.
@@ -192,25 +197,38 @@ The tools to be added are as follows.
 - STLink-gdb-server
 - STM32CubeProgrammer
 
-## Steps for MacOS Users
+## CubeMX and CubeCLT for macOS Users
 
-1\. *Download*
-Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) for MacOS. By default your `Downloads` folder should now contain two [tar](https://en.wikipedia.org/wiki/Tar_(computing)) files, one for each tool.
+### 1. Download
 
-2\. *Install*
-Double click on each tar file. One tar file will expand into a .app bundle: double click this item and follow the installation steps. The other tar file should expand into a folder with two .pkg files: click on each one respectively and follow the steps for installation. 
+Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) for macOS. By default your `Downloads` folder should now contain two [tar](https://en.wikipedia.org/wiki/Tar_(computing)) files, one for each tool.
 
-3\. *Update your PATH*
-The `scripts/new.sh` script (see below) needs to know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify in our paths file. 
+### 2. Install
 
-Run the command `sudo nano /opt/paths` to open a text editor in the terminal where we can update this file. 
+Double click on each tar file. One tar file will expand into a `.app` bundle: double click this item
+and follow the installation steps. The other tar file should expand into a folder with two .pkg files:
+click on each one respectively and follow the steps for installation. 
 
-Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line. Once you are done, make sure you write out (`^O`) and exit (`^X`).
+### 3. Update your PATH
 
-![veryify macos path](./verify-paths-macos.webp)
+The `scripts/new.sh` script (used when [creating a new project](#creating-a-new-project)) needs to
+know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify by adding the location
+of the binaries to our [`PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable)). 
 
-4\. *Next Steps*
-You should now be able to create a new project following the steps below. 
+There are multiple ways to do this, but the way we will choose is to add the paths to the system-wide
+`/etc/paths` file:
+
+1. Run the command `sudo nano /etc/paths` to open a text editor in the terminal where we can update this file. 
+
+2. Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line.
+Once you are done, make sure you write out (`^O`) and exit (`^X`).
+![verify macos path](./verify-paths-macos.webp)
+
+3. Restart your terminal. Ensure the paths you added have been added to your PATH environment variable
+by running the command `echo $PATH`. You should see all the paths you added somewhere in the output.
+
+### 4. Next Steps
+You should now be able to create a new project following the [steps below](#creating-a-new-project). 
 
 ## Creating a New Project
 
