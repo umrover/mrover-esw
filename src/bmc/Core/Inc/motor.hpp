@@ -71,6 +71,7 @@ namespace mrover {
             m_hbridge.set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
             m_hbridge.set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
             m_current_sensor.init(get_current_sensor_options());
+            // TODO(eric) provide a mechanism to reset the FDCAN filter
             // TODO(eric) add limit switches
             // TODO(eric) add quad encoders
             // TODO(eric) add absolute encoders
@@ -167,7 +168,7 @@ namespace mrover {
         }
 
         auto send_state() -> void {
-            m_current_sensor.update_sensor();
+            // m_current_sensor.update_sensor();
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
@@ -178,10 +179,10 @@ namespace mrover {
                     0,                             // limit_a_set
                     0,                             // limit_b_set
                     0,                             // is_stalled
-                    m_current_sensor.current()     // current
+                    0 //m_current_sensor.current()     // current
             });
 
-            Logger::instance().info("Current: %f", m_current_sensor.current());
+            // Logger::instance().info("Current: %f", m_current_sensor.current());
         }
 
         auto drive_output() -> void {
