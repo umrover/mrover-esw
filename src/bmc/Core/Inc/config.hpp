@@ -6,9 +6,9 @@
 #include <serial/uart.hpp>
 #include <tuple>
 
+#include <CANBus1.hpp>
 #include <adc.hpp>
 #include <hw/ad8418a.hpp>
-#include <CANBus1.hpp>
 
 
 namespace mrover {
