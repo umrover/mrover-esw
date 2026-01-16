@@ -37,7 +37,7 @@ namespace mrover {
             if (!m_enabled || m_adc == nullptr) return;
 
             // Retrieve the raw value from the ADC wrapper (DMA or Polling)
-            uint32_t const raw_val = 0;//m_adc->get_channel_value(m_channel);
+            uint32_t const raw_val = 0; //m_adc->get_channel_value(m_channel);
 
             // Convert to voltage
             float const v_out = (static_cast<float>(raw_val) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;

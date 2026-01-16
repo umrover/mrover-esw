@@ -179,7 +179,7 @@ namespace mrover {
                     0,                             // limit_a_set
                     0,                             // limit_b_set
                     0,                             // is_stalled
-                    0 //m_current_sensor.current()     // current
+                    0                              //m_current_sensor.current()     // current
             });
 
             // Logger::instance().info("Current: %f", m_current_sensor.current());

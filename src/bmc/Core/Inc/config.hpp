@@ -5,9 +5,9 @@
 #include <tuple>
 #include <type_traits>
 
+#include <CANBus1.hpp>
 #include <adc.hpp>
 #include <hw/ad8418a.hpp>
-#include <CANBus1.hpp>
 
 
 namespace mrover {
