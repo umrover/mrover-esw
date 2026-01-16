@@ -6,12 +6,13 @@ from esw.can.canbus import CANBus
 
 
 def on_msg_recv(msg):
-    msg_name, signals, node_id = msg
+    msg_name, signals, src_id, dest_id = msg
     if msg_name != "BMCMotorState":
-        esw_logger.info(f"CAN RECV {msg_name} (Node {hex(node_id)}): {signals}")
-    else:
         # pass
-        esw_logger.info(f"CAN RECV {signals})")
+        esw_logger.info(f"CAN RECV {msg_name} (src: {hex(src_id)}, dest: {hex(dest_id)}): {signals}")
+    else:
+        pass
+        # esw_logger.info(f"CAN RECV {msg_name} (src: {src_id}, dest: {dest_id}): {signals}")
 
 
 if __name__ == "__main__":
@@ -19,8 +20,11 @@ if __name__ == "__main__":
         n = 0
         while True:
             bus.send("BMCProbe", {"data": n}, node_id=0)
+            bus.send("BMCProbe", {"data": n}, node_id=n)
             sleep(1)
             n += 1
+            if n > 0xFF:
+                n = 0
         # request can id, max pwm of board
         bus.send("BMCConfigCmd", {"address": 0x00, "value": 0x00, "apply": 0x0}, node_id=0)
         bus.send("BMCConfigCmd", {"address": 0x24, "value": 0x00, "apply": 0x0}, node_id=0)
