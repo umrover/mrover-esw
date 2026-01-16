@@ -9,6 +9,12 @@ from esw import esw_logger
 
 
 class CANBus:
+    _MJBOTS_CAN_PREFIX: int = 0x0000
+    _CAN_DEST_ID_MASK: int = 0x00FF
+    _CAN_SRC_ID_MASK: int = 0xFF00
+    _CAN_DEST_ID_OFFSET: int = 0
+    _CAN_SRC_ID_OFFSET: int = 8
+
     _dbc: Database
     _channel: str
     _interface: str = "socketcan"
@@ -16,7 +22,7 @@ class CANBus:
     _can_brs: bool = True
     _bus: can.BusABC | None
     _notifier: can.Notifier | None
-    _rx_queue: "queue.Queue[Tuple[str, dict[str, Any], int]]"
+    _rx_queue: "queue.Queue[Tuple[str, dict[str, Any], int, int]]"
     _on_msg: Callable
 
     def __init__(self, dbc: Database, channel: str, on_recv: Callable = lambda arg: None):
@@ -54,29 +60,23 @@ class CANBus:
         return self._dbc
 
     def _on_message(self, msg: can.Message) -> None:
-        match_found = False
-        for offset in range(0xF + 1):
-            candidate_base_id = msg.arbitration_id - offset
-            try:
-                dbc_msg = self._dbc.get_message_by_frame_id(candidate_base_id)
-                node_id = offset
-                raw_data = bytes(msg.data) if msg.data is not None else b""
-                decoded_signals = cast(dict[str, Any], dbc_msg.decode(raw_data))
-                self._rx_queue.put((dbc_msg.name, decoded_signals, node_id))
-                esw_logger.debug(f"CAN RECV {dbc_msg.name} (Node {hex(node_id)}): {decoded_signals}")
-                self._on_msg((dbc_msg.name, decoded_signals, node_id))
-                match_found = True
-                break
+        base_id = msg.arbitration_id & ~(self._CAN_SRC_ID_MASK | self._CAN_DEST_ID_MASK)
+        src_id = (msg.arbitration_id & self._CAN_SRC_ID_MASK) >> self._CAN_SRC_ID_OFFSET
+        dest_id = (msg.arbitration_id & self._CAN_DEST_ID_MASK) >> self._CAN_DEST_ID_OFFSET
+        try:
+            dbc_msg = self._dbc.get_message_by_frame_id(base_id)
+            raw_data = bytes(msg.data) if msg.data is not None else b""
+            decoded_signals = cast(dict[str, Any], dbc_msg.decode(raw_data))
+            self._rx_queue.put((dbc_msg.name, decoded_signals, src_id, dest_id))
+            esw_logger.debug(f"CAN RECV {dbc_msg.name} (src: {src_id}, dest: {dest_id}): {decoded_signals}")
+            self._on_msg((dbc_msg.name, decoded_signals, src_id, dest_id))
 
-            except KeyError:
-                continue
-            except Exception as e:
+        except Exception as e:
+            if base_id == self._MJBOTS_CAN_PREFIX:
+                esw_logger.debug("CAN RECV moteus message")
+                # TODO(eric) implement some handler for this?
+            else:
                 esw_logger.error(f"CAN ERROR: decode error on ID {hex(msg.arbitration_id)}: {e}")
-                match_found = True
-                break
-
-        if not match_found:
-            esw_logger.warning(f"CAN ERROR: recv unknown message ID '{hex(msg.arbitration_id)}'")
 
     def send(self, message_name: str, signals: dict[str, Any], node_id: int = 0) -> None:
         if self._bus is None:
@@ -110,7 +110,7 @@ class CANBus:
         except Exception as e:
             esw_logger.error(f"CAN ERROR: exception when sending message {message_name}: {e}")
 
-    def recv(self, block: bool = True, timeout: float | None = None) -> Tuple[str, dict[str, Any], int] | None:
+    def recv(self, block: bool = True, timeout: float | None = None) -> Tuple[str, dict[str, Any], int, int] | None:
         try:
             return self._rx_queue.get(block=block, timeout=timeout)
         except queue.Empty:
