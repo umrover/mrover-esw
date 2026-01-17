@@ -57,6 +57,20 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define UV_Sensor_Pin GPIO_PIN_0
+#define UV_Sensor_GPIO_Port GPIOA
+#define Debug_LED1_Pin GPIO_PIN_5
+#define Debug_LED1_GPIO_Port GPIOA
+#define Debug_LED2_Pin GPIO_PIN_6
+#define Debug_LED2_GPIO_Port GPIOA
+#define Debug_LED3_Pin GPIO_PIN_7
+#define Debug_LED3_GPIO_Port GPIOA
+#define CAN_RX_LED_Pin GPIO_PIN_11
+#define CAN_RX_LED_GPIO_Port GPIOB
+#define CAN_TX_LED_Pin GPIO_PIN_12
+#define CAN_TX_LED_GPIO_Port GPIOB
+#define CAN_Standby_Pin GPIO_PIN_10
+#define CAN_Standby_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
