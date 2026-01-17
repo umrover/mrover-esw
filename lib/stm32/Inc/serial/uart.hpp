@@ -7,7 +7,9 @@
 
 #include <util.hpp>
 
+#ifdef HAL_MODULE_ENABLED
 #include "main.h"
+#endif // HAL_MODULE_ENABLED
 
 namespace mrover {
 
