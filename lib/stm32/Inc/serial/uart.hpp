@@ -7,9 +7,9 @@
 
 #include <util.hpp>
 
-#ifdef HAL_MODULE_ENABLED
+#ifdef STM32
 #include "main.h"
-#endif // HAL_MODULE_ENABLED
+#endif // STM32
 
 namespace mrover {
 
