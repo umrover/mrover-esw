@@ -7,7 +7,9 @@
 #include <units.hpp>
 #include <util.hpp>
 
+#ifdef STM32
 #include "main.h"
+#endif // STM32
 #include "pin.hpp"
 
 namespace mrover {

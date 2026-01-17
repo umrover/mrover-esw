@@ -4,8 +4,6 @@
 #include <timer.hpp>
 #include <units.hpp>
 
-#include "main.h"
-
 namespace mrover {
 
     struct QuadratureEncoderReading {
