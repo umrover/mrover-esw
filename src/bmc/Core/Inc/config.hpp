@@ -5,6 +5,10 @@
 #include <tuple>
 #include <type_traits>
 
+#include <CANBus1.hpp>
+#include <adc.hpp>
+#include <hw/ad8418a.hpp>
+
 
 namespace mrover {
 
@@ -102,6 +106,7 @@ namespace mrover {
         reg_t<float> K_I{"ki", 0x3C, 0.0f};
         reg_t<float> K_D{"kd", 0x40, 0.0f};
         reg_t<float> K_F{"kf", 0x44, 0.0f};
+        reg_t<uint8_t> HOST_CAN_ID{"host_can_id", 0x45, 0x10};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
 
@@ -140,6 +145,8 @@ namespace mrover {
         using k_i = field_t<&bmc_config_t::K_I>;
         using k_d = field_t<&bmc_config_t::K_D>;
         using kfd = field_t<&bmc_config_t::K_F>;
+
+        using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
         template<typename F>
         auto get() const { return F::get(*this); }
@@ -189,11 +196,24 @@ namespace mrover {
      *
      * @return CAN options for BMC
      */
-    inline auto get_can_options() -> FDCAN::Options {
+    inline auto get_can_options(bmc_config_t const* config, FDCAN::Filter* can_node_filter) -> FDCAN::Options {
+        can_node_filter->id1 = config->get<bmc_config_t::can_id>();
+        can_node_filter->id2 = CAN_DEST_ID_MASK;
+        can_node_filter->id_type = FDCAN::FilterIdType::Extended;
+        can_node_filter->action = FDCAN::FilterAction::Accept;
+        can_node_filter->mode = FDCAN::FilterMode::Mask;
+
+        FDCAN::FilterConfig filter;
+        filter.begin = can_node_filter;
+        filter.end = can_node_filter + 1;
+        filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;
+        filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;
+
         auto can_opts = FDCAN::Options{};
         can_opts.delay_compensation = true;
         can_opts.tdc_offset = 13;
         can_opts.tdc_filter = 1;
+        can_opts.filter_config = filter;
         return can_opts;
     }
 
@@ -207,6 +227,29 @@ namespace mrover {
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
         options.use_dma = true;
+        return options;
+    }
+
+    /**
+     * Get the BMC ADC settings.
+     *
+     * DMA must be enabled to allow non-blocking ADC functionality.
+     *
+     * @return ADC options for BMC
+     */
+    inline auto get_adc_options() -> ADCBase::Options {
+        ADCBase::Options options;
+        options.use_dma = false; // TODO(eric) use dma for this
+        return options;
+    }
+
+    inline auto get_current_sensor_options() -> AD8418A::Options {
+        AD8418A::Options options;
+        options.gain = 20.0f;
+        options.shunt_resistance = 0.0005f;
+        options.vref = 3.3f;
+        options.vcm = options.vref / 2.0f;
+        options.adc_resolution = 4095;
         return options;
     }
 

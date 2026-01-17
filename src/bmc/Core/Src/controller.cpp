@@ -33,9 +33,11 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    static constexpr ADC_HandleTypeDef* ADC = &hadc1;
-    static constexpr UART_HandleTypeDef* LPUART = &hlpuart1;
-    static constexpr FDCAN_HandleTypeDef* CAN = &hfdcan1;
+    static constexpr uint8_t NUM_ADC_CHANNELS = 1;
+
+    static constexpr UART_HandleTypeDef* LPUART_1 = &hlpuart1;
+    static constexpr ADC_HandleTypeDef* ADC_1 = &hadc1;
+    static constexpr FDCAN_HandleTypeDef* FDCAN_1 = &hfdcan1;
 
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
     static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 10 Hz
@@ -45,17 +47,25 @@ namespace mrover {
     bmc_config_t config;
     bool initialized = false;
 
+    // Peripherals
     UART lpuart;
-    // NOTE: FDCAN is not here as the CANHandler instance requires ownership of it
+    ADC<NUM_ADC_CHANNELS> adc;
+    FDCAN fdcan;
 
+    // Timers
+    Timer tx_tim;
+    Timer can_wwdg_tim;
+    Timer control_tim;
+
+    // Hardware Units
     Pin can_tx;
     Pin can_rx;
     CANBus1Handler can_receiver;
     Motor motor;
 
-    Timer tx_tim;
-    Timer can_wwdg_tim;
-    Timer control_tim;
+    // Global Configs
+    // TODO(eric): really nasty that this has to be global
+    FDCAN::Filter can_node_filter;
 
     /**
      * Send a CAN message defined in CANBus1.dbc on the bus.
@@ -64,7 +74,7 @@ namespace mrover {
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         if (!initialized) return;
         can_tx.set();
-        can_receiver.send(msg, config.get<bmc_config_t::can_id>());
+        can_receiver.send(msg, config.get<bmc_config_t::can_id>(), config.get<bmc_config_t::host_can_id>());
         Logger::instance().debug("CAN Message Sent");
         can_tx.reset();
     }
@@ -81,8 +91,8 @@ namespace mrover {
             can_wwdg_tim.start();
         }
 
-        while (can_receiver.get_driver().messages_to_process() > 0) {
-            if (auto const recv = can_receiver.receive(config.get<bmc_config_t::can_id>()); recv) {
+        while (fdcan.messages_to_process() > 0) {
+            if (auto const recv = can_receiver.receive(); recv) {
                 can_rx.set();
                 auto const& msg = *recv;
                 motor.receive(msg);
@@ -97,7 +107,9 @@ namespace mrover {
      */
     auto init() -> void {
         // initialize peripherals
-        lpuart = UART{LPUART, get_uart_options()};
+        lpuart = UART{LPUART_1, get_uart_options()};
+        adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
+        fdcan = FDCAN{FDCAN_1, get_can_options(&config, &can_node_filter)};
 
         // initialize logger
         Logger::init(&lpuart);
@@ -111,13 +123,13 @@ namespace mrover {
 
         // setup can transceiver
         logger.info("...CAN Transceiver");
-        can_receiver = CANBus1Handler{FDCAN{CAN, get_can_options()}};
+        can_receiver = CANBus1Handler{&fdcan};
 
         // setup motor instance
         logger.info("...Motor");
         motor = Motor{
                 HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
-                AD8418A{AnalogPin{ADC, ADC_CHANNEL_0}},
+                AD8418A{&adc, ADC_CHANNEL_0},
                 send_can_message,
                 &config,
         };
@@ -156,7 +168,7 @@ namespace mrover {
      * @param huart UART handle from callback
      */
     auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
-        if (huart == LPUART) {
+        if (huart == LPUART_1) {
             lpuart.handle_tx_complete();
         }
     }
