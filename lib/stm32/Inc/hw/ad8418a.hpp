@@ -3,7 +3,6 @@
 #include <adc.hpp>
 
 #include "logger.hpp"
-#include "main.h"
 
 namespace mrover {
     class AD8418A {
