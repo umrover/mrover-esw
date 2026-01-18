@@ -9,6 +9,9 @@
 {%- for lib in libs %}
 #include <{{ lib }}>
 {%- endfor %}
+#ifdef STM32
+#include <serial/fdcan.hpp>
+#endif
 
 
 namespace mrover {
