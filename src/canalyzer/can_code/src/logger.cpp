@@ -6,6 +6,9 @@
 #include <stdexcept>
 
 
+logger::Auth::Auth(std::string host, int port, std::string database, std::string user, std::string password) 
+        : host(std::move(host)), port(port), db_name(std::move(database)), user(std::move(user)), password(std::move(password)) {}
+
 
 std::string logger::make_can_timestamp() {
     using namespace std::chrono;
@@ -80,9 +83,10 @@ void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstr
     outputFile << std::dec << "\n";
 }
 
-logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path, bool debug/*, std::istream &is*/)
-: can_bus_name(bus_name), file_path(file_path), si(server_info.host, server_info.port, server_info.db_name, server_info.user, 
-    server_info.password), listen_ids(can_ids_listen), log_all(log_all), debug(debug)
+logger::Logger::Logger(std::string bus_name, std::string yaml_file_path, std::string ascii_log_file_path, Auth &server_info, 
+    std::unordered_set<int> &&log_ids, std::unordered_set<std::string> &&dbc_file_paths, bool log_all, bool debug/*, std::istream &is*/)
+: can_bus_name(bus_name), yaml_file_path(yaml_file_path), ascii_log_file_path(ascii_log_file_path), si(server_info.db_name, server_info.port, 
+    server_info.host, server_info.user, server_info.password), log_ids(log_ids), dbc_file_paths(std::move(dbc_file_paths)), log_all(log_all), debug(debug)
 {
     /*int id;
     while (is >> id) {
@@ -94,16 +98,16 @@ logger::Logger::Logger(std::string bus_name, Auth &server_info, std::unordered_s
 void logger::Logger::start() {
     _init_bus();
 
-    std::filesystem::path dir = std::filesystem::path(file_path).parent_path();
+    std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
     if (!dir.empty() && !std::filesystem::exists(dir)) {
         std::filesystem::create_directories(dir);
         std::cout << "Created directory: " << dir << std::endl;
     }
 
     // Open log file (ofstream will create it if it doesn't exist)
-    std::ofstream file(file_path, std::ios::app); // use app to append
+    std::ofstream file(ascii_log_file_path, std::ios::app); // use app to append
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open log file: " + file_path);
+        throw std::runtime_error("Could not open log file: " + ascii_log_file_path);
     }
 
     if (debug) std::cout << "Logger started for " << can_bus_name << std::endl;
@@ -166,10 +170,10 @@ void logger::Logger::print(std::ostream &os) {
     << "Info:\n"
     << "\t - Name: " << can_bus_name << "\n"
     << "\t - log_all: " << log_all << "\n"
-    << "\t - file_path: " << file_path << "\n"
+    << "\t - yaml_file_path: " << yaml_file_path << "\n"
     << "\t - log_specify: ";
-    auto it = listen_ids.begin();
-    while (it != listen_ids.end()) {
+    auto it = log_ids.begin();
+    while (it != log_ids.end()) {
         os << *it << ", ";
         it++;
     }
@@ -177,14 +181,14 @@ void logger::Logger::print(std::ostream &os) {
 }
 
 
-void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string path, bool debug) {
+void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string yaml_path, bool debug) {
     //will init a vector of configured Loggers from a yaml found at path
 
     int size = 0;
     if (debug) std::cout << "parsing" << std::endl;
     Yaml::Node root;
     try {
-        Yaml::Parse(root, path.c_str());
+        Yaml::Parse(root, yaml_path.c_str());
     } catch (const Yaml::Exception &e) {
         throw std::runtime_error("yaml parse broke");
     }
@@ -225,9 +229,45 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
         if (num.size()) {
             log_ids.insert(std::stoi(num));
         }
-        std::string file_path = loggers_node[i]["file_path"].As<std::string>();
-        loggers.emplace_back(name, auth, log_ids, log_all, file_path, debug);
-        if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << file_path << std::endl;
+        
+        std::string dbc_file_paths_str = loggers_node[i]["dbc_file_paths"].As<std::string>();
+        std::unordered_set<std::string> dbc_file_paths;
+        std::string dbc_file_path = "";
+        size_t j = 0;
+        while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;
+        for (;j < dbc_file_paths_str.size();) {
+            if (dbc_file_paths_str[j] == ',') {
+                auto it = dbc_file_paths.find(dbc_file_path);
+                if (it != dbc_file_paths.end()) {
+                    std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
+                } else {
+                    dbc_file_paths.insert(dbc_file_path);
+                }
+                dbc_file_path.clear();
+                while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;
+            } else {
+                dbc_file_path.push_back(dbc_file_paths_str[j]);
+                ++j;
+            }
+        }
+        if (dbc_file_path.size()) {
+            auto it = dbc_file_paths.find(dbc_file_path);
+            if (it != dbc_file_paths.end()) {
+                std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
+            } else {
+                dbc_file_paths.insert(dbc_file_path);
+            }
+        }
+
+        if (dbc_file_paths.empty()) {
+            std::string error = "CAN Bus: " + std::to_string(i) + " parsed 0 file paths";
+            throw std::runtime_error(error);
+        }
+
+        std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
+
+        loggers.emplace_back(name, yaml_path, ascii_file_path, auth, log_ids, log_all, dbc_file_paths, log_all, debug);
+        if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
     }
 
 }
