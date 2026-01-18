@@ -110,6 +110,12 @@ namespace mrover {
         bool volatile m_data_ready{false};
     };
 #else  // HAL_ADC_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADCBase"))) ADCBase {
+    public:
+        template<typename... Args>
+        explicit ADCBase(Args&&... args) {}
+    };
+
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADC"))) ADC {
     public:
         template<typename... Args>
