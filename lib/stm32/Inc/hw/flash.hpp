@@ -3,6 +3,7 @@
 #include <array>
 #include <concepts>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <string_view>
 #include <tuple>
@@ -120,7 +121,7 @@ struct validated_config_t {
     uint32_t m_loaded_page_num;
     bool m_dirty;
     static constexpr uint32_t m_flash_end = Mem::FLASH_END_ADDR;
-    static constexpr uint32_t m_flash_begin = Mem::FLASH_END_ADDR;
+    static constexpr uint32_t m_flash_begin = Mem::FLASH_BEGIN_ADDR;
     static constexpr int m_page_size = Mem::PAGE_SIZE;
     static constexpr int m_num_pages = Mem::NUM_PAGES; 
     uint32_t m_last_page_start = m_flash_begin + m_page_size * (m_num_pages - 1);
@@ -145,12 +146,12 @@ struct validated_config_t {
 
     // Calculate what page of flash an address is in.
     auto get_page(uint32_t address) -> uint32_t  {
-      return (address - 0x08000000) / m_page_size;
+      return (address - m_flash_begin) / m_page_size;
     }
 
     // Calculate start address of page page_num
     auto get_page_start(uint32_t page_num) -> uint32_t {
-      return 0x08000000 + (page_num * m_page_size);
+      return m_flash_begin + (page_num * m_page_size);
     }
 
     // get physical address from custom address
@@ -193,11 +194,11 @@ struct validated_config_t {
     uint32_t m_region_start = m_last_page_start; // default to last page only
     uint32_t m_region_end = m_flash_end;  
 
-    Flash() {
+    Flash() : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
       static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
     };
     ~Flash() = default;
-    Flash (uint32_t start_addr) {
+    Flash (uint32_t start_addr) : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
       static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
       m_region_start = start_addr;
       m_region_end = m_flash_end;
@@ -210,6 +211,7 @@ struct validated_config_t {
     /// Write a double word into flash.
     void program_double_word(uint32_t address, uint64_t value) {
       unlock();
+      // printf ("address: 0x%lx\n\r", address);
       HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, value);
       lock();
 
@@ -230,7 +232,7 @@ struct validated_config_t {
     }
 
     template <typename T>
-    void write(const uint32_t &custom_addr, T value) {
+    void write(const uint32_t &custom_addr, const T &value) {
       uint32_t physical_addr = m_region_start + custom_addr;
       uint32_t page_num = get_page(physical_addr);
       uint32_t offset = physical_addr - get_page_start(page_num);
@@ -274,13 +276,15 @@ struct validated_config_t {
       }
 
       m_dirty = false;
+      load_page(m_loaded_page_num);
       // TODO logger for this
       // printf("====== PAGE FLUSHED ======\n\r");
     }
 
     template<typename Field, typename Value>
     auto write_config(Field const& f, Value const& v) {
-      write(f.addr, v);
+      using field_type = typename Field::value_t;
+      write(f.addr, static_cast<field_type>(v));
       flush();
     }
 
