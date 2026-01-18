@@ -105,11 +105,11 @@ namespace mrover {
 } // namespace mrover
 
 extern "C" {
-    void PostInit() {
-        mrover::init();
-    }
+void PostInit() {
+    mrover::init();
+}
 
-    void Loop() {
-        mrover::loop();
-    }
+void Loop() {
+    mrover::loop();
+}
 }
