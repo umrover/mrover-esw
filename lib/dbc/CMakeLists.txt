@@ -35,4 +35,6 @@ endforeach()
 
 add_library(dbc INTERFACE ${GENERATED_HEADERS})
 target_include_directories(dbc INTERFACE ${DBC_GEN_DIR})
-target_link_libraries(dbc INTERFACE stm32)
+if(DEFINED STM32)
+    target_link_libraries(dbc INTERFACE stm32)
+endif()
