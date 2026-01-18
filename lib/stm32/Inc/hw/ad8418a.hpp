@@ -5,6 +5,7 @@
 #include "logger.hpp"
 
 namespace mrover {
+#ifdef HAL_ADC_MODULE_ENABLED
     class AD8418A {
     public:
         struct Options {
@@ -71,4 +72,11 @@ namespace mrover {
 
         float m_current{0.0f};
     };
+#else // HAL_ADC_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::AD8418A"))) AD8418A {
+    public:
+        template<typename... Args>
+        explicit AD8418A(Args&&... args) {}
+    };
+#endif // HAL_ADC_MODULE_ENABLED
 } // namespace mrover
