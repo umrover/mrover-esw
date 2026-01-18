@@ -32,16 +32,21 @@ struct Auth {
     std::string db_name;
     std::string user;
     std::string password;
+
+    Auth(Auth &&other) noexcept = default;  
+    Auth(std::string host, int port, std::string database, std::string user, std::string password);
 };
 
 class Logger {
     private:
         int bus_socket;
         std::string can_bus_name;
-        std::string file_path;
+        std::string yaml_file_path;
+        std::string ascii_log_file_path;
         influxdb_cpp::server_info si;
         //std::unordered_set<int> valid_ids;
-        std::unordered_set<int> listen_ids;
+        std::unordered_set<int> log_ids;
+        std::unordered_set<std::string> dbc_file_paths;
         std::queue<canfd_frame> buffer;
         bool log_all = false;
         bool debug = false;
@@ -54,15 +59,17 @@ class Logger {
         void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile);
     
     public:
-        Logger(std::string bus_name, Auth &server_info, std::unordered_set<int> can_ids_listen, bool log_all, std::string file_path, bool debug/*, std::istream &is*/);
+        Logger(std::string bus_name, std::string yaml_file_path, std::string ascii_log_file_path, Auth &server_info, 
+            std::unordered_set<int> &&log_ids, std::unordered_set<std::string> &&dbc_file_paths, bool log_all, bool debug/*, std::istream &is*/);
         void start();
         void print(std::ostream &os);
+        friend void test_factory(std::vector<std::unique_ptr<Logger>> loggers);
 
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
 
 };
 
-void logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string path, bool debug = false);
-
+void logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string yaml_path, bool debug = false);
+void test_factory(const std::vector<std::unique_ptr<Logger>>& loggers);
 }
