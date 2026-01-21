@@ -44,22 +44,22 @@ namespace mrover {
     uint8_t read_8;
 
     auto init() -> void {
-        printf("===== RESET =====\n\r");
+        printf("\n\r===== RESET =====\n\r");
         start_addr = (uint32_t) flash.m_region_start;
         // printf("Init start_addr: %lx\n\r", start_addr);
         curr_addr = start_addr;
         // printf("Init curr_addr: %lx\n\r", curr_addr);
 
-        flash.write_config(bmc_config_t::CAN_ID, 0x02);
+        //flash.write_config(bmc_config_t::CAN_ID, 0x02);
         auto const id = flash.read_config(bmc_config_t::CAN_ID);
         printf("CAN ID: 0x%u \n\r", id);
-        flash.write_config(bmc_config_t::LIMITS_ENABLED, 0x20);
+        //flash.write_config(bmc_config_t::LIMITS_ENABLED, 0x20);
         auto const lims_enabled = flash.read_config(bmc_config_t::LIMITS_ENABLED);
         printf("LIMITS ENABLED: 0x%u \n\r", lims_enabled);
-        flash.write_config(bmc_config_t::INT_VALUE, 12);
+        //flash.write_config(bmc_config_t::INT_VALUE, 12);
         auto const int_value = flash.read_config(bmc_config_t::INT_VALUE);
         printf("INT VALUE : %u \n\r", int_value);
-        flash.write_config(bmc_config_t::FLOAT_VALUE, 3.1);
+        //flash.write_config(bmc_config_t::FLOAT_VALUE, 3.1);
         auto const float_value = flash.read_config(bmc_config_t::FLOAT_VALUE);
         printf("FLOAT VALUE : %.5f \n\r", float_value);
     }

@@ -71,7 +71,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
 # Add fwlib dependency
-add_subdirectory(../../lib fwlib)
+add_subdirectory(../../../lib fwlib)
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
