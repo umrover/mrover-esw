@@ -1,24 +1,30 @@
 #pragma once
 
-#include <string>
-#include <iostream>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <fstream>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
 #include <unordered_set>
 #include <vector>
-#include <memory>
-#include <queue>
-#include <chrono>
 
+#include <fcntl.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <fcntl.h>
 
-#include "influxdb.hpp"
+#include "../../../../lib/dbc/runtime/include/dbc_runtime.hpp"
 #include "Yaml.hpp"
+#include "influxdb.hpp"
 
 namespace logger {
 
@@ -32,13 +38,25 @@ struct Auth {
     std::string db_name;
     std::string user;
     std::string password;
-
     Auth(Auth &&other) noexcept = default;  
     Auth(std::string host, int port, std::string database, std::string user, std::string password);
 };
 
 class Logger {
     private:
+        struct DecodedFrame {
+            uint32_t id;
+            long long time;
+            std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> data;
+        };
+
+        struct DynamicBuilder : public influxdb_cpp::builder {
+            int post(const std::string &measurement,
+                     const std::string &bus_name,
+                     const std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> &data,
+                     const long long timestamp);
+        };
+
         int bus_socket;
         std::string can_bus_name;
         std::string yaml_file_path;
@@ -47,7 +65,22 @@ class Logger {
         //std::unordered_set<int> valid_ids;
         std::unordered_set<int> log_ids;
         std::unordered_set<std::string> dbc_file_paths;
-        std::queue<canfd_frame> buffer;
+
+        mrover::dbc_runtime::CanDbcFileParser parser; 
+        mrover::dbc_runtime::CanFrameProcessor processor;
+
+        std::vector<std::thread> influx_committers;
+
+        std::deque<DecodedFrame> buffer;
+        std::mutex buffer_mutex;
+        std::condition_variable cv;
+
+        void _committer_worker();
+        std::thread committer_thread;
+        std::atomic<bool> running = true;
+
+        DynamicBuilder builder;
+
         bool log_all = false;
         bool debug = false;
 
@@ -57,19 +90,32 @@ class Logger {
 
         void _init_bus();
         void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile);
+
+        auto _decode(const uint32_t id, const canfd_frame &can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
+
+        void _stop_bus();
     
     public:
-        Logger(std::string bus_name, std::string yaml_file_path, std::string ascii_log_file_path, Auth &server_info, 
-            std::unordered_set<int> &&log_ids, std::unordered_set<std::string> &&dbc_file_paths, bool log_all, bool debug/*, std::istream &is*/);
+        Logger(std::string &bus_name, 
+               std::string &yaml_file_path, 
+               std::string &ascii_log_file_path, 
+               Auth &server_info, 
+               std::unordered_set<int> &&log_ids, 
+               std::unordered_set<std::string> &&dbc_file_paths,
+               bool log_all, 
+               bool debug);
+
+        Logger(Logger &&other) noexcept;
         void start();
         void print(std::ostream &os);
-        friend void test_factory(std::vector<std::unique_ptr<Logger>> loggers);
+
+        friend void test_factory(std::vector<Logger> &loggers);
 
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
 
 };
 
-void logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string yaml_path, bool debug = false);
-void test_factory(const std::vector<std::unique_ptr<Logger>>& loggers);
+std::vector<logger::Logger> logger_factory(std::string &yaml_path, bool debug = false);
+void test_factory(const std::vector<Logger>& loggers);
 }

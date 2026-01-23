@@ -10,6 +10,9 @@ TODO
         -   maybe create a dir for valid dbc files and parse each one (rather than use command line arguments to dbc file names)
         -   it seems that dbc_runtime.hpp implements encode, decode for a can message, but you need to know which message this is. (is there a way to find the id of a can message before) (yes)
 
+        -   fix start function to decode using parser.
+        -   fix the Logger class to have parser, helper methods.
+
 - testing
         - implement basic unit tests to test each module
         - stress test the initial can logger to see if any can frames are dropped.
