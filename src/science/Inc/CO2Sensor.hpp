@@ -21,7 +21,7 @@ namespace mrover {
 		}
 
         // updates ppm using rx_buf data -> conversion formula: ppm = ((rx_buf - 2^14) / 2^15) * 100
-        double update_co2() {
+        void update_co2() {
             uint16_t raw = (rx_buf[0] << 8) | rx_buf[1];
             ppm = ((raw - (1 << 14)) / (1 << 15)) * 100.00;
         }
@@ -39,15 +39,13 @@ namespace mrover {
 
 		// initializes the sensor to be in AUTO mode (sensor constantly sends data)
 		void init() {
-            uint8_t tx_buf[4];
-
             // Disable CRC (0x3768)
-            tx_buf = {0x37, 0x68, 0x00, 0x00};
-            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf, 2, HAL_MAX_DELAY);
+			uint8_t tx_buf1[4] = {0x37, 0x68, 0x00, 0x00};
+            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf1, 4, HAL_MAX_DELAY);
 
             // Set measurement mode -> standard measurement mode with 0-100% concentration in air
-			tx_buf = {0x36, 0x15, 0x00, 0x13};
-            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf, 4, HAL_MAX_DELAY);
+			uint8_t tx_buf2[4] = {0x36, 0x15, 0x00, 0x13};
+            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf2, 4, HAL_MAX_DELAY);
 		}
 	};
 }
