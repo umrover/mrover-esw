@@ -5,12 +5,48 @@
 #include <filesystem>
 #include <stdexcept>
 
+namespace logger {
 
-logger::Auth::Auth(std::string host, int port, std::string database, std::string user, std::string password) 
-        : host(std::move(host)), port(port), db_name(std::move(database)), user(std::move(user)), password(std::move(password)) {}
+Auth::Auth(
+    std::string host, int port, 
+    std::string database, 
+    std::string user, 
+    std::string password) 
+      : host(std::move(host)), 
+        port(port), 
+        db_name(std::move(database)), 
+        user(std::move(user)), 
+        password(std::move(password)) {}
+
+int Logger::DynamicBuilder::post(
+    const std::string &measurement,
+    const std::string &bus_name,
+    const std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> &data,
+    const long long timestamp) {
+        
+        _m(measurement);
+
+        _t("bus_name", bus_name);
+
+        bool is_first_field = true;
+
+        for (const auto &[name, value] : data) {
+            char delim = is_first_field ? ' ' : ',';
+
+            if (value.is_floating_point()) {
+                _f_f(delim, name, value.as_double(), 8);
+            } else if (value.is_integral()) {
+                _f_i(delim, name, value.as_signed_integer());
+            } else if (value.is_string()) {
+                _f_s(delim, name, value.as_string());
+            } else {
+                std::cerr << "something weird happened";
+            }
+        }
+    }
 
 
-std::string logger::make_can_timestamp() {
+std::string make_can_timestamp() {
     using namespace std::chrono;
 
     auto now = system_clock::now();
@@ -24,14 +60,51 @@ std::string logger::make_can_timestamp() {
     return std::string(buf);
 }
 
-long long logger::now_ns() {
+long long now_ns() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
 }
 
+void Logger::_committer_worker() {
+    
+    std::vector<DecodedFrame> local_buffer;
 
-void logger::Logger::_init_bus() {
+    while (true) {
+        {
+            std::unique_lock<std::mutex> lock(buffer_mutex);
+            cv.wait(lock, [this] { return !buffer.empty() || !running; });
+
+            if (!running && buffer.empty()) break;
+
+            while (!buffer.empty()) {
+                local_buffer.push_back(std::move(buffer.front()));
+                buffer.pop_front();
+            }
+        }
+
+        for (const auto &can_frame : local_buffer) {
+            const auto *desc = parser.message(can_frame.id);
+            builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
+        }
+    }
+}
+
+void Logger::_init_bus() {
+    
+    //parse files
+
+    for (auto it = begin(dbc_file_paths); it != end(dbc_file_paths); ++it) {
+        parser.parse(*it);
+    }
+
+    //add log messasges into the processor
+
+    for (auto it = begin(log_ids); it != end(log_ids); ++it) {
+        mrover::dbc_runtime::CanMessageDescription const *message = parser.message(*it);
+        processor.add_message_description(*message);
+    }
+
     bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (bus_socket < 0) {
         throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
@@ -61,7 +134,7 @@ void logger::Logger::_init_bus() {
     }
 }
         
-void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
+void Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
     if (!outputFile.is_open()) return;
     
 
@@ -83,19 +156,43 @@ void logger::Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstr
     outputFile << std::dec << "\n";
 }
 
-logger::Logger::Logger(std::string bus_name, std::string yaml_file_path, std::string ascii_log_file_path, Auth &server_info, 
-    std::unordered_set<int> &&log_ids, std::unordered_set<std::string> &&dbc_file_paths, bool log_all, bool debug/*, std::istream &is*/)
-: can_bus_name(bus_name), yaml_file_path(yaml_file_path), ascii_log_file_path(ascii_log_file_path), si(server_info.db_name, server_info.port, 
-    server_info.host, server_info.user, server_info.password), log_ids(log_ids), dbc_file_paths(std::move(dbc_file_paths)), log_all(log_all), debug(debug)
-{
-    /*int id;
-    while (is >> id) {
-        valid_ids.emplace(id);
-    }
-    */
+auto Logger::_decode(const uint32_t id, const canfd_frame &can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> {
+    return processor.decode(id, std::string_view(reinterpret_cast<const char*>(can_frame.data), can_frame.len));
 }
 
-void logger::Logger::start() {
+Logger::Logger(std::string &bus_name, 
+               std::string &yaml_file_path, 
+               std::string &ascii_log_file_path, 
+               Auth &server_info,
+               std::unordered_set<int> &&log_ids, 
+               std::unordered_set<std::string> &&dbc_file_paths,
+               bool log_all, 
+               bool debug)
+
+  : can_bus_name(bus_name), 
+    yaml_file_path(yaml_file_path), 
+    ascii_log_file_path(ascii_log_file_path), 
+    si(server_info.db_name, server_info.port, server_info.host, server_info.user, server_info.password), 
+    log_ids(log_ids), 
+    dbc_file_paths(std::move(dbc_file_paths)), 
+    log_all(log_all), 
+    debug(debug)
+{}
+
+Logger::Logger(logger::Logger &&other) noexcept
+  : can_bus_name(std::move(other.can_bus_name)),
+    yaml_file_path(std::move(other.yaml_file_path)),
+    ascii_log_file_path(std::move(other.ascii_log_file_path)),
+    si(other.si),
+    log_ids(std::move(other.log_ids)),
+    dbc_file_paths(std::move(other.dbc_file_paths)),
+    log_all(other.log_all),
+    debug(other.debug)
+{}
+
+
+
+void Logger::start() {
     _init_bus();
 
     std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
@@ -112,9 +209,12 @@ void logger::Logger::start() {
 
     if (debug) std::cout << "Logger started for " << can_bus_name << std::endl;
 
+
+    committer_thread = std::thread(&Logger::_committer_worker, this);
+
     struct canfd_frame cfd;
 
-    while (true) {                                                              //catch an interupt instead?
+    while (running) {                                                              //catch an interupt instead?
 
         //read a vcan message from bus (can_id)
         //insert into buffer
@@ -139,26 +239,22 @@ void logger::Logger::start() {
 
         std::string resp;
 
-        
-        //std::string decoded_message = decode(cfd.can_id);                      //calling decode
-        std::string decoded_message = "";
-        long long ts = logger::now_ns();
-        
-        int ret = influxdb_cpp::builder()
-            .meas("message")
-            .tag("message", "can id")
-            .field("message", decoded_message)
-            .field("can id", static_cast<int>(cfd.can_id))
-            .timestamp(ts)
-            .post_http(si, &resp);
-        if (ret != 0) {
-            std::cerr << "Nonzero return code: " << ret << std::endl; //fix idk if return nonzero is actually bad
-            ++influx_post_error_count;
+        uint32_t id = cfd.can_id & CAN_EFF_MASK;
+
+
+        DecodedFrame decoded_message = {.id = id, .time=now_ns(), .data=_decode(id, cfd)};
+
+        {
+            std::lock_guard<std::mutex> lock(buffer_mutex);
+            buffer.push_back(decoded_message);
         }
+        cv.notify_one();
     }
+
+    _stop_bus();
 }
 
-void logger::Logger::print(std::ostream &os) {
+void Logger::print(std::ostream &os) {
     os << "Auth:\n"
     << "\t - Host: " << si.host_ << "\n"
     << "\t - Port: " << si.port_ << "\n"
@@ -181,8 +277,9 @@ void logger::Logger::print(std::ostream &os) {
 }
 
 
-void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::string yaml_path, bool debug) {
+std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
     //will init a vector of configured Loggers from a yaml found at path
+    std::vector<Logger> loggers;
 
     int size = 0;
     if (debug) std::cout << "parsing" << std::endl;
@@ -229,12 +326,12 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
         if (num.size()) {
             log_ids.insert(std::stoi(num));
         }
-        
+
         std::string dbc_file_paths_str = loggers_node[i]["dbc_file_paths"].As<std::string>();
         std::unordered_set<std::string> dbc_file_paths;
         std::string dbc_file_path = "";
         size_t j = 0;
-        while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;
+        while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;          //leading whitespace
         for (;j < dbc_file_paths_str.size();) {
             if (dbc_file_paths_str[j] == ',') {
                 auto it = dbc_file_paths.find(dbc_file_path);
@@ -244,6 +341,8 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
                     dbc_file_paths.insert(dbc_file_path);
                 }
                 dbc_file_path.clear();
+
+                ++j;
                 while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;
             } else {
                 dbc_file_path.push_back(dbc_file_paths_str[j]);
@@ -266,8 +365,9 @@ void logger::logger_factory(std::vector<std::unique_ptr<Logger>> &loggers, std::
 
         std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
 
-        loggers.emplace_back(name, yaml_path, ascii_file_path, auth, log_ids, log_all, dbc_file_paths, log_all, debug);
+        loggers.emplace_back(name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), log_all, debug);
         if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
     }
-
+    return loggers;
+}
 }
