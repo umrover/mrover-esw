@@ -41,7 +41,7 @@ namespace mrover {
 
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
     static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 10 Hz
-    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 0.1 Hz
+    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 10 Hz
     static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 100 Hz
 
     bmc_config_t config;
