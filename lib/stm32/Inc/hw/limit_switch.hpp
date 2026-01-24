@@ -7,14 +7,22 @@
 
 namespace mrover {
     class LimitSwitch {
+        Pin m_pin;
+        bool m_initialized{};
+        bool m_enabled{};
+        bool m_is_pressed{};
+        bool m_active_high{};
+        bool m_used_for_readjustment{};
+        bool m_limits_forward{};
+        float m_associated_position{};
     public:
         LimitSwitch() = default;
 
         explicit LimitSwitch(Pin const& pin) : m_pin{pin} {}
 
-        auto initialize(bool enabled, bool active_high, bool used_for_readjustment,
-                        bool limits_forward, float associated_position) -> void {
-            m_valid = true;
+        auto init(bool const enabled, bool const active_high, bool const used_for_readjustment,
+                  bool const limits_forward, float const associated_position) -> void {
+            m_initialized = true;
             m_enabled = enabled;
             m_is_pressed = false;
             m_active_high = active_high;
@@ -31,11 +39,11 @@ namespace mrover {
         [[nodiscard]] auto pressed() const -> bool { return m_is_pressed; }
 
         [[nodiscard]] auto limit_forward() const -> bool {
-            return m_valid && m_enabled && m_is_pressed && m_limits_forward;
+            return m_initialized && m_enabled && m_is_pressed && m_limits_forward;
         }
 
         [[nodiscard]] auto limit_backward() const -> bool {
-            return m_valid && m_enabled && m_is_pressed && !m_limits_forward;
+            return m_initialized && m_enabled && m_is_pressed && !m_limits_forward;
         }
 
         [[nodiscard]] auto get_readjustment_position() const
@@ -47,8 +55,10 @@ namespace mrover {
         }
 
         [[nodiscard]] auto is_used_for_readjustment() const -> bool {
-            return m_valid && m_enabled && m_used_for_readjustment;
+            return m_initialized && m_enabled && m_used_for_readjustment;
         }
+
+        auto enabled() const -> bool { return m_enabled; }
 
         auto enable() -> void { m_enabled = true; }
 
@@ -56,15 +66,5 @@ namespace mrover {
             m_enabled = false;
             m_is_pressed = false;
         }
-
-    private:
-        Pin m_pin;
-        bool m_valid{};
-        bool m_enabled{};
-        bool m_is_pressed{};
-        bool m_active_high{};
-        bool m_used_for_readjustment{};
-        bool m_limits_forward{};
-        float m_associated_position{};
     };
 } // namespace mrover

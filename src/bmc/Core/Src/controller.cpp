@@ -3,6 +3,8 @@
 
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
+#include <hw/limit_switch.hpp>
+#include <hw/pin.hpp>
 #include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
@@ -130,6 +132,8 @@ namespace mrover {
         motor = Motor{
                 HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
                 AD8418A{&adc, ADC_CHANNEL_0},
+                LimitSwitch{Pin{LIMIT_A_GPIO_Port, LIMIT_A_Pin}},
+                LimitSwitch{Pin{LIMIT_B_GPIO_Port, LIMIT_B_Pin}},
                 send_can_message,
                 &config,
         };
