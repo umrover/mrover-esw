@@ -34,7 +34,7 @@ namespace mrover {
 
 		// receives raw ozone data over i2c
 		void receive_buf() {
-			HAL_I2C_Master_Receive_IT(i2c, (CO2_ADDR << 1) | 1, rx_buf, 1);
+			HAL_I2C_Master_Receive_IT(i2c, (CO2_ADDR << 1) | 1, rx_buf, 2);
 		}
 
 		// initializes the sensor to be in AUTO mode (sensor constantly sends data)
