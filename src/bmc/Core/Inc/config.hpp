@@ -95,8 +95,8 @@ namespace mrover {
         reg_t<float> ABS_SPI_RATIO{"abs_spi_ratio", 0x10, 0.0f};
         reg_t<float> ABS_SPI_OFFSET{"abs_spi_offset", 0x14, 0.0f};
         reg_t<float> GEAR_RATIO{"gear_ratio", 0x18, 0.0f};
-        reg_t<float> LIMIT_FORWARD_POSITION{"limit_forward_readjust_pos", 0x1C, 0.0f};
-        reg_t<float> LIMIT_BACKWARD_POSITION{"limit_backward_readjust_pos", 0x20, 0.0f};
+        reg_t<float> LIMIT_A_POSITION{"limit_a_readjust_pos", 0x1C, 0.0f};
+        reg_t<float> LIMIT_B_POSITION{"limit_b_readjust_pos", 0x20, 0.0f};
         reg_t<float> MAX_PWM{"max_pwm", 0x24, 0.0f};
         reg_t<float> MIN_POS{"min_pos", 0x28, 0.0f};
         reg_t<float> MAX_POS{"max_pos", 0x2C, 0.0f};
@@ -134,8 +134,8 @@ namespace mrover {
         using abs_spi_ratio = field_t<&bmc_config_t::ABS_SPI_RATIO>;
         using abs_spi_offset = field_t<&bmc_config_t::ABS_SPI_OFFSET>;
         using gear_ratio = field_t<&bmc_config_t::GEAR_RATIO>;
-        using limit_forward_position = field_t<&bmc_config_t::LIMIT_FORWARD_POSITION>;
-        using limit_backward_position = field_t<&bmc_config_t::LIMIT_BACKWARD_POSITION>;
+        using limit_a_position = field_t<&bmc_config_t::LIMIT_A_POSITION>;
+        using limit_b_position = field_t<&bmc_config_t::LIMIT_B_POSITION>;
         using max_pwm = field_t<&bmc_config_t::MAX_PWM>;
         using min_pos = field_t<&bmc_config_t::MIN_POS>;
         using max_pos = field_t<&bmc_config_t::MAX_POS>;
@@ -158,7 +158,7 @@ namespace mrover {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
-                    LIMIT_FORWARD_POSITION, LIMIT_BACKWARD_POSITION, MAX_PWM,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
         }
 
@@ -166,7 +166,7 @@ namespace mrover {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
-                    LIMIT_FORWARD_POSITION, LIMIT_BACKWARD_POSITION, MAX_PWM,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
         }
 
