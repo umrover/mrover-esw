@@ -15,10 +15,13 @@ _CXX_STANDARD: int = 23
 def _clean_project(path: Path) -> None:
     esw_logger.info(f"Cleaning Existing CMake Project {path.absolute().resolve()}")
     cmakelists = path / "CMakeLists.txt"
+    cmakepresets = path / "CMakePresets.json"
     cmakelists_stm = path / "cmake" / "stm32cubemx" / "CMakeLists.txt"
 
     if cmakelists.exists() and cmakelists.is_file():
         cmakelists.unlink()
+    if cmakepresets.exists() and cmakepresets.is_file():
+        cmakepresets.unlink()
     if cmakelists_stm.exists() and cmakelists_stm.is_file():
         cmakelists_stm.unlink()
     if cmakelists_stm.parent.exists() and cmakelists_stm.parent.is_dir():
@@ -93,8 +96,14 @@ def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str
 
     env = Environment(loader=FileSystemLoader(ctx))
     cmake_template = env.get_template("templates/CMakeLists.txt.j2")
+    cmake_presets_template = env.get_template("templates/CMakePresets.json.j2")
 
     cmakelists = path / "CMakeLists.txt"
     esw_logger.info(f"Writing CMakeLists.txt to {cmakelists.absolute().resolve()}")
     with cmakelists.open("w") as handle:
         handle.write(cmake_template.render(context))
+
+    cmakepresets = path / "CMakePresets.json"
+    esw_logger.info(f"Writing CMakePresets.json to {cmakepresets.absolute().resolve()}")
+    with cmakepresets.open("w") as handle:
+        handle.write(cmake_presets_template.render())
