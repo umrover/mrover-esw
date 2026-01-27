@@ -90,6 +90,7 @@ namespace mrover {
 
         // start the CAN watchdog if it lapsed
         if (!can_wwdg_tim.is_enabled()) {
+            motor.reset_wwdg();
             can_wwdg_tim.start();
         }
 
