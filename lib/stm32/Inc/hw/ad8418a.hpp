@@ -29,8 +29,6 @@ namespace mrover {
             m_enabled = enabled;
             m_options = options;
             m_current = 0.0f;
-
-            Logger::instance().info("ADC channel: %u", m_channel);
         }
 
         auto update_sensor() -> void {

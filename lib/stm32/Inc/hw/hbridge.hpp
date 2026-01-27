@@ -83,7 +83,6 @@ namespace mrover {
 
         auto set_max_pwm(Percent max_pwm) -> void {
             max_pwm = std::clamp(max_pwm, Percent{0}, Percent{1.0});
-            Logger::instance().info("Setting max_pwm to %f", max_pwm);
             m_max_pwm = max_pwm;
         }
 
