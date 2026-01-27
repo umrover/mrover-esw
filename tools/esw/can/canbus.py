@@ -78,16 +78,16 @@ class CANBus:
             else:
                 esw_logger.error(f"CAN ERROR: decode error on ID {hex(msg.arbitration_id)}: {e}")
 
-    def send(self, message_name: str, signals: dict[str, Any], node_id: int = 0) -> None:
+    def send(self, message_name: str, signals: dict[str, Any], node_id: int = 0, floats_to_uint32: bool = False) -> None:
         if self._bus is None:
             esw_logger.error("CAN ERROR: CAN Bus Not Active")
             return
 
         processed_signals = signals.copy()
-
-        for key, value in processed_signals.items():
-            if isinstance(value, float):
-                processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
+        if floats_to_uint32:
+            for key, value in processed_signals.items():
+                if isinstance(value, float):
+                    processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
 
         try:
             dbc_msg = self._dbc.get_message_by_name(message_name)
@@ -101,7 +101,7 @@ class CANBus:
                 check=True,
             )
             self._bus.send(msg)
-            esw_logger.info(f"CAN SEND {message_name}: {processed_signals}")
+            esw_logger.info(f"CAN SEND {message_name}: {signals}")
 
         except KeyError:
             esw_logger.error(f"CAN ERROR: Message '{message_name}' not in DBC")

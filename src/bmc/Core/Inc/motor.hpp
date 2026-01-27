@@ -68,6 +68,8 @@ namespace mrover {
                     case mode_t::THROTTLE:
                         if (!m_hbridge.is_on()) m_hbridge.start();
                         m_hbridge.write(m_target);
+
+                        Logger::instance().info("Setting target to %f", m_target);
                         break;
                     case mode_t::POSITION:
                         if (m_hbridge.is_on()) m_hbridge.stop();
@@ -110,7 +112,6 @@ namespace mrover {
             );
 
             // TODO(eric) provide a mechanism to reset the FDCAN filter
-            // TODO(eric) add limit switches
             // TODO(eric) add quad encoders
             // TODO(eric) add absolute encoders
         }
@@ -137,14 +138,11 @@ namespace mrover {
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
-            Logger::instance().info("Received Target Command");
             if (!msg.target_valid) return;
-            Logger::instance().info("Received Valid Target Command");
             switch (m_mode) {
                 case mode_t::STOPPED:
                 case mode_t::FAULT:
                     m_target = 0.0f;
-                    Logger::instance().info("STOPPED | FAULT: Set Target to %.2f", m_target);
                     break;
                 case mode_t::THROTTLE:
                 case mode_t::POSITION:
@@ -239,6 +237,13 @@ namespace mrover {
         auto tx_watchdog_lapsed() -> void {
             m_mode = mode_t::FAULT;
             m_error = bmc_error_t::WWDG_EXPIRED;
+        }
+
+        auto reset_wwdg() -> void {
+            if (m_mode == mode_t::FAULT && m_error == bmc_error_t::WWDG_EXPIRED) {
+                m_mode = mode_t::STOPPED;
+                m_error = bmc_error_t::NONE;
+            }
         }
     };
 } // namespace mrover

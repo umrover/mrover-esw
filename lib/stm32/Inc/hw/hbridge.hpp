@@ -61,14 +61,14 @@ namespace mrover {
 
         auto start() -> void {
             __HAL_TIM_SET_COMPARE(m_timer, m_channel, 0);
-            check(HAL_TIM_PWM_Start(m_timer, m_channel) == HAL_OK, Error_Handler);
+            if (!m_is_pwm_en) check(HAL_TIM_PWM_Start(m_timer, m_channel) == HAL_OK, Error_Handler);
             m_is_pwm_en = true;
         }
 
         auto stop() -> void {
             __HAL_TIM_SET_COMPARE(m_timer, m_channel, 0);
-            check(HAL_TIM_PWM_Stop(m_timer, m_channel) == HAL_OK, Error_Handler);
-            m_is_pwm_en = false;
+            // check(HAL_TIM_PWM_Stop(m_timer, m_channel) == HAL_OK, Error_Handler);
+            // m_is_pwm_en = false;
         }
 
         auto is_on() const -> bool {
@@ -81,7 +81,9 @@ namespace mrover {
             set_duty_cycle(output, m_max_pwm);
         }
 
-        auto set_max_pwm(Percent const max_pwm) -> void {
+        auto set_max_pwm(Percent max_pwm) -> void {
+            max_pwm = std::clamp(max_pwm, Percent{0}, Percent{1.0});
+            Logger::instance().info("Setting max_pwm to %f", max_pwm);
             m_max_pwm = max_pwm;
         }
 
