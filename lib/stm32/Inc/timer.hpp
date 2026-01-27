@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
-#include <type_traits>
 #include <utility>
 
 #include <logger.hpp>
@@ -19,6 +18,7 @@ namespace mrover {
 
 #ifdef HAL_TIM_MODULE_ENABLED
     class Timer {
+    protected:
         TIM_HandleTypeDef* htim;
         uint32_t sys_clock;
         std::string name;
@@ -126,38 +126,94 @@ namespace mrover {
     };
 
 #ifdef HAL_TIM_MODULE_ENABLED
-    class ElapsedTimer {
+    class ITimerChannel {
     public:
-        // assumes the timer is started outside the scope of this class
-        ElapsedTimer() = default;
-        ElapsedTimer(TIM_HandleTypeDef* htim, Hertz const frequency) : m_tim(htim), m_period(1.0f / frequency) {};
+        ITimerChannel() = default;
+        virtual ~ITimerChannel() = default;
 
-        auto get_time_since_last_read() -> Seconds {
-            Seconds result;
-            std::uint32_t const current_tick = __HAL_TIM_GET_COUNTER(m_tim);
-            if (m_is_first_read) {
-                m_is_first_read = false;
-                result = Seconds{0.0f};
-            } else {
-                result = m_period * (current_tick - m_tick_prev);
+        virtual auto get_dt() -> Seconds = 0;
+        virtual auto forget_reads() -> void = 0;
+    };
+
+    template<size_t NumChannels>
+    class ElapsedTimer : public Timer {
+        class ChannelHandle_t : public ITimerChannel {
+            ElapsedTimer* m_parent = nullptr;
+            size_t m_channel = 0;
+
+        public:
+            // 1. Default constructor (required for std::array)
+            ChannelHandle_t() = default;
+
+            // 2. Explicit constructor (required for the {*this, id} syntax)
+            ChannelHandle_t(ElapsedTimer& parent, size_t channel)
+                : m_parent(&parent), m_channel(channel) {}
+
+            auto get_dt() -> Seconds override {
+                // Safety check in case it's called before being linked
+                if (!m_parent) return Seconds{0.0f};
+                return m_parent->get_time_since_last_read(m_channel);
             }
-            m_tick_prev = current_tick;
+
+            auto forget_reads() -> void override {
+                if (!m_parent) return;
+                m_parent->make_next_read_first_read(m_channel);
+            }
+        };
+
+        std::array<uint32_t, NumChannels> m_tick_prev{};
+        std::array<bool, NumChannels> m_is_first_read{};
+        std::array<ChannelHandle_t, NumChannels> m_channels{};
+
+    public:
+        ElapsedTimer() = default;
+        explicit ElapsedTimer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false, std::string const& name = "ElapsedTimer")
+            : Timer{tim_handle, interrupt, name} {
+            m_is_first_read.fill(true);
+            m_tick_prev.fill(0);
+            for (size_t channel_id = 0; channel_id < NumChannels; ++channel_id) {
+                m_channels[channel_id] = ChannelHandle_t{*this, channel_id};
+            }
+        }
+
+        auto get_time_since_last_read(size_t const channel) -> Seconds {
+            if (channel >= NumChannels) return Seconds{0.0f};
+
+            uint32_t const current_tick = __HAL_TIM_GET_COUNTER(htim);
+            Seconds result{0.0f};
+
+            if (m_is_first_read[channel]) {
+                m_is_first_read[channel] = false;
+            } else {
+                uint32_t const arr = htim->Instance->ARR;
+                uint32_t const delta_ticks = (current_tick >= m_tick_prev[channel])
+                    ? (current_tick - m_tick_prev[channel])
+                    : (arr + 1 - m_tick_prev[channel] + current_tick);
+
+                float const freq = get_counter_frequency().rep;
+                result = Seconds{static_cast<float>(delta_ticks) / freq};
+            }
+
+            m_tick_prev[channel] = current_tick;
             return result;
         }
 
-        auto make_next_read_first_read() -> void {
-            m_is_first_read = true;
+        auto make_next_read_first_read(size_t const channel) -> void {
+            if (channel < NumChannels) {
+                m_is_first_read[channel] = true;
+            }
         }
 
-    private:
-        TIM_HandleTypeDef* m_tim{};
-        Seconds m_period{};
-
-        bool m_is_first_read = true;
-
-        std::uint32_t m_tick_prev{};
+        auto get_handle(size_t const channel) -> ITimerChannel* {
+            return &m_channels[channel];
+        }
     };
 #else  // HAL_TIM_MODULE_ENABLED
+    class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ITimerChannel"))) ITimerChannel {
+        public:
+        template<typename... Args>
+        explicit ITimerChannel(Args&&... args) {}
+    };
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ElapsedTimer"))) ElapsedTimer {
     public:
         template<typename... Args>

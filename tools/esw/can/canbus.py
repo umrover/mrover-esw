@@ -8,6 +8,12 @@ from cantools.database import Database
 from esw import esw_logger
 
 
+def float2bits(value: float):
+    if not isinstance(value, float):
+        raise TypeError
+    return struct.unpack("<I", struct.pack("<f", value))[0]
+
+
 class CANBus:
     _MJBOTS_CAN_PREFIX: int = 0x0000
     _CAN_DEST_ID_MASK: int = 0x00FF
@@ -78,16 +84,18 @@ class CANBus:
             else:
                 esw_logger.error(f"CAN ERROR: decode error on ID {hex(msg.arbitration_id)}: {e}")
 
-    def send(self, message_name: str, signals: dict[str, Any], node_id: int = 0, floats_to_uint32: bool = False) -> None:
+    def send(
+        self, message_name: str, signals: dict[str, Any], node_id: int = 0, floats_to_uint32: bool = False
+    ) -> None:
         if self._bus is None:
             esw_logger.error("CAN ERROR: CAN Bus Not Active")
             return
 
         processed_signals = signals.copy()
-        if floats_to_uint32:
-            for key, value in processed_signals.items():
-                if isinstance(value, float):
-                    processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
+        # if floats_to_uint32:
+        #     for key, value in processed_signals.items():
+        #         if isinstance(value, float):
+        #             processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
 
         try:
             dbc_msg = self._dbc.get_message_by_name(message_name)

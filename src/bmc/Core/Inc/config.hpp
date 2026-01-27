@@ -21,6 +21,13 @@ namespace mrover {
         VELOCITY = 7,
     };
 
+    enum struct encoder_mode_t : uint8_t {
+        NONE = 0,
+        QUAD,
+        ABS_SPI,
+        ABS_I2C,
+    };
+
     template<typename T>
     static auto from_raw(uint32_t raw) -> T {
         static_assert(std::is_trivially_copyable_v<T>);
@@ -86,11 +93,13 @@ namespace mrover {
     };
 
     struct bmc_config_t {
+        FDCAN::Filter can_node_filter;
+
         reg_t<uint8_t> CAN_ID{"can_id", 0x00, 0x00};
         reg_t<uint8_t> SYS_CFG{"system_configuration", 0x01, 0x00};
         reg_t<uint8_t> LIMIT_CFG{"limit_configuration", 0x02, 0x00};
         reg_t<uint8_t> USER_REG{"user_reg", 0x03, 0x00};
-        reg_t<float> QUAD_RATIO{"quad_ratio", 0x04, 0.0f};
+        reg_t<float> QUAD_CPR{"quad_cpr", 0x04, 0.0f};
         reg_t<float> ABS_I2C_RATIO{"abs_i2c_ratio", 0x08, 0.0f};
         reg_t<float> ABC_I2C_OFFSET{"abs_i2c_offset", 0x0C, 0.0f};
         reg_t<float> ABS_SPI_RATIO{"abs_spi_ratio", 0x10, 0.0f};
@@ -129,7 +138,7 @@ namespace mrover {
         using lim_b_is_forward = field_t<&bmc_config_t::LIMIT_CFG, 6>;
         using lim_b_use_readjust = field_t<&bmc_config_t::LIMIT_CFG, 7>;
 
-        using quad_ratio = field_t<&bmc_config_t::QUAD_RATIO>;
+        using quad_cpr = field_t<&bmc_config_t::QUAD_CPR>;
         using abs_i2c_ratio = field_t<&bmc_config_t::ABS_I2C_RATIO>;
         using abs_i2c_offset = field_t<&bmc_config_t::ABC_I2C_OFFSET>;
         using abs_spi_ratio = field_t<&bmc_config_t::ABS_SPI_RATIO>;
@@ -145,7 +154,7 @@ namespace mrover {
         using k_p = field_t<&bmc_config_t::K_P>;
         using k_i = field_t<&bmc_config_t::K_I>;
         using k_d = field_t<&bmc_config_t::K_D>;
-        using kfd = field_t<&bmc_config_t::K_F>;
+        using k_f = field_t<&bmc_config_t::K_F>;
 
         using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
@@ -157,7 +166,7 @@ namespace mrover {
 
         auto all() {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
+                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
@@ -165,7 +174,7 @@ namespace mrover {
 
         auto all() const {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
+                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
@@ -197,16 +206,16 @@ namespace mrover {
      *
      * @return CAN options for BMC
      */
-    inline auto get_can_options(bmc_config_t const* config, FDCAN::Filter* can_node_filter) -> FDCAN::Options {
-        can_node_filter->id1 = config->get<bmc_config_t::can_id>();
-        can_node_filter->id2 = CAN_DEST_ID_MASK;
-        can_node_filter->id_type = FDCAN::FilterIdType::Extended;
-        can_node_filter->action = FDCAN::FilterAction::Accept;
-        can_node_filter->mode = FDCAN::FilterMode::Mask;
+    inline auto get_can_options(bmc_config_t* config) -> FDCAN::Options {
+        config->can_node_filter.id1 = config->get<bmc_config_t::can_id>();
+        config->can_node_filter.id2 = CAN_DEST_ID_MASK;
+        config->can_node_filter.id_type = FDCAN::FilterIdType::Extended;
+        config->can_node_filter.action = FDCAN::FilterAction::Accept;
+        config->can_node_filter.mode = FDCAN::FilterMode::Mask;
 
         FDCAN::FilterConfig filter;
-        filter.begin = can_node_filter;
-        filter.end = can_node_filter + 1;
+        filter.begin = &config->can_node_filter;
+        filter.end = &config->can_node_filter + 1;
         filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;
         filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;
 
