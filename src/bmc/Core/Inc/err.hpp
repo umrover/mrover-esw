@@ -2,7 +2,7 @@
 
 namespace mrover {
 
-    enum struct bmc_error_t : std::uint8_t {
+    enum struct bmc_error_t : uint8_t {
 
         // no error
         NONE,
@@ -13,8 +13,14 @@ namespace mrover {
         // in position or velocity mode without feedback mechanism configured to close the loop
         INVALID_CONFIGURATION_FOR_MODE,
 
+        // signal that there are too many encoders connected or something
+        INVALID_FLASH_CONFIG,
+
         // watchdog expired
         WWDG_EXPIRED,
+
+        // received position or velocity mode before calibrated
+        UNCALIBRATED,
 
         // unrecoverable CAN error encountered
         CAN_ERROR_FATAL,
@@ -24,9 +30,6 @@ namespace mrover {
 
         // unrecoverable SPI error encountered
         SPI_ERROR_FATAL,
-
-        // received position or velocity mode before calibrated
-        UNCALIBRATED,
 
     };
 
