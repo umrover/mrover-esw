@@ -13,7 +13,7 @@ so please reach out if you ever get stuck!
 
 - STM32Cube [installed](../../stm32cube/index.md)
 - LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
-- Git [setup](https://github.com/umrover/mrover-ros/wiki/Intro-to-the-Command-Line-and-Git)
+- Git installed and [basic knowledge of how to use it](https://github.com/umrover/mrover-ros2/wiki/Git)
 - STM32G431RB Nucleo
 - SG90 Servo
 
@@ -41,7 +41,7 @@ You now have the URL you need to clone the project.
 Clone the project onto your local computer by running the following command in your terminal:
 
 ```sh
-git clone link-copied-in-above-step
+git clone --recurse-submodules link-copied-in-above-step
 ```
 
 Enter the directory:

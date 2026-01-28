@@ -28,8 +28,9 @@ nav:
       - Science: info/science.md
       - Nucleo Information: info/nucleos.md
       - STM32 Boot: info/stm32-boot.md
-      - CMake Toolchain: info/cmake-tools.md
-      - Archived Docs: info/archive/index.md
+  - Extra Information:
+      - CMake with CubeMX: extra/cmake-cubemx.md
+      - Archived Docs: extra/archive/index.md
 
 # ignoring README.md satisfies mkdocs build --strict error
 exclude_docs: |
