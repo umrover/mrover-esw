@@ -68,6 +68,7 @@ namespace mrover {
     Pin can_rx;
     CANBus1Handler can_receiver;
     Motor motor;
+    Flash<bmc_config_t, bmc_config_t::mem_layout> flash;
 
     /**
      * Initialize the FDCAN peripheral - re-instantiates the peripheral object and resets the receiver

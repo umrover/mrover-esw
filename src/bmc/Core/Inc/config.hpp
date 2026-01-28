@@ -5,6 +5,7 @@
 
 #include <CANBus1.hpp>
 #include <adc.hpp>
+#include <hw/flash.hpp>
 #include <hw/ad8418a.hpp>
 
 
@@ -23,70 +24,6 @@ namespace mrover {
         QUAD,
         ABS_SPI,
         ABS_I2C,
-    };
-
-    template<typename T>
-    static auto from_raw(uint32_t raw) -> T {
-        static_assert(std::is_trivially_copyable_v<T>);
-        if constexpr (sizeof(T) == sizeof(uint32_t)) {
-            return std::bit_cast<T>(raw);
-        } else {
-            return static_cast<T>(raw);
-        }
-    }
-
-    template<typename T>
-    static auto to_raw(T value) -> uint32_t {
-        static_assert(std::is_trivially_copyable_v<T>);
-        if constexpr (sizeof(T) == sizeof(uint32_t)) {
-            return std::bit_cast<uint32_t>(value);
-        } else {
-            return static_cast<uint32_t>(value);
-        }
-    }
-
-    template<typename T>
-    struct reg_t {
-        using value_t = T;
-        std::string_view name;
-        uint8_t addr{};
-        value_t value;
-        static consteval size_t size() { return sizeof(T); }
-        [[nodiscard]] constexpr uint8_t reg() const { return addr; }
-    };
-
-    template<auto cfg_ptr_t, size_t bit = 0, size_t width = 1>
-    struct field_t {
-        template<typename C>
-        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_t)>::value_t;
-
-        static auto get(auto const& config) {
-            using T = underlying_t<std::decay_t<decltype(config)>>;
-            auto const& reg_item = (config.*cfg_ptr_t);
-
-            if constexpr (std::is_floating_point_v<T>) {
-                return reg_item.value;
-            } else {
-                if constexpr (width == 1) {
-                    return static_cast<bool>((reg_item.value >> bit) & 1);
-                } else {
-                    constexpr T mask = (static_cast<T>(1) << width) - 1;
-                    return static_cast<T>((reg_item.value >> bit) & mask);
-                }
-            }
-        }
-
-        static void set(auto& config, auto value) {
-            using T = underlying_t<std::decay_t<decltype(config)>>;
-            auto& reg_val = (config.*cfg_ptr_t).value;
-
-            if constexpr (std::is_floating_point_v<T>) {
-                reg_val = static_cast<T>(value);
-            } else {
-                constexpr T mask = ((static_cast<T>(1) << width) - 1) << bit;
-                reg_val = (reg_val & ~mask) | ((static_cast<T>(value) << bit) & mask);
-            }
-        }
     };
 
     struct bmc_config_t {
@@ -194,7 +131,23 @@ namespace mrover {
                        all());
             return found;
         }
+
+        // stm32 g431cbt6
+        struct mem_layout {
+            static constexpr uint32_t FLASH_BEGIN_ADDR = 0x08000000;
+            static constexpr uint32_t FLASH_END_ADDR = 0x0801FFFF;
+            static constexpr int PAGE_SIZE = 2048;
+            static constexpr int NUM_PAGES = 64;
+        };
+
+        Flash<bmc_config_t, bmc_config_t::mem_layout> *flash_ptr;
+
+        static consteval uint16_t size_bytes() {
+            return validated_config_t<bmc_config_t>::size_bytes();
+        }
     };
+
+    
 
     /**
      * Get the BMC CAN settings.
