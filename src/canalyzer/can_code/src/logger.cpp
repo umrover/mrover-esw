@@ -1,10 +1,5 @@
 #include "logger.hpp"
 
-#include <cstring>
-#include <iomanip>
-#include <filesystem>
-#include <stdexcept>
-
 namespace logger {
 
 Auth::Auth(
@@ -72,10 +67,11 @@ void Logger::_committer_worker() {
 
     while (true) {
         {
-            std::unique_lock<std::mutex> lock(buffer_mutex);
-            cv.wait(lock, [this] { return !buffer.empty() || !running; });
 
-            if (!running && buffer.empty()) break;
+            std::unique_lock<std::mutex> lock(buffer_mutex);
+            cv.wait(lock, [this] { return !buffer.empty() || !running.load(); });
+
+            if (!running.load() && buffer.empty()) break;
 
             while (!buffer.empty()) {
                 local_buffer.push_back(std::move(buffer.front()));
@@ -84,6 +80,15 @@ void Logger::_committer_worker() {
         }
 
         for (const auto &can_frame : local_buffer) {
+            const auto *desc = parser.message(can_frame.id);
+            builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(buffer_mutex);
+        
+        for (const auto &can_frame : buffer) {
             const auto *desc = parser.message(can_frame.id);
             builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
         }
@@ -134,7 +139,7 @@ void Logger::_init_bus() {
     }
 }
         
-void Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile) {
+void Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile, uint32_t id) {
     if (!outputFile.is_open()) return;
     
 
@@ -142,7 +147,7 @@ void Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &out
 
     //TODO fix this! should be the proper CAN id
 
-    outputFile << "123#";
+    outputFile << id << "#";
 
     
     for (size_t i = 0; i < CANFD_MAX_DLEN; i++) {
@@ -198,7 +203,10 @@ void Logger::start() {
     std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
     if (!dir.empty() && !std::filesystem::exists(dir)) {
         std::filesystem::create_directories(dir);
-        std::cout << "Created directory: " << dir << std::endl;
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Created directory: " << dir << std::endl;
+        }
     }
 
     // Open log file (ofstream will create it if it doesn't exist)
@@ -207,12 +215,15 @@ void Logger::start() {
         throw std::runtime_error("Could not open log file: " + ascii_log_file_path);
     }
 
-    if (debug) std::cout << "Logger started for " << can_bus_name << std::endl;
-
-
+    if (debug) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "Logger started for " << can_bus_name << std::endl;
+    }
+    
     committer_thread = std::thread(&Logger::_committer_worker, this);
 
     struct canfd_frame cfd;
+
 
     while (running) {                                                              //catch an interupt instead?
 
@@ -226,7 +237,10 @@ void Logger::start() {
         
         if (bytes_read < 0) {
             ++read_error_count;
-            std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << std::endl;
+            {   
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << std::endl;
+            }
             continue;
         }
         if (bytes_read < (ssize_t)CAN_MTU) {
@@ -234,13 +248,11 @@ void Logger::start() {
             continue;
         }
 
-
-        logger::Logger::_log_ascii(cfd.data, can_bus_name, file);
-
-        std::string resp;
-
         uint32_t id = cfd.can_id & CAN_EFF_MASK;
 
+        logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
+
+        std::string resp;
 
         DecodedFrame decoded_message = {.id = id, .time=now_ns(), .data=_decode(id, cfd)};
 
@@ -249,31 +261,35 @@ void Logger::start() {
             buffer.push_back(decoded_message);
         }
         cv.notify_one();
-    }
 
-    _stop_bus();
+    } //endwhile
+
+    if (committer_thread.joinable()) committer_thread.join();
 }
 
 void Logger::print(std::ostream &os) {
-    os << "Auth:\n"
-    << "\t - Host: " << si.host_ << "\n"
-    << "\t - Port: " << si.port_ << "\n"
-    << "\t - Db_name: " << si.db_ << "\n"
-    << "\t - User: " << si.usr_ << "\n"
-    << "\t - Password: " << si.pwd_ << "\n";
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        os << "Auth:\n"
+        << "\t - Host: " << si.host_ << "\n"
+        << "\t - Port: " << si.port_ << "\n"
+        << "\t - Db_name: " << si.db_ << "\n"
+        << "\t - User: " << si.usr_ << "\n"
+        << "\t - Password: " << si.pwd_ << "\n";
 
-    os << "\n"
-    << "Info:\n"
-    << "\t - Name: " << can_bus_name << "\n"
-    << "\t - log_all: " << log_all << "\n"
-    << "\t - yaml_file_path: " << yaml_file_path << "\n"
-    << "\t - log_specify: ";
-    auto it = log_ids.begin();
-    while (it != log_ids.end()) {
-        os << *it << ", ";
-        it++;
+        os << "\n"
+        << "Info:\n"
+        << "\t - Name: " << can_bus_name << "\n"
+        << "\t - log_all: " << log_all << "\n"
+        << "\t - yaml_file_path: " << yaml_file_path << "\n"
+        << "\t - log_specify: ";
+        auto it = log_ids.begin();
+        while (it != log_ids.end()) {
+            os << *it << ", ";
+            it++;
+        }
+        os << std::endl;
     }
-    os << std::endl;
 }
 
 
@@ -282,7 +298,10 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
     std::vector<Logger> loggers;
 
     int size = 0;
-    if (debug) std::cout << "parsing" << std::endl;
+    if (debug) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "parsing" << std::endl;
+    }
     Yaml::Node root;
     try {
         Yaml::Parse(root, yaml_path.c_str());
@@ -292,6 +311,7 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
     if (debug) std::cout << "parsing 1" << std::endl;
     size = root["logger_bus_size"].As<int>();
     if (size > 4) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
         std::cerr << "cannot support more than 4 can busses, recieved bus size of: " << size << std::endl;
     }
     if (debug) std::cout << "Size: " << size << std::endl;
@@ -304,12 +324,19 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
     std::string password = auth_node["password"].As<std::string>();
     Auth auth =  {host, port, db_name, user, password};
 
-    if (debug) std::cout << "host: " << host << ", port: " << port << ", db_name: " << db_name << ", user " << user << ", password: " << password << std::endl;
+    if (debug) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "host: " << host << ", port: " << port << ", db_name: " << db_name << ", user " << user << ", password: " << password << std::endl;
+    }
 
     Yaml::Node loggers_node = root["loggers"];
     loggers.reserve(size);   
+
     for (int i = 0; i < size; ++i) {
-        std::cout << "in logger factory, iteration:" << i << "\n";
+        if (debug) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "in logger factory, iteration:" << i << "\n";
+        }
         std::string name = loggers_node[i]["name"].As<std::string>();
         bool log_all = loggers_node[i]["log_all"].As<bool>();
         std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
@@ -336,6 +363,7 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
             if (dbc_file_paths_str[j] == ',') {
                 auto it = dbc_file_paths.find(dbc_file_path);
                 if (it != dbc_file_paths.end()) {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
                     std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
                 } else {
                     dbc_file_paths.insert(dbc_file_path);
@@ -352,6 +380,7 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
         if (dbc_file_path.size()) {
             auto it = dbc_file_paths.find(dbc_file_path);
             if (it != dbc_file_paths.end()) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
             } else {
                 dbc_file_paths.insert(dbc_file_path);
@@ -366,8 +395,35 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
         std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
 
         loggers.emplace_back(name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), log_all, debug);
-        if (debug) std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
-    }
+        if (debug) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
+        }
+    } //endfor
+
     return loggers;
 }
+
+void handle_SIGINT(int) {
+    running.store(false);
 }
+
+void run_bus(std::vector<Logger> &loggers) {
+    std::signal(SIGINT, handle_SIGINT);
+
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < static_cast<int>(loggers.size()); ++i) {
+        threads.emplace_back(&Logger::start, &loggers[i], i);
+    }
+
+    while (running.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    for (auto &thread : threads) {
+        if (thread.joinable()) thread.join();
+    }
+}
+
+} // Logger namespace
