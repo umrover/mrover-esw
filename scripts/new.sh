@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -m|--mcu)       MCU="$2"; shift 2 ;;
         -b|--board)     BOARD="$2"; shift 2 ;;
-        -s|--src)       SRC="$2"; shift 2 ;;
+        -s|--src)       SRC="$(realpath "$2")"; shift 2 ;;
         -l|--lib)       LIBS+=("$2"); shift 2 ;;
         -h|--help)      usage ;;
         *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
@@ -48,6 +48,12 @@ done
 # select project source
 if [[ -z "$SRC" ]]; then
     printf "%b\n" "${RED}Project source path must be specified${NC}"
+    exit 1
+fi
+
+# assert target directory does not exist
+if [[ -d "$SRC" ]]; then
+    printf "%b\n" "${RED}Project source path must not exist already${NC}"
     exit 1
 fi
 

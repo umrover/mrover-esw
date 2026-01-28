@@ -164,3 +164,22 @@ def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str
     esw_logger.info(f"Writing .clangd to {clangd.absolute().resolve()}")
     with clangd.open("w") as handle:
         handle.write(clangd_template.render(clangd_context))
+
+
+def configure_clang(path: Path, ctx: Path) -> None:
+    clangd = path / ".clangd"
+    if clangd.exists():
+        return
+
+    env = Environment(loader=FileSystemLoader(ctx))
+    clangd_context = _get_clangd_context()
+    if clangd_context is not None:
+        if clangd_context.get("includes") is None:
+            esw_logger.warning(
+                "Could not validate GCC installation, there is likely something wrong with the STM32CubeCLT installation"
+            )
+            clangd_context["includes"] = []
+    clangd_template = env.get_template("templates/.clangd.j2")
+    esw_logger.info(f"Writing .clangd to {clangd.absolute().resolve()}")
+    with clangd.open("w") as handle:
+        handle.write(clangd_template.render(clangd_context))

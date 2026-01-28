@@ -45,6 +45,7 @@ CMakeUserPresets.json
 
 # clangd
 .clangd
+.cache
 
 # Editors
 .idea
