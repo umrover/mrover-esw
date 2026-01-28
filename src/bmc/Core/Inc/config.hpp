@@ -2,9 +2,9 @@
 
 #include <bit>
 #include <cstdint>
-#include <tuple>
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
+#include <tuple>
 
 
 namespace mrover {

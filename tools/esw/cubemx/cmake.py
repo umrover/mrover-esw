@@ -93,15 +93,23 @@ def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str]) 
     }
 
 
-def _get_clangd_context() -> dict[str, Any] | None:
+def _get_clangd_context() -> dict[str, Any]:
     NUM_PATHS = 3  # gcc include directory, c++ include directory, c++ eabi include directory
     opt_st = Path("/opt/st")
     if not opt_st.exists():
-        return None
+        return {
+            "includes": None,
+            "c_standard": _C_STANDARD,
+            "cxx_standard": _CXX_STANDARD,
+        }
 
     base_dirs = sorted(opt_st.glob("stm32cubeclt_*/GNU-tools-for-STM32/arm-none-eabi"), reverse=True)
     if not base_dirs:
-        return None
+        return {
+            "includes": None,
+            "c_standard": _C_STANDARD,
+            "cxx_standard": _CXX_STANDARD,
+        }
 
     base_dir = base_dirs[0]
     paths: list[Path] = []
@@ -145,11 +153,12 @@ def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str
         handle.write(cmake_presets_template.render())
 
     clangd_context = _get_clangd_context()
-    if clangd_context["includes"] is None:
-        esw_logger.warning(
-            "Could not validate GCC installation, there is likely something wrong with the STM32CubeCLT installation"
-        )
-        clangd_context["includes"] = []
+    if clangd_context is not None:
+        if clangd_context.get("includes") is None:
+            esw_logger.warning(
+                "Could not validate GCC installation, there is likely something wrong with the STM32CubeCLT installation"
+            )
+            clangd_context["includes"] = []
     clangd_template = env.get_template("templates/.clangd.j2")
     clangd = path / ".clangd"
     esw_logger.info(f"Writing .clangd to {clangd.absolute().resolve()}")
