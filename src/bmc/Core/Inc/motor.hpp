@@ -47,6 +47,8 @@ namespace mrover {
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
+        bool m_limit_forward_hit{false};
+        bool m_limit_backward_hit{false};
 
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
@@ -88,7 +90,6 @@ namespace mrover {
             if (limit.enabled()) {
                 limit.update_limit_switch();
                 if (limit.limit_forward()) {
-                    if (m_target > 0.0f) m_target = 0.0f;
                     at_limit = true;
                     if (std::optional<Radians> const readjustment_position = limit.get_readjustment_position()) {
                         if (m_uncalibrated_position) {
@@ -96,7 +97,6 @@ namespace mrover {
                         }
                     }
                 } else if (limit.limit_backward()) {
-                    if (m_target < 0.0f) m_target = 0.0f;
                     at_limit = true;
                     if (std::optional<Radians> const readjustment_position = limit.get_readjustment_position()) {
                         if (m_uncalibrated_position) {
@@ -120,15 +120,22 @@ namespace mrover {
                         break;
                     case mode_t::THROTTLE:
                         if (!m_hbridge.is_on()) m_hbridge.start();
-                        m_hbridge.write(m_target);
+                        {
+                            auto setpoint_thr = Percent{m_target};
+                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
+                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            m_hbridge.write(setpoint_thr);
+                        }
                         break;
                     case mode_t::VELOCITY:
                         if (!m_hbridge.is_on()) m_hbridge.start();
                         {
                             auto const target_vel = RadiansPerSecond{m_target};
                             auto const input_vel = m_velocity.value();
-                            auto const setpoint_vel = m_velocity_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
-                            m_hbridge.write(setpoint_vel);
+                            auto setpoint_thr = m_velocity_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
+                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            m_hbridge.write(setpoint_thr);
                         }
                         break;
                     case mode_t::POSITION:
@@ -136,8 +143,10 @@ namespace mrover {
                         {
                             auto const target_pos = Radians{m_target};
                             auto const input_pos = m_uncalibrated_position.value() - m_calibrated_offset.value();
-                            auto const setpoint_pos = m_position_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
-                            m_hbridge.write(setpoint_pos);
+                            auto setpoint_thr = m_position_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
+                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            m_hbridge.write(setpoint_thr);
                         }
                         break;
                 }
@@ -331,6 +340,8 @@ namespace mrover {
         auto send_state() -> void {
             // m_current_sensor.update_sensor();
 
+            // Logger::instance().info("A: %u, FWD: %u, B: %u, REV: %u", m_limit_a_hit, m_limit_forward_hit, m_limit_b_hit, m_limit_backward_hit);
+
             auto const position = [this] {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
                 return Radians{std::numeric_limits<float>::quiet_NaN()};
@@ -353,9 +364,11 @@ namespace mrover {
         }
 
         auto drive_output() -> void {
-            // update limit switch state (modifies m_target if stop needed)
+            // update limit switch state
             apply_limit(m_limit_a, m_limit_a_hit);
             apply_limit(m_limit_b, m_limit_b_hit);
+            m_limit_forward_hit = m_limit_a.is_forward_limit() ? m_limit_a_hit : (m_limit_b.is_forward_limit() ? m_limit_b_hit : false);
+            m_limit_backward_hit = !m_limit_a.is_forward_limit() ? m_limit_a_hit : (!m_limit_b.is_forward_limit() ? m_limit_b_hit : false);
             sample_encoder();
             write_output_pwm();
         }
