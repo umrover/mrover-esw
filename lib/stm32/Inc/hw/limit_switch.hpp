@@ -32,6 +32,10 @@ namespace mrover {
             m_associated_position = associated_position;
         }
 
+        [[nodiscard]] auto is_forward_limit() const -> bool {
+            return m_limits_forward;
+        }
+
         auto update_limit_switch() -> void {
             // This suggests active low
             m_is_pressed = m_enabled ? m_active_high == m_pin.read() : false;
