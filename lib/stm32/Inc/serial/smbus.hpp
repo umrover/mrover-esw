@@ -4,7 +4,9 @@
 #include <span>
 #include <string_view>
 
+#ifdef STM32
 #include "main.h"
+#endif // STM32
 
 namespace mrover {
 

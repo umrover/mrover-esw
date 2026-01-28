@@ -12,7 +12,7 @@ namespace mrover {
     static constexpr size_t LOG_BUFFER_SIZE = 128;
 
 #ifdef HAL_UART_MODULE_ENABLED
-#ifdef DEBUG
+    // #ifdef DEBUG
     class Logger {
     public:
         enum class Level : uint8_t {
@@ -104,30 +104,30 @@ namespace mrover {
         static inline UART* s_uart = nullptr;
         static inline auto s_level = Level::Info;
     };
-#else  // DEBUG
-    class Logger {
-        Logger() = default;
-
-    public:
-        template<typename... Args>
-        static auto init(Args&&... args) -> void {}
-
-        static auto instance() -> Logger& {
-            static Logger inst{};
-            return inst;
-        }
-        template<typename... Args>
-        auto set_level(Args&&... args) -> void {}
-        template<typename... Args>
-        auto debug(Args&&... args) const -> void {}
-        template<typename... Args>
-        auto info(Args&&... args) const -> void {}
-        template<typename... Args>
-        auto warn(Args&&... args) const -> void {}
-        template<typename... Args>
-        auto error(Args&&... args) const -> void {}
-    };
-#endif // DEBUG
+// #else  // DEBUG
+//     class Logger {
+//         Logger() = default;
+//
+//     public:
+//         template<typename... Args>
+//         static auto init(Args&&... args) -> void {}
+//
+//         static auto instance() -> Logger& {
+//             static Logger inst{};
+//             return inst;
+//         }
+//         template<typename... Args>
+//         auto set_level(Args&&... args) -> void {}
+//         template<typename... Args>
+//         auto debug(Args&&... args) const -> void {}
+//         template<typename... Args>
+//         auto info(Args&&... args) const -> void {}
+//         template<typename... Args>
+//         auto warn(Args&&... args) const -> void {}
+//         template<typename... Args>
+//         auto error(Args&&... args) const -> void {}
+//     };
+// #endif // DEBUG
 #else  // HAL_UART_MODULE_ENABLED
     class Logger {
         Logger() = default;

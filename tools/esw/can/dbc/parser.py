@@ -49,7 +49,7 @@ def prepare_context(dbc_db, dbc_name):
     return {
         "dbc_name": dbc_name,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "libs": ["cstdlib", "cstdint", "bit", "cstring", "variant", "optional", "serial/fdcan.hpp"],
+        "libs": ["cstdlib", "cstdint", "bit", "cstring", "variant", "optional"],
         "message_dict": messages,
         "messages_for_handler": messages_for_handler,
         "message_types": message_types,

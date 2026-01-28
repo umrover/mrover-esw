@@ -9,10 +9,17 @@
 {%- for lib in libs %}
 #include <{{ lib }}>
 {%- endfor %}
+#ifdef STM32
+#include <serial/fdcan.hpp>
+#endif
 
 
 namespace mrover {
-    static constexpr uint32_t CAN_NODE_MASK = 0xF;
+    static constexpr uint32_t CAN_NODE_MASK = 0xFFFF;
+    static constexpr uint32_t CAN_DEST_ID_MASK = 0x00FF;
+    static constexpr uint32_t CAN_SRC_ID_MASK = 0xFF00;
+    static constexpr uint32_t CAN_DEST_ID_OFFSET = 0;
+    static constexpr uint32_t CAN_SRC_ID_OFFSET = 8;
 
     {% for msg_id, msg in message_dict.items() %}
     class {{ msg.name }} {
@@ -99,18 +106,6 @@ namespace mrover {
     };
     {% endfor %}
 
-    constexpr std::size_t dlc_to_size(uint32_t const dlc) {
-        if (dlc <= FDCAN_DLC_BYTES_8) return dlc;
-        if (dlc == FDCAN_DLC_BYTES_12) return 12;
-        if (dlc == FDCAN_DLC_BYTES_16) return 16;
-        if (dlc == FDCAN_DLC_BYTES_20) return 20;
-        if (dlc == FDCAN_DLC_BYTES_24) return 24;
-        if (dlc == FDCAN_DLC_BYTES_32) return 32;
-        if (dlc == FDCAN_DLC_BYTES_48) return 48;
-        if (dlc == FDCAN_DLC_BYTES_64) return 64;
-        return 0;
-    }
-
     template<typename T>
     concept is_can_message = requires(T const can_msg, uint8_t const* byte_arr) {
         { T{byte_arr} };
@@ -125,30 +120,41 @@ namespace mrover {
     >;
 
 #ifdef HAL_FDCAN_MODULE_ENABLED
+    constexpr std::size_t dlc_to_size(uint32_t const dlc) {
+        if (dlc <= FDCAN_DLC_BYTES_8) return dlc;
+        if (dlc == FDCAN_DLC_BYTES_12) return 12;
+        if (dlc == FDCAN_DLC_BYTES_16) return 16;
+        if (dlc == FDCAN_DLC_BYTES_20) return 20;
+        if (dlc == FDCAN_DLC_BYTES_24) return 24;
+        if (dlc == FDCAN_DLC_BYTES_32) return 32;
+        if (dlc == FDCAN_DLC_BYTES_48) return 48;
+        if (dlc == FDCAN_DLC_BYTES_64) return 64;
+        return 0;
+    }
+
     class {{ dbc_name }}Handler {
-        FDCAN m_fdcan;
+        FDCAN* m_fdcan;
     public:
         {{ dbc_name }}Handler() = default;
 
-        explicit {{ dbc_name }}Handler(FDCAN&& fdcan_driver)
-            : m_fdcan{std::move(fdcan_driver)} {}
+        explicit {{ dbc_name }}Handler(FDCAN* fdcan_driver)
+            : m_fdcan{fdcan_driver} {}
 
         struct SendHandler {
             {{ dbc_name }}Handler* m_can_handler;
-            uint32_t const m_node_id;
+            uint32_t const m_src_node_id;
+            uint32_t const m_dest_node_id;
 
-            SendHandler({{ dbc_name }}Handler* can_handler, uint32_t const node_id)
-                : m_can_handler{can_handler}, m_node_id{node_id} {}
+            SendHandler({{ dbc_name }}Handler* can_handler, uint32_t const src_node_id, uint32_t const dest_node_id)
+                : m_can_handler{can_handler}, m_src_node_id{src_node_id}, m_dest_node_id{dest_node_id} {}
 
             template<typename can_msg_t>
             void operator()(can_msg_t const& message) const
                 requires is_can_message<can_msg_t>
             {
-                uint32_t const base_id = can_msg_t::BASE_ID;
-                uint32_t const masked_node_id = m_node_id & CAN_NODE_MASK;
-                uint32_t const final_id = base_id | masked_node_id;
+                uint32_t const final_id = (can_msg_t::BASE_ID & ~CAN_NODE_MASK) | ((m_src_node_id << CAN_SRC_ID_OFFSET) & CAN_SRC_ID_MASK) | ((m_dest_node_id << CAN_DEST_ID_OFFSET) & CAN_DEST_ID_MASK);
                 std::span<uint8_t const> const data(message.msg_arr, sizeof(message.msg_arr));
-                this->m_can_handler->m_fdcan.send(final_id,
+                this->m_can_handler->m_fdcan->send(final_id,
                     std::string_view(reinterpret_cast<char const*>(data.data()), data.size())
                 );
             }
@@ -156,22 +162,19 @@ namespace mrover {
 
         auto send(
             {{ dbc_name }}Msg_t const& message_variant,
-            uint32_t const node_id
+            uint32_t const src_node_id,
+            uint32_t const dest_node_id
         ) -> void {
-            SendHandler sender(this, node_id);
+            SendHandler sender(this, src_node_id, dest_node_id);
             std::visit(sender, message_variant);
         }
 
-        [[nodiscard]] auto receive(uint32_t const node_id) -> std::optional<{{ dbc_name }}Msg_t> {
+        [[nodiscard]] auto receive() const -> std::optional<{{ dbc_name }}Msg_t> {
             FDCAN_RxHeaderTypeDef header;
             uint8_t data_buffer[FDCAN_MAX_FRAME_SIZE];
 
-            if (std::span<uint8_t> const data_span{data_buffer, FDCAN_MAX_FRAME_SIZE}; m_fdcan.receive(&header, data_span)) {
+            if (std::span<uint8_t> const data_span{data_buffer, FDCAN_MAX_FRAME_SIZE}; m_fdcan->receive(&header, data_span)) {
                 uint32_t const received_base_id = header.Identifier & ~CAN_NODE_MASK;
-                uint32_t const received_node_id = header.Identifier & CAN_NODE_MASK;
-                if (received_node_id != (node_id & CAN_NODE_MASK)) {
-                    return std::nullopt;
-                }
 
                 std::size_t const received_size = dlc_to_size(header.DataLength);
                 std::span<uint8_t const> const received_data(data_buffer, received_size);
@@ -188,8 +191,6 @@ namespace mrover {
             }
             return std::nullopt;
         }
-
-        FDCAN& get_driver() { return m_fdcan; }
     };
 #else // HAL_FDCAN_MODULE_ENABLED
     // TODO: build jetson implementation here

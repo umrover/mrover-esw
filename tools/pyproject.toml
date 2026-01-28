@@ -15,8 +15,8 @@ requires-python = ">=3.10"
 dependencies = [
     "Jinja2~=3.1.6",
     "cantools~=41.0.2",
-    "moteus~=0.3.96",
-    "moteus-gui~=0.3.96",
+    "moteus~=0.3.98",
+    "moteus-gui~=0.3.98",
     "mkdocs~=1.6.1",
     "pymdown-extensions~=10.17.2",
     "pyserial~=3.5",

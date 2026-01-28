@@ -7,7 +7,9 @@
 
 #include <util.hpp>
 
+#ifdef STM32
 #include "main.h"
+#endif // STM32
 
 namespace mrover {
 

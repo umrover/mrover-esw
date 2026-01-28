@@ -7,7 +7,9 @@
 
 #include <util.hpp>
 
+#ifdef STM32
 #include "main.h"
+#endif // STM32
 
 namespace mrover {
 
@@ -181,7 +183,7 @@ namespace mrover {
          * \brief   Attempt to pop a message from the receive queue
          * \return  True if message received from queue, false otherwise
          */
-        [[nodiscard]] auto receive(FDCAN_RxHeaderTypeDef* header, std::span<uint8_t> data) -> bool {
+        [[nodiscard]] auto receive(FDCAN_RxHeaderTypeDef* header, std::span<uint8_t> data) const -> bool {
             if (HAL_FDCAN_GetRxFifoFillLevel(m_fdcan, FDCAN_RX_FIFO0) == 0)
                 return false;
 
@@ -198,7 +200,7 @@ namespace mrover {
         /**
          * \brief Needed since only certain frame sizes less than or equal to 64 bytes are allowed
          */
-        [[nodiscard]] constexpr static auto nearest_fitting_can_fd_frame_size(std::size_t size) -> uint32_t {
+        [[nodiscard]] constexpr static auto nearest_fitting_can_fd_frame_size(std::size_t const size) -> uint32_t {
             if (size <= 0) return FDCAN_DLC_BYTES_0;
             if (size <= 1) return FDCAN_DLC_BYTES_1;
             if (size <= 2) return FDCAN_DLC_BYTES_2;
@@ -218,12 +220,12 @@ namespace mrover {
             return 0;
         }
 
-        void send(uint32_t const id, std::string_view data) {
+        void send(uint32_t const id, std::string_view const data) {
             if (m_last_tx_request) {
                 HAL_FDCAN_AbortTxRequest(m_fdcan, m_last_tx_request);
             }
 
-            FDCAN_TxHeaderTypeDef header{
+            FDCAN_TxHeaderTypeDef const header{
                     .Identifier = id,
                     .IdType = FDCAN_EXTENDED_ID,
                     .TxFrameType = FDCAN_DATA_FRAME,
@@ -241,7 +243,7 @@ namespace mrover {
             m_last_tx_request = HAL_FDCAN_GetLatestTxFifoQRequestBuffer(m_fdcan);
         }
 
-        auto reset() -> void {
+        auto reset() const -> void {
             HAL_FDCAN_Stop(m_fdcan);
             HAL_FDCAN_Start(m_fdcan);
         }
