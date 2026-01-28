@@ -3,12 +3,17 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <csignal>
+#include <cstring>
 #include <deque>
+#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unordered_set>
@@ -41,6 +46,10 @@ struct Auth {
     Auth(Auth &&other) noexcept = default;  
     Auth(std::string host, int port, std::string database, std::string user, std::string password);
 };
+
+// GLOBAL
+std::atomic<bool> running = true;
+std::mutex cout_mutex;
 
 class Logger {
     private:
@@ -77,25 +86,26 @@ class Logger {
 
         void _committer_worker();
         std::thread committer_thread;
-        std::atomic<bool> running = true;
 
         DynamicBuilder builder;
 
         bool log_all = false;
         bool debug = false;
+        bool done = false;
+        std::mutex done_mutex;
 
         int read_error_count = 0;                   //read error on the can bus
         int read_error_count_incomplete = 0;        //if size is less than frame.
         int influx_post_error_count = 0;
 
         void _init_bus();
-        void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile);
+        void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile, uint32_t id);
 
         auto _decode(const uint32_t id, const canfd_frame &can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
-
         void _stop_bus();
     
     public:
+
         Logger(std::string &bus_name, 
                std::string &yaml_file_path, 
                std::string &ascii_log_file_path, 
@@ -109,7 +119,7 @@ class Logger {
         void start();
         void print(std::ostream &os);
 
-        friend void test_factory(std::vector<Logger> &loggers);
+        friend void test_factory(std::deque<Logger> &loggers);
 
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
@@ -118,4 +128,7 @@ class Logger {
 
 std::vector<logger::Logger> logger_factory(std::string &yaml_path, bool debug = false);
 void test_factory(const std::vector<Logger>& loggers);
+
+void handle_SIGINT(int);
+void run_bus(std::vector<Logger> &loggers);
 }
