@@ -50,6 +50,12 @@ CMakeUserPresets.json
 # Editors
 .idea
 .vscode
+.settings
+
+# from the stm32cube extensions in vscode
+src/**/.gitignore
+starter-projects/**/.gitignore
+lib/**/.gitignore
 
 # cache dirs
 tools/fdcanusb
