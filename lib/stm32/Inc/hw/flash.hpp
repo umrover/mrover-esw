@@ -3,8 +3,9 @@
 #include <array>
 #include <concepts>
 #include <cstdint>
-#include <cstdio>
+// #include <cstdio> // TODO: LOGGER
 #include <cstring>
+#include <optional>
 #include <string_view>
 #include <tuple>
 
@@ -26,13 +27,73 @@ namespace mrover {
     };
 
     template<typename T>
+    static auto from_raw(uint32_t raw) -> T {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<T>(raw);
+        } else {
+            return static_cast<T>(raw);
+        }
+    }
+
+    template<typename T>
+    static auto to_raw(T value) -> uint32_t {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<uint32_t>(value);
+        } else {
+            return static_cast<uint32_t>(value);
+        }
+    }
+
+    template<typename T>
     struct reg_t {
         using value_t = T;
-
         std::string_view name;
-        uint16_t addr{};
+        uint8_t addr{};
+        std::optional<value_t> value = std::nullopt;
         static consteval size_t size() { return sizeof(T); }
-        [[nodiscard]] constexpr uint16_t reg() const { return addr; }
+        [[nodiscard]] constexpr uint8_t reg() const { return addr; }
+    };
+
+    template<auto cfg_ptr_t, size_t bit = 0, size_t width = 1>
+    struct field_t {
+        template<typename C>
+        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_t)>::value_t;
+
+        static auto get(auto const& config) {
+            using T = underlying_t<std::decay_t<decltype(config)>>;
+            auto const& reg_item = (config.*cfg_ptr_t);
+
+            if (reg_item.value == std::nullopt) {
+                reg_item.value = (config.flash_ptr)->read_config(config);
+            }
+
+            if constexpr (std::is_floating_point_v<T>) {
+                return reg_item.value.value();
+            } else {
+                if constexpr (width == 1) {
+                    return static_cast<bool>((reg_item.value.value() >> bit) & 1);
+                } else {
+                    constexpr T mask = (static_cast<T>(1) << width) - 1;
+                    return static_cast<T>((reg_item.value.value() >> bit) & mask);
+                }
+            }
+        }
+
+        static void set(auto& config, auto value) {
+            using T = underlying_t<std::decay_t<decltype(config)>>;
+            auto& reg_val = (config.*cfg_ptr_t).value;
+
+            if constexpr (std::is_floating_point_v<T>) {
+                reg_val.value() = static_cast<T>(value);
+            } else {
+                constexpr T mask = ((static_cast<T>(1) << width) - 1) << bit;
+                reg_val.value() = (reg_val & ~mask) | ((static_cast<T>(value) << bit) & mask);
+            }
+
+            (config.flash_ptr)->write(*cfg_ptr_t, reg_val);
+        }
     };
 
     template<config_t Config>
@@ -172,7 +233,7 @@ namespace mrover {
             // uint32_t page_number = ((uint32_t)m_region_start - 0x08000000) / 0x800;
             uint32_t start_page_number = page_num;
             uint32_t end_page_number = page_num;
-            uint32_t num_pages = ((end_page_number - start_page_number) / FLASH_PAGE_SIZE) + 1;
+            uint32_t num_pages = ((end_page_number - start_page_number) / m_page_size) + 1;
 
             FLASH_EraseInitTypeDef erase_init;
             erase_init.TypeErase = FLASH_TYPEERASE_PAGES;
@@ -195,12 +256,14 @@ namespace mrover {
 
         Flash() : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
             static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
+            Config::flash_ptr = this;
         };
         ~Flash() = default;
         Flash(uint32_t start_addr) : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
             static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
             m_region_start = start_addr;
             m_region_end = m_flash_end;
+            Config::flash_ptr = this;
         };
 
         auto get_start() -> uint32_t {
