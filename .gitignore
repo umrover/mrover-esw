@@ -43,6 +43,9 @@ _deps
 CMakeUserPresets.json
 *-prefix/
 
+# clangd
+.clangd
+
 # Editors
 .idea
 .vscode

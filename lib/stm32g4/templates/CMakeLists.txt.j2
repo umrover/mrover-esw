@@ -80,3 +80,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     {{ lib }}
 {%- endfor%}
 )
+
+# Link compile commands for LSPs
+add_custom_command(
+    TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/compile_commands.json" "${CMAKE_SOURCE_DIR}/build/compile_commands.json"
+    COMMENT "linking compile_commands.json from ${CMAKE_BUILD_TYPE} to build/"
+)

@@ -6,6 +6,7 @@
 #include <functional>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
+#include <logger.hpp>
 #include <pidf.hpp>
 #include <units.hpp>
 #include <variant>

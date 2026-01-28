@@ -3,7 +3,8 @@
 #include <bit>
 #include <cstdint>
 #include <tuple>
-#include <type_traits>
+#include <serial/fdcan.hpp>
+#include <serial/uart.hpp>
 
 
 namespace mrover {
