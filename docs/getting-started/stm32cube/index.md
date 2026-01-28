@@ -1,4 +1,4 @@
-# STM32Cube*
+# STM32Cube\*
 
 ## About
 
@@ -201,34 +201,37 @@ The tools to be added are as follows.
 
 ### 1. Download
 
-Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) for macOS. By default your `Downloads` folder should now contain two [tar](https://en.wikipedia.org/wiki/Tar_(computing)) files, one for each tool.
+Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html)
+for macOS. By default your `Downloads` folder should now contain two [tar](<https://en.wikipedia.org/wiki/Tar_(computing)>) files,
+one for each tool.
 
 ### 2. Install
 
 Double click on each tar file. One tar file will expand into a `.app` bundle: double click this item
 and follow the installation steps. The other tar file should expand into a folder with two .pkg files:
-click on each one respectively and follow the steps for installation. 
+click on each one respectively and follow the steps for installation.
 
 ### 3. Update your PATH
 
 The `scripts/new.sh` script (used when [creating a new project](#creating-a-new-project)) needs to
 know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify by adding the location
-of the binaries to our [`PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable)). 
+of the binaries to our [`PATH` environment variable](<https://en.wikipedia.org/wiki/PATH_(variable)>).
 
 There are multiple ways to do this, but the way we will choose is to add the paths to the system-wide
 `/etc/paths` file:
 
-1. Run the command `sudo nano /etc/paths` to open a text editor in the terminal where we can update this file. 
+1. Run the command `sudo nano /etc/paths` to open a text editor in the terminal where we can update this file.
 
 2. Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line.
-Once you are done, make sure you write out (`^O`) and exit (`^X`).
-![verify macos path](./verify-paths-macos.webp)
+   Once you are done, make sure you write out (`^O`) and exit (`^X`).
+   ![verify macos path](./verify-paths-macos.webp)
 
 3. Restart your terminal. Ensure the paths you added have been added to your PATH environment variable
-by running the command `echo $PATH`. You should see all the paths you added somewhere in the output.
+   by running the command `echo $PATH`. You should see all the paths you added somewhere in the output.
 
 ### 4. Next Steps
-You should now be able to create a new project following the [steps below](#creating-a-new-project). 
+
+You should now be able to create a new project following the [steps below](#creating-a-new-project).
 
 ## Creating a New Project
 
@@ -262,3 +265,5 @@ If this completes successfully, then STM32CubeCLT is correctly installed on the 
 Open the `<project>.ioc` file in STM32CubeMX to modify the project configuration.
 
 **Congratulations! You have successfully created a new project with CubeMX!**
+
+For information on how to do this process manually, refer to the [CMake + CubeMX/CubeCLT Toolchain](../../extra/cmake-cubemx.md) document.
