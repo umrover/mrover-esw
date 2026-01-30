@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "../../../../lib/dbc/runtime/include/dbc_runtime.hpp"
+#include "../../../../lib/dbc/runtime/include/dbc_runtime.hpp" //we should fix this
 #include "Yaml.hpp"
 #include "influxdb.hpp"
 
@@ -48,8 +48,8 @@ struct Auth {
 };
 
 // GLOBAL
-std::atomic<bool> running = true;
-std::mutex cout_mutex;
+extern std::atomic<bool> running;
+extern std::mutex cout_mutex;
 
 class Logger {
     private:
@@ -60,7 +60,7 @@ class Logger {
         };
 
         struct DynamicBuilder : public influxdb_cpp::builder {
-            int post(const std::string &measurement,
+            void post(const std::string &measurement,
                      const std::string &bus_name,
                      const std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> &data,
                      const long long timestamp);
@@ -126,7 +126,7 @@ class Logger {
 
 };
 
-std::vector<logger::Logger> logger_factory(std::string &yaml_path, bool debug = false);
+std::vector<Logger> logger_factory(std::string &yaml_path, bool debug = false);
 void test_factory(const std::vector<Logger>& loggers);
 
 void handle_SIGINT(int);
