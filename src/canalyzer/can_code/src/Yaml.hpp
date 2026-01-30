@@ -31,19 +31,18 @@ https://www.codeproject.com/Articles/28720/YAML-Parser-in-C
 
 #pragma once
 
-#include <exception>
-#include <string>
-#include <iostream>
-#include <sstream>
 #include <algorithm>
+#include <exception>
+#include <iostream>
 #include <map>
+#include <sstream>
+#include <string>
 
 /**
 * @breif Namespace wrapping mini-yaml classes.
 *
 */
-namespace Yaml
-{
+namespace Yaml {
 
     /**
     * @breif Forward declarations.
@@ -56,8 +55,7 @@ namespace Yaml
     * @breif Helper classes and functions
     *
     */
-    namespace impl
-    {
+    namespace impl {
 
         /**
         * @breif Helper functionality, converting string to any data type.
@@ -65,24 +63,20 @@ namespace Yaml
         *
         */
         template<typename T>
-        struct StringConverter
-        {
-            static T Get(const std::string & data)
-            {
+        struct StringConverter {
+            static T Get(std::string const& data) {
                 T type;
                 std::stringstream ss(data);
                 ss >> type;
                 return type;
             }
 
-            static T Get(const std::string & data, const T & defaultValue)
-            {
+            static T Get(std::string const& data, T const& defaultValue) {
                 T type;
                 std::stringstream ss(data);
                 ss >> type;
 
-                if(ss.fail())
-                {
+                if (ss.fail()) {
                     return defaultValue;
                 }
 
@@ -90,17 +84,13 @@ namespace Yaml
             }
         };
         template<>
-        struct StringConverter<std::string>
-        {
-            static std::string Get(const std::string & data)
-            {
+        struct StringConverter<std::string> {
+            static std::string Get(std::string const& data) {
                 return data;
             }
 
-            static std::string Get(const std::string & data, const std::string & defaultValue)
-            {
-                if(data.size() == 0)
-                {
+            static std::string Get(std::string const& data, std::string const& defaultValue) {
+                if (data.size() == 0) {
                     return defaultValue;
                 }
                 return data;
@@ -108,24 +98,19 @@ namespace Yaml
         };
 
         template<>
-        struct StringConverter<bool>
-        {
-            static bool Get(const std::string & data)
-            {
+        struct StringConverter<bool> {
+            static bool Get(std::string const& data) {
                 std::string tmpData = data;
                 std::transform(tmpData.begin(), tmpData.end(), tmpData.begin(), ::tolower);
-                if(tmpData == "true" || tmpData == "yes" || tmpData == "1")
-                {
+                if (tmpData == "true" || tmpData == "yes" || tmpData == "1") {
                     return true;
                 }
 
                 return false;
             }
 
-            static bool Get(const std::string & data, const bool & defaultValue)
-            {
-                if(data.size() == 0)
-                {
+            static bool Get(std::string const& data, bool const& defaultValue) {
+                if (data.size() == 0) {
                     return defaultValue;
                 }
 
@@ -133,27 +118,24 @@ namespace Yaml
             }
         };
 
-    }
+    } // namespace impl
 
 
     /**
     * @breif Exception class.
     *
     */
-    class Exception : public std::runtime_error
-    {
+    class Exception : public std::runtime_error {
 
     public:
-
         /**
         * @breif Enumeration of exception types.
         *
         */
-        enum eType
-        {
-            InternalError,  ///< Internal error.
-            ParsingError,   ///< Invalid parsing data.
-            OperationError  ///< User operation error.
+        enum eType {
+            InternalError, ///< Internal error.
+            ParsingError,  ///< Invalid parsing data.
+            OperationError ///< User operation error.
         };
 
         /**
@@ -163,7 +145,7 @@ namespace Yaml
         * @param type       Type of exception.
         *
         */
-        Exception(const std::string & message, const eType type);
+        Exception(std::string const& message, eType const type);
 
         /**
         * @breif Get type of exception.
@@ -175,12 +157,10 @@ namespace Yaml
         * @breif Get message of exception.
         *
         */
-        const char * Message() const;
+        char const* Message() const;
 
     private:
-
-        eType m_Type;   ///< Type of exception.
-
+        eType m_Type; ///< Type of exception.
     };
 
 
@@ -190,19 +170,16 @@ namespace Yaml
     * @see Exception
     *
     */
-    class InternalException : public Exception
-    {
+    class InternalException : public Exception {
 
     public:
-
         /**
         * @breif Constructor.
         *
         * @param message Exception message.
         *
         */
-        InternalException(const std::string & message);
-
+        InternalException(std::string const& message);
     };
 
 
@@ -212,19 +189,16 @@ namespace Yaml
     * @see Exception
     *
     */
-    class ParsingException : public Exception
-    {
+    class ParsingException : public Exception {
 
     public:
-
         /**
         * @breif Constructor.
         *
         * @param message Exception message.
         *
         */
-        ParsingException(const std::string & message);
-
+        ParsingException(std::string const& message);
     };
 
 
@@ -234,19 +208,16 @@ namespace Yaml
     * @see Exception
     *
     */
-    class OperationException : public Exception
-    {
+    class OperationException : public Exception {
 
     public:
-
         /**
         * @breif Constructor.
         *
         * @param message Exception message.
         *
         */
-        OperationException(const std::string & message);
-
+        OperationException(std::string const& message);
     };
 
 
@@ -254,11 +225,9 @@ namespace Yaml
     * @breif Iterator class.
     *
     */
-    class Iterator
-    {
+    class Iterator {
 
     public:
-
         friend class Node;
 
         /**
@@ -271,13 +240,13 @@ namespace Yaml
         * @breif Copy constructor.
         *
         */
-        Iterator(const Iterator & it);
+        Iterator(Iterator const& it);
 
         /**
         * @breif Assignment operator.
         *
         */
-        Iterator & operator = (const Iterator & it);
+        Iterator& operator=(Iterator const& it);
 
         /**
         * @breif Destructor.
@@ -290,44 +259,41 @@ namespace Yaml
         *        First pair item is the key of map value, empty if type is sequence.
         *
         */
-        std::pair<const std::string &, Node &> operator *();
+        std::pair<std::string const&, Node&> operator*();
 
         /**
         * @breif Post-increment operator.
         *
         */
-        Iterator & operator ++ (int);
+        Iterator& operator++(int);
 
         /**
         * @breif Post-decrement operator.
         *
         */
-        Iterator & operator -- (int);
+        Iterator& operator--(int);
 
         /**
         * @breif Check if iterator is equal to other iterator.
         *
         */
-        bool operator == (const Iterator & it);
+        bool operator==(Iterator const& it);
 
         /**
         * @breif Check if iterator is not equal to other iterator.
         *
         */
-        bool operator != (const Iterator & it);
+        bool operator!=(Iterator const& it);
 
     private:
-
-        enum eType
-        {
+        enum eType {
             None,
             SequenceType,
             MapType
         };
 
-        eType   m_Type; ///< Type of iterator.
-        void *  m_pImp; ///< Implementation of iterator class.
-
+        eType m_Type; ///< Type of iterator.
+        void* m_pImp; ///< Implementation of iterator class.
     };
 
 
@@ -335,11 +301,9 @@ namespace Yaml
     * @breif Constant iterator class.
     *
     */
-    class ConstIterator
-    {
+    class ConstIterator {
 
     public:
-
         friend class Node;
 
         /**
@@ -352,13 +316,13 @@ namespace Yaml
         * @breif Copy constructor.
         *
         */
-        ConstIterator(const ConstIterator & it);
+        ConstIterator(ConstIterator const& it);
 
         /**
         * @breif Assignment operator.
         *
         */
-        ConstIterator & operator = (const ConstIterator & it);
+        ConstIterator& operator=(ConstIterator const& it);
 
         /**
         * @breif Destructor.
@@ -371,44 +335,41 @@ namespace Yaml
         *        First pair item is the key of map value, empty if type is sequence.
         *
         */
-        std::pair<const std::string &, const Node &> operator *();
+        std::pair<std::string const&, Node const&> operator*();
 
         /**
         * @breif Post-increment operator.
         *
         */
-        ConstIterator & operator ++ (int);
+        ConstIterator& operator++(int);
 
         /**
         * @breif Post-decrement operator.
         *
         */
-        ConstIterator & operator -- (int);
+        ConstIterator& operator--(int);
 
         /**
         * @breif Check if iterator is equal to other iterator.
         *
         */
-        bool operator == (const ConstIterator & it);
+        bool operator==(ConstIterator const& it);
 
         /**
         * @breif Check if iterator is not equal to other iterator.
         *
         */
-        bool operator != (const ConstIterator & it);
+        bool operator!=(ConstIterator const& it);
 
     private:
-
-        enum eType
-        {
+        enum eType {
             None,
             SequenceType,
             MapType
         };
 
-        eType   m_Type; ///< Type of iterator.
-        void *  m_pImp; ///< Implementation of constant iterator class.
-
+        eType m_Type; ///< Type of iterator.
+        void* m_pImp; ///< Implementation of constant iterator class.
     };
 
 
@@ -416,19 +377,16 @@ namespace Yaml
     * @breif Node class.
     *
     */
-    class Node
-    {
+    class Node {
 
     public:
-
         friend class Iterator;
 
         /**
         * @breif Enumeration of node types.
         *
         */
-        enum eType
-        {
+        enum eType {
             None,
             SequenceType,
             MapType,
@@ -445,15 +403,15 @@ namespace Yaml
         * @breif Copy constructor.
         *
         */
-        Node(const Node & node);
+        Node(Node const& node);
 
         /**
         * @breif Assignment constructors.
         *        Converts node to scalar type if needed.
         *
         */
-        Node(const std::string & value);
-        Node(const char * value);
+        Node(std::string const& value);
+        Node(char const* value);
 
         /**
         * @breif Destructor.
@@ -482,8 +440,7 @@ namespace Yaml
         *
         */
         template<typename T>
-        T As() const
-        {
+        T As() const {
             return impl::StringConverter<T>::Get(AsString());
         }
 
@@ -492,8 +449,7 @@ namespace Yaml
         *
         */
         template<typename T>
-        T As(const T & defaultValue) const
-        {
+        T As(T const& defaultValue) const {
             return impl::StringConverter<T>::Get(AsString(), defaultValue);
         }
 
@@ -512,21 +468,21 @@ namespace Yaml
         *        Adding new item to end of sequence if index is larger than sequence size.
         *
         */
-        Node & Insert(const size_t index);
+        Node& Insert(size_t const index);
 
         /**
         * @breif Add new sequence index to back.
         *        Converts node to sequence type if needed.
         *
         */
-        Node & PushFront();
+        Node& PushFront();
 
-         /**
+        /**
         * @breif Add new sequence index to front.
         *        Converts node to sequence type if needed.
         *
         */
-        Node & PushBack();
+        Node& PushBack();
 
         /**
         * @breif    Get sequence/map item.
@@ -536,24 +492,24 @@ namespace Yaml
         * @param key    Map key. Creates a new node if key is unknown.
         *
         */
-        Node & operator []  (const size_t index);
-        Node & operator [] (const std::string & key);
+        Node& operator[](size_t const index);
+        Node& operator[](std::string const& key);
 
         /**
         * @breif Erase item.
         *        No action if node is not a sequence or map.
         *
         */
-        void Erase(const size_t index);
-        void Erase(const std::string & key);
+        void Erase(size_t const index);
+        void Erase(std::string const& key);
 
         /**
         * @breif Assignment operators.
         *
         */
-        Node & operator = (const Node & node);
-        Node & operator = (const std::string & value);
-        Node & operator = (const char * value);
+        Node& operator=(Node const& node);
+        Node& operator=(std::string const& value);
+        Node& operator=(char const* value);
 
         /**
         * @breif Get start iterator.
@@ -571,15 +527,13 @@ namespace Yaml
 
 
     private:
-
         /**
         * @breif Get as string. If type is scalar, else empty.
         *
         */
-        const std::string & AsString() const;
+        std::string const& AsString() const;
 
-        void * m_pImp; ///< Implementation of node class.
-
+        void* m_pImp; ///< Implementation of node class.
     };
 
 
@@ -599,10 +553,10 @@ namespace Yaml
     * @throw OperationException If filename or buffer pointer is invalid.
     *
     */
-    void Parse(Node & root, const char * filename);
-    void Parse(Node & root, std::iostream & stream);
-    void Parse(Node & root, const std::string & string);
-    void Parse(Node & root, const char * buffer, const size_t size);
+    void Parse(Node& root, char const* filename);
+    void Parse(Node& root, std::iostream& stream);
+    void Parse(Node& root, std::string const& string);
+    void Parse(Node& root, char const* buffer, size_t const size);
 
 
     /**
@@ -610,8 +564,7 @@ namespace Yaml
     *           describing output behavior.
     *
     */
-    struct SerializeConfig
-    {
+    struct SerializeConfig {
 
         /**
         * @breif Constructor.
@@ -623,15 +576,15 @@ namespace Yaml
         * @param mapScalarNewline       Put scalars on a new line if parent node is a map.
         *
         */
-        SerializeConfig(const size_t spaceIndentation = 2,
-                        const size_t scalarMaxLength = 64,
-                        const bool sequenceMapNewline = false,
-                        const bool mapScalarNewline = false);
+        SerializeConfig(size_t const spaceIndentation = 2,
+                        size_t const scalarMaxLength = 64,
+                        bool const sequenceMapNewline = false,
+                        bool const mapScalarNewline = false);
 
-        size_t SpaceIndentation;    ///< Number of spaces per indentation.
-        size_t ScalarMaxLength;     ///< Maximum length of scalars. Serialized as folder scalars if exceeded.
-        bool SequenceMapNewline;    ///< Put maps on a new line if parent node is a sequence.
-        bool MapScalarNewline;      ///< Put scalars on a new line if parent node is a map.
+        size_t SpaceIndentation; ///< Number of spaces per indentation.
+        size_t ScalarMaxLength;  ///< Maximum length of scalars. Serialized as folder scalars if exceeded.
+        bool SequenceMapNewline; ///< Put maps on a new line if parent node is a sequence.
+        bool MapScalarNewline;   ///< Put scalars on a new line if parent node is a map.
     };
 
 
@@ -649,8 +602,8 @@ namespace Yaml
     *                           If config is invalid.
     *
     */
-    void Serialize(const Node & root, const char * filename, const SerializeConfig & config = {2, 64, false, false});
-    void Serialize(const Node & root, std::iostream & stream, const SerializeConfig & config = {2, 64, false, false});
-    void Serialize(const Node & root, std::string & string, const SerializeConfig & config = {2, 64, false, false});
+    void Serialize(Node const& root, char const* filename, SerializeConfig const& config = {2, 64, false, false});
+    void Serialize(Node const& root, std::iostream& stream, SerializeConfig const& config = {2, 64, false, false});
+    void Serialize(Node const& root, std::string& string, SerializeConfig const& config = {2, 64, false, false});
 
-}
+} // namespace Yaml
