@@ -281,17 +281,20 @@ namespace influxdb_cpp {
             if (resp) resp->clear();
 
             _UNTIL(' ')
-            _GET_NUMBER(ret_code) for (;;) {
+            _GET_NUMBER(ret_code)
+            for (;;) {
                 _UNTIL('\n')
                 switch (_GET_NEXT_CHAR()) {
                     case 'C':
                         _('o')
-                        _('n') _('t') _('e') _('n') _('t') _('-')
+                        _('n')
+                        _('t') _('e') _('n') _('t') _('-')
                                 _('L') _('e') _('n') _('g') _('t') _('h') _(':') _(' ')
                                         _GET_NUMBER(content_length) break;
                     case 'T':
                         _('r')
-                        _('a') _('n') _('s') _('f') _('e') _('r') _('-')
+                        _('a')
+                        _('n') _('s') _('f') _('e') _('r') _('-')
                                 _('E') _('n') _('c') _('o') _('d') _('i') _('n') _('g') _(':')
                                         _(' ') _('c') _('h') _('u') _('n') _('k') _('e') _('d')
                                                 chunked = 1;
@@ -300,19 +303,22 @@ namespace influxdb_cpp {
                         __('\n')
                         switch (chunked) {
                             do {
-                            __('\r')
-                            __('\n') case 1:
+                                __('\r')
+                            __('\n')
+                            case 1:
                                 _GET_CHUNKED_LEN(content_length, '\r')
-                                __('\n') if (!content_length) {
+                                __('\n')
+                                if (!content_length) {
                                     __('\r')
-                                    __('\n') goto END;
+                                    __('\n')
+                                    goto END;
                                 }
-                            case 0:
-                                while (content_length > 0 && !_NO_MORE()) {
-                                    content_length -= (iv[1].iov_len = std::min(content_length, static_cast<int>(iv[0].iov_len) - len));
-                                    if (resp) resp->append(&header[len], iv[1].iov_len);
-                                    len += iv[1].iov_len;
-                                }
+                                case 0:
+                                    while (content_length > 0 && !_NO_MORE()) {
+                                        content_length -= (iv[1].iov_len = std::min(content_length, static_cast<int>(iv[0].iov_len) - len));
+                                        if (resp) resp->append(&header[len], iv[1].iov_len);
+                                        len += iv[1].iov_len;
+                                    }
                             } while (chunked);
                         }
                         goto END;
