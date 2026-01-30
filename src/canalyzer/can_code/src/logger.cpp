@@ -2,6 +2,10 @@
 
 namespace logger {
 
+//GLOBALS
+std::atomic<bool> running = true;
+std::mutex cout_mutex;
+
 Auth::Auth(
     std::string host, int port, 
     std::string database, 
@@ -13,7 +17,7 @@ Auth::Auth(
         user(std::move(user)), 
         password(std::move(password)) {}
 
-int Logger::DynamicBuilder::post(
+void Logger::DynamicBuilder::post(
     const std::string &measurement,
     const std::string &bus_name,
     const std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> &data,
@@ -35,6 +39,7 @@ int Logger::DynamicBuilder::post(
             } else if (value.is_string()) {
                 _f_s(delim, name, value.as_string());
             } else {
+                std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cerr << "something weird happened";
             }
         }
@@ -121,7 +126,7 @@ void Logger::_init_bus() {
 
     if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
         throw std::runtime_error("ioctl broke: " + can_bus_name);
-        //blow up exit(1)?
+        //blow up
     }
 
     std::memset(&addr, 0, sizeof(addr));
@@ -134,8 +139,8 @@ void Logger::_init_bus() {
 
     int enable_canfd = 1;
     if (setsockopt(bus_socket, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd)) != 0) {
-        std::cerr << "socket did not set to CAN_RAW_FD_FRAMES" << std::endl;
-        //blow up exit(1)?
+        throw std::runtime_error("socket broke: " + can_bus_name);
+        //blow up
     }
 }
         
@@ -293,7 +298,7 @@ void Logger::print(std::ostream &os) {
 }
 
 
-std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
+std::vector<Logger> logger_factory(std::string &yaml_path, bool debug) {
     //will init a vector of configured Loggers from a yaml found at path
     std::vector<Logger> loggers;
 
@@ -405,6 +410,8 @@ std::vector<Logger> logger_factory(std::string yaml_path, bool debug) {
 }
 
 void handle_SIGINT(int) {
+    std::lock_guard<std::mutex> lock(cout_mutex);
+    std::cout << "caught sigint\n";
     running.store(false);
 }
 
@@ -414,7 +421,7 @@ void run_bus(std::vector<Logger> &loggers) {
     std::vector<std::thread> threads;
 
     for (int i = 0; i < static_cast<int>(loggers.size()); ++i) {
-        threads.emplace_back(&Logger::start, &loggers[i], i);
+        threads.emplace_back(&Logger::start, &loggers[i]);
     }
 
     while (running.load()) {

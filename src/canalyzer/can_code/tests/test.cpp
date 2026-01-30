@@ -26,7 +26,7 @@ int main() {
 }
 
 int helper(const std::string &can_name) {
-    while (true) {
+    for (int i = 0; i < 100; ++i) {
         int s;
         struct sockaddr_can addr;
         struct ifreq ifr;
@@ -62,15 +62,6 @@ int helper(const std::string &can_name) {
             return 1;
         }
         
-        // Enable local loopback (so we receive our own sent frames)
-        /*
-        int loopback = 1;
-        if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS,
-            &loopback, sizeof(loopback)) != 0) {
-                perror("setsockopt CAN_RAW_RECV_OWN_MSGS");
-                return 1;
-            }
-        */
             
         // Prepare CAN FD frame
         frame.can_id = 0x123;
@@ -91,21 +82,6 @@ int helper(const std::string &can_name) {
             return 1;
         }
         
-        
-        // Read frame back
-        /*
-        nbytes = read(s, &read_frame, sizeof(read_frame));
-        if (nbytes < 0) {
-            perror("Read");
-            return 1;
-        } else if (nbytes < (ssize_t) sizeof(read_frame)) {
-            fprintf(stderr, "Incomplete CAN frame read: %zd bytes\n", nbytes);
-            return 1;
-        }
-
-        printf("Received frame: can_id=0x%X, len=%d\n",
-            read_frame.can_id, read_frame.len);
-        */
     }
     return 0;
 }
