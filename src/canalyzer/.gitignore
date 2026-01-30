@@ -1,0 +1,6 @@
+*.out
+.vscode
+log
+*.log
+grafana_data
+influxdb_data

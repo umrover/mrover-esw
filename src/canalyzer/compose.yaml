@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+  influxdb:
+    image: influxdb:1.11.8
+    container_name: influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=logger_db
+      - INFLUXDB_HTTP_AUTH_ENABLED=true
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=password
+      - INFLUXDB_READ_USER=grafana
+      - INFLUXDB_READ_USER_PASSWORD=password
+      - INFLUXDB_WRITE_USER=logger
+      - INFLUXDB_WRITE_USER_PASSWORD=password
+    volumes:
+      # CHANGED: Using named volume instead of ./influxdb_data
+      - influx_storage:/var/lib/influxdb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 15s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=matt
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    depends_on:
+      - influxdb
+    volumes:
+      # CHANGED: Using named volume instead of ./grafana_data
+      - grafana_storage:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      retries: 5
+
+  can_logger:
+    container_name: can_logger_instance
+    build:
+      context: ../../
+      dockerfile: src/canalyzer/can_code/Dockerfile
+      args:
+        PROJECT_REL_PATH: src/canalyzer/can_code
+    stop_signal: SIGINT
+    privileged: true
+    network_mode: host
+    devices:
+      - /dev/vcan0:/dev/vcan0
+      - /dev/vcan1:/dev/vcan1
+      - /dev/vcan2:/dev/vcan2
+      - /dev/vcan3:/dev/vcan3
+    volumes:
+      # Logs are fine to keep local if you want to read them easily
+      - ./logs:/var/log/can_logger
+      # CHANGED: Reference the same volumes so logger can see them if needed
+      # (Though usually logger writes via network (port 8086), not file access)
+      - influx_storage:/var/lib/influxdb
+      - grafana_storage:/var/lib/grafana
+      - ./can_code/logs:/can_code/log
+    depends_on:
+      influxdb:
+        condition: service_healthy
+
+# DEFINE THE VOLUMES HERE
+volumes:
+  influx_storage:
+  grafana_storage:

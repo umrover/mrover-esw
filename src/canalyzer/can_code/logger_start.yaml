@@ -1,0 +1,33 @@
+logger_bus_size: 4
+auth:
+  - host: localhost
+    port: 1500 
+    db_name: influxdb
+    user: user
+    password: password
+loggers:
+  - name: vcan0
+    log_all: false 
+    log_asc: false
+    log_specify: 80,81
+    ascii_file_path: ../log/can0.log
+    dbc_file_paths: ../dbc/can0.dbc
+
+  - name: vcan1
+    log_all: false
+    log_asc: false
+    log_specify: 80
+    ascii_file_path: ../log/can1.log
+    dbc_file_paths: ../dbc/can1.dbc
+
+  - name: vcan2
+    log_all: false 
+    log_specify: 80, 81
+    ascii_file_path: ../log/can2.log
+    dbc_file_paths: ../dbc/can2.dbc
+
+  - name: vcan3
+    log_all: false
+    log_specify: 80, 81, 82
+    ascii_file_path: ../log/can3.log
+    dbc_file_paths: ../dbc/can3.dbc, ../dbc/can4.dbc
