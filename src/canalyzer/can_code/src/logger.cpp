@@ -105,24 +105,37 @@ void Logger::_init_bus() {
     //parse files
 
     for (auto it = begin(dbc_file_paths); it != end(dbc_file_paths); ++it) {
-        parser.parse(*it);
+        if (!parser.parse(*it)) {
+            throw std::runtime_error("failed to parse file" + std::string(*it));
+        }
     }
 
     //add log messasges into the processor
 
     for (auto it = begin(log_ids); it != end(log_ids); ++it) {
         mrover::dbc_runtime::CanMessageDescription const *message = parser.message(*it);
+        if (!message) throw std::runtime_error("parser failed to fetch message with id " + std::to_string(*it));
         processor.add_message_description(*message);
     }
+
+    //create socket
 
     bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (bus_socket < 0) {
         throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
     }
+
+    int flags = fcntl(bus_socket, F_GETFL, 0);
+    if (flags == -1) {
+        throw std::runtime_error("socket flags failed");
+    }
+    if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error("Failed to make socket nonblock");
+
     struct ifreq ifr;
     struct sockaddr_can addr;
 
-    strcpy(ifr.ifr_name, can_bus_name.c_str());
+    std::strncpy(ifr.ifr_name, can_bus_name.c_str(), IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 
     if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
         throw std::runtime_error("ioctl broke: " + can_bus_name);
@@ -150,8 +163,6 @@ void Logger::_log_ascii(unsigned char *arr, std::string name, std::ofstream &out
 
     outputFile << make_can_timestamp() << can_bus_name << " ";
 
-    //TODO fix this! should be the proper CAN id
-
     outputFile << id << "#";
 
     
@@ -170,7 +181,8 @@ auto Logger::_decode(const uint32_t id, const canfd_frame &can_frame) -> std::un
     return processor.decode(id, std::string_view(reinterpret_cast<const char*>(can_frame.data), can_frame.len));
 }
 
-Logger::Logger(std::string &bus_name, 
+Logger::Logger(int id,
+               std::string &bus_name, 
                std::string &yaml_file_path, 
                std::string &ascii_log_file_path, 
                Auth &server_info,
@@ -203,26 +215,37 @@ Logger::Logger(logger::Logger &&other) noexcept
 
 
 void Logger::start() {
-    _init_bus();
-
-    std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
-    if (!dir.empty() && !std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
-        {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "Created directory: " << dir << std::endl;
+    try {
+        _init_bus();
+    
+        std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+            {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << "Created directory: " << dir << "\n";
+            }
         }
+
+    } catch (const std::exception &e) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cerr << "Logger thread failed: " << e.what() << "\n";
+    } catch (...) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cerr << "Logger thread failed with unknown exception\n";
     }
 
     // Open log file (ofstream will create it if it doesn't exist)
     std::ofstream file(ascii_log_file_path, std::ios::app); // use app to append
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open log file: " + ascii_log_file_path);
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cerr << "Logger cannot open file" << ascii_log_file_path << "\n";
+        return;
     }
 
     if (debug) {
         std::lock_guard<std::mutex> lock(cout_mutex);
-        std::cout << "Logger started for " << can_bus_name << std::endl;
+        std::cout << "Logger started for " << can_bus_name << "\n";
     }
     
     committer_thread = std::thread(&Logger::_committer_worker, this);
@@ -230,7 +253,7 @@ void Logger::start() {
     struct canfd_frame cfd;
 
 
-    while (running) {                                                              //catch an interupt instead?
+    while (running.load()) {                                                              //catch an interupt instead?
 
         //read a vcan message from bus (can_id)
         //insert into buffer
@@ -241,12 +264,15 @@ void Logger::start() {
         ssize_t bytes_read = read(bus_socket, &cfd, CANFD_MTU);               //CANFD_MTU is macro for sizeof(canfd_frame)
         
         if (bytes_read < 0) {
-            ++read_error_count;
-            {   
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                continue;;
+            } else {
+                ++read_error_count;
                 std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << std::endl;
+                std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << "\n";
+                continue;
             }
-            continue;
         }
         if (bytes_read < (ssize_t)CAN_MTU) {
             ++read_error_count_incomplete;
@@ -254,10 +280,7 @@ void Logger::start() {
         }
 
         uint32_t id = cfd.can_id & CAN_EFF_MASK;
-
         logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
-
-        std::string resp;
 
         DecodedFrame decoded_message = {.id = id, .time=now_ns(), .data=_decode(id, cfd)};
 
@@ -269,33 +292,46 @@ void Logger::start() {
 
     } //endwhile
 
+    cv.notify_one();
+
     if (committer_thread.joinable()) committer_thread.join();
 }
 
-void Logger::print(std::ostream &os) {
+void Logger::print() {
     {
         std::lock_guard<std::mutex> lock(cout_mutex);
-        os << "Auth:\n"
+        std::cout << "Auth:\n"
         << "\t - Host: " << si.host_ << "\n"
         << "\t - Port: " << si.port_ << "\n"
         << "\t - Db_name: " << si.db_ << "\n"
         << "\t - User: " << si.usr_ << "\n"
         << "\t - Password: " << si.pwd_ << "\n";
 
-        os << "\n"
+        std::cout << "\n"
         << "Info:\n"
         << "\t - Name: " << can_bus_name << "\n"
+        << "\t - Id: " << id << "\n"
         << "\t - log_all: " << log_all << "\n"
         << "\t - yaml_file_path: " << yaml_file_path << "\n"
         << "\t - log_specify: ";
         auto it = log_ids.begin();
         while (it != log_ids.end()) {
-            os << *it << ", ";
+            std::cout << *it << ", ";
             it++;
         }
-        os << std::endl;
+        std::cout << "\n";
     }
 }
+
+void Logger::print_error() {
+    if (debug) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "Logger: " << id << " | read_error_count: " << read_error_count << 
+        " | incomplete reads: " << read_error_count_incomplete << " | influx post errors: " << influx_post_error_count << "\n";
+    }
+}
+
+// End logger class members
 
 
 std::vector<Logger> logger_factory(std::string &yaml_path, bool debug) {
@@ -399,7 +435,7 @@ std::vector<Logger> logger_factory(std::string &yaml_path, bool debug) {
 
         std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
 
-        loggers.emplace_back(name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), log_all, debug);
+        loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), log_all, debug);
         if (debug) {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
@@ -411,7 +447,7 @@ std::vector<Logger> logger_factory(std::string &yaml_path, bool debug) {
 
 void handle_SIGINT(int) {
     std::lock_guard<std::mutex> lock(cout_mutex);
-    std::cout << "caught sigint\n";
+    std::cout << "\ncaught sigint\n";
     running.store(false);
 }
 
@@ -430,6 +466,10 @@ void run_bus(std::vector<Logger> &loggers) {
 
     for (auto &thread : threads) {
         if (thread.joinable()) thread.join();
+    }
+
+    for (auto &logger : loggers) {
+        logger.print_error();
     }
 }
 
