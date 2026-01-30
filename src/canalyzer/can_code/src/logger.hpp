@@ -66,19 +66,18 @@ class Logger {
                      const long long timestamp);
         };
 
+        int id;
         int bus_socket;
         std::string can_bus_name;
         std::string yaml_file_path;
         std::string ascii_log_file_path;
         influxdb_cpp::server_info si;
-        //std::unordered_set<int> valid_ids;
+
         std::unordered_set<int> log_ids;
         std::unordered_set<std::string> dbc_file_paths;
 
         mrover::dbc_runtime::CanDbcFileParser parser; 
         mrover::dbc_runtime::CanFrameProcessor processor;
-
-        std::vector<std::thread> influx_committers;
 
         std::deque<DecodedFrame> buffer;
         std::mutex buffer_mutex;
@@ -92,21 +91,26 @@ class Logger {
         bool log_all = false;
         bool debug = false;
         bool done = false;
-        std::mutex done_mutex;
 
         int read_error_count = 0;                   //read error on the can bus
         int read_error_count_incomplete = 0;        //if size is less than frame.
         int influx_post_error_count = 0;
 
         void _init_bus();
-        void _log_ascii(unsigned char *arr, std::string name, std::ofstream &outputFile, uint32_t id);
+        void _log_ascii(
+            unsigned char *arr, 
+            std::string name, 
+            std::ofstream &outputFile, 
+            uint32_t id);
 
         auto _decode(const uint32_t id, const canfd_frame &can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
         void _stop_bus();
     
     public:
 
-        Logger(std::string &bus_name, 
+        Logger(
+               int id,
+               std::string &bus_name, 
                std::string &yaml_file_path, 
                std::string &ascii_log_file_path, 
                Auth &server_info, 
@@ -117,9 +121,11 @@ class Logger {
 
         Logger(Logger &&other) noexcept;
         void start();
-        void print(std::ostream &os);
+        
+        void print();
+        void print_error();
 
-        friend void test_factory(std::deque<Logger> &loggers);
+        friend void test_factory(std::vector<Logger> &loggers);
 
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;

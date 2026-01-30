@@ -17,7 +17,8 @@ services:
       - INFLUXDB_WRITE_USER=logger
       - INFLUXDB_WRITE_USER_PASSWORD=password
     volumes:
-      - ./influxdb_data:/var/lib/influxdb
+      # CHANGED: Using named volume instead of ./influxdb_data
+      - influx_storage:/var/lib/influxdb
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
       interval: 15s
@@ -35,28 +36,41 @@ services:
     depends_on:
       - influxdb
     volumes:
-      - ./grafana_data:/var/lib/grafana
+      # CHANGED: Using named volume instead of ./grafana_data
+      - grafana_storage:/var/lib/grafana
     healthcheck:
-      test: ["CMD", "curl", "-f", "http:/localhost:3000/ping"]    #idk if we need this or if it is correct but here it is
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 15s
       retries: 5
 
   can_logger:
+    container_name: can_logger_instance
     build:
-      context: ./can_code
-      dockerfile: Dockerfile
-    privileged: true    #change later???
-    network_mode : host
+      context: ../../
+      dockerfile: src/canalyzer/can_code/Dockerfile
+      args:
+        PROJECT_REL_PATH: src/canalyzer/can_code
+    stop_signal: SIGINT
+    privileged: true
+    network_mode: host
     devices:
       - /dev/vcan0:/dev/vcan0
       - /dev/vcan1:/dev/vcan1
       - /dev/vcan2:/dev/vcan2
       - /dev/vcan3:/dev/vcan3
     volumes:
-      - ./logs:/var/log/can_logger 
-      - ./influxdb_data:/var/lib/influxdb
-      - ./grafana_data:/var/lib/grafana
+      # Logs are fine to keep local if you want to read them easily
+      - ./logs:/var/log/can_logger
+      # CHANGED: Reference the same volumes so logger can see them if needed
+      # (Though usually logger writes via network (port 8086), not file access)
+      - influx_storage:/var/lib/influxdb
+      - grafana_storage:/var/lib/grafana
       - ./can_code/logs:/can_code/log
     depends_on:
       influxdb:
         condition: service_healthy
+
+# DEFINE THE VOLUMES HERE
+volumes:
+  influx_storage:
+  grafana_storage:

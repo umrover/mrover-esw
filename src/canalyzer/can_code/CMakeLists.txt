@@ -3,6 +3,11 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(canalyzer LANGUAGES CXX)
 
+add_compile_options(
+    $<$<CONFIG:Debug>:-g3>
+)
+#add_compile_options(-Wall -Werror)
+
 get_filename_component(DBC_RUNTIME_ROOT 
     "${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/dbc/runtime" 
     ABSOLUTE

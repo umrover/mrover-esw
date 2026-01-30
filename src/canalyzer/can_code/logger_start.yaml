@@ -9,25 +9,25 @@ loggers:
   - name: vcan0
     log_all: false 
     log_asc: false
-    log_specify: 100,101
-    ascii_file_path: ./log/can0.log
-    dbc_file_paths: ./dbc/can0.dbc
+    log_specify: 80,81
+    ascii_file_path: ../log/can0.log
+    dbc_file_paths: ../dbc/can0.dbc
 
   - name: vcan1
     log_all: false
     log_asc: false
-    log_specify: 1,2,3
-    ascii_file_path: ./log/can1.log
-    dbc_file_paths: ./dbc/can1.dbc
+    log_specify: 80
+    ascii_file_path: ../log/can1.log
+    dbc_file_paths: ../dbc/can1.dbc
 
   - name: vcan2
     log_all: false 
-    log_specify: 98,123
-    ascii_file_path: ./log/can2.log
-    dbc_file_paths: ./dbc/can2.dbc
+    log_specify: 80, 81
+    ascii_file_path: ../log/can2.log
+    dbc_file_paths: ../dbc/can2.dbc
 
   - name: vcan3
     log_all: false
-    log_specify: 21,2010339
-    ascii_file_path: ./log/can3.log
-    dbc_file_paths: ./dbc/can3.dbc, ./dbc/can4.dbc
+    log_specify: 80, 81, 82
+    ascii_file_path: ../log/can3.log
+    dbc_file_paths: ../dbc/can3.dbc, ../dbc/can4.dbc
