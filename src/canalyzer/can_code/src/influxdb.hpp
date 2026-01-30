@@ -288,31 +288,63 @@ namespace influxdb_cpp {
                     case 'C':
                         _('o')
                         _('n')
-                        _('t') _('e') _('n') _('t') _('-')
-                                _('L') _('e') _('n') _('g') _('t') _('h') _(':') _(' ')
-                                        _GET_NUMBER(content_length) break;
+                        _('t')
+                        _('e')
+                        _('n')
+                        _('t')
+                        _('-')
+                        _('L')
+                        _('e')
+                        _('n')
+                        _('g')
+                        _('t')
+                        _('h')
+                        _(':')
+                        _(' ')
+                        _GET_NUMBER(content_length)
+                        break;
                     case 'T':
                         _('r')
                         _('a')
-                        _('n') _('s') _('f') _('e') _('r') _('-')
-                                _('E') _('n') _('c') _('o') _('d') _('i') _('n') _('g') _(':')
-                                        _(' ') _('c') _('h') _('u') _('n') _('k') _('e') _('d')
-                                                chunked = 1;
+                        _('n')
+                        _('s')
+                        _('f')
+                        _('e')
+                        _('r')
+                        _('-')
+                        _('E')
+                        _('n')
+                        _('c')
+                        _('o')
+                        _('d')
+                        _('i')
+                        _('n')
+                        _('g')
+                        _(':')
+                        _(' ')
+                        _('c')
+                        _('h')
+                        _('u')
+                        _('n')
+                        _('k')
+                        _('e')
+                        _('d')
+                        chunked = 1;
                         break;
                     case '\r':
                         __('\n')
                         switch (chunked) {
                             do {
                                 __('\r')
-                            __('\n')
-                            case 1:
-                                _GET_CHUNKED_LEN(content_length, '\r')
                                 __('\n')
-                                if (!content_length) {
-                                    __('\r')
+                                case 1:
+                                    _GET_CHUNKED_LEN(content_length, '\r')
                                     __('\n')
-                                    goto END;
-                                }
+                                    if (!content_length) {
+                                        __('\r')
+                                        __('\n')
+                                        goto END;
+                                    }
                                 case 0:
                                     while (content_length > 0 && !_NO_MORE()) {
                                         content_length -= (iv[1].iov_len = std::min(content_length, static_cast<int>(iv[0].iov_len) - len));
