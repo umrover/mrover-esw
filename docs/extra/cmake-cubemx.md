@@ -1,16 +1,16 @@
 # CMake + CubeMX/CubeCLT Toolchain
 
-## Installing
+In [Getting Started/STM32Cube](../getting-started/stm32cube/index.md), we went over how to set up the
+STM32Cube toolchain utilizing our own scripts and CMakeLists.txt templates to setup and build the projects.
 
-1. Install [CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html#get-software). This is the `.ioc` file editor.
-2. Install [CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html#get-software).
-   This is the command-line toolset that contains all the software necessary to build and deploy the codebase.
-3. Install [CubeMCUFinder](https://www.st.com/en/development-tools/st-mcu-finder-pc.html#get-software).
-4. Install the corresponding extension for your editor. In each case, the extension will need to be provided the location to CubeMX and CubeCLT.
-    1. [CLion](https://www.jetbrains.com/help/clion/embedded-stm32.html)
-    2. [VS Code](https://www.st.com/content/st_com/en/campaigns/stm32-vs-code-extension-z11.html)
+In this document, we will go over the manual approach of using CubeMX and CubeCLT directly.
 
-## Creating a New CubeMX Project
+## Prerequisites
+
+Please install STM32CubeMX and STM32CubeCLT by following the instructions in the
+[Getting Started/STM32Cube](../getting-started/stm32cube/index.md) document.
+
+## 1. Creating a New CubeMX Project
 
 1. Open CubeMX and navigate to `File`&#8594;`New Project`.
 2. A window should pop up. In this window, select your desired MCU or development board.
@@ -20,13 +20,14 @@
 5. Give your project a name and set the `Project Location` to the desired directory.
 6. Set the `Toolchain / IDE` dropdown to `CMake`.
 7. Now, still in the `Project Manager` tab, navigate to the `Code Generator` settings on the left menu.
-8. Select `Copy only the necessary library files`. This will reduce bloat on your computer by only bringing in the necessary HAL files for your specific project instead of all 900+.
+8. Select `Copy only the necessary library files`. This will reduce bloat on your computer by only bringing
+   in the necessary HAL files for your specific project instead of all 900+.
 9. Save the project by navigating to `File`&#8594;`Save Project` or by pressing `Ctrl + S`.
 10. Click `Generate Code` in the top right. CubeMX will generate the project files in the specified directory.
-   For example, if the project name is `myproject` and the location is `/home/user/mrover-esw/src/`,
-   the generated files will be in `/home/user/mrover-esw/src/myproject/`.
+    For example, if the project name is `myproject` and the location is `/home/user/mrover-esw/src/`,
+    the generated files will be in `/home/user/mrover-esw/src/myproject/`.
 
-## Adding CMake Dependencies to Projects
+## 2. Adding CMake Dependencies to Projects
 
 ### Removing Dependency on Generated HAL Drivers
 
@@ -65,7 +66,7 @@ set(STM32_Drivers_Src
 These generated HAL drivers total over 900 files, which is unnecessary and would bloat
 the repository if committed. In order to prevent this, we remove the dependency on the
 generated HAL drivers for each project and instead use a shared HAL driver library which
-is hosted as a git submodule in `lib/extern/STM32CubeG4`.
+is hosted as a git submodule in `lib/stm32g4/STM32CubeG4`.
 
 To do this, we create our own CMakeLists.txt file in a new directory `cmake/stm32cubemx_extern/`.
 This CMakeLists.txt file will replace the generated one and instead link to the shared
@@ -74,25 +75,25 @@ HAL driver library. For example, the above generated CMakeLists.txt would be rep
 ```cmake
 set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/system_stm32g4xx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
 )
 ```
 
 You can see that instead of navigating to the `Drivers/STM32G4xx_HAL_Driver/` directory
 that is autogenerated for every project, we instead navigate to the shared HAL driver library
-in `lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/`.
+in `lib/stm32g4/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/`.
 
 To use this new CMakeLists.txt file instead of the autogenerated one, simply replace the
 following line in the top-level CMakeLists.txt:
@@ -117,9 +118,6 @@ generate the file `stm32g4xx_hal_i2c.c`. You will then need to add the following
 ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/extern/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_i2c.c
 ```
 
-!!! note "TODO"
-    _We should create a script to automate this process of creating and updating the `cmake/stm32cubemx_extern/CMakeLists.txt` file._
-
 ### Adding `lib/` Dependencies
 
 To add `lib/` dependencies to a CubeMX project, add the following to `CMakeLists.txt`.
@@ -139,18 +137,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 )
 ```
 
-## Building and Flashing
+## 3. Building and Flashing
 
-1. `./scripts/build.sh --src <PROJECT>` will build the project
-2. `./scripts/flash.sh --src <PROJECT>` will flash the project to the MCU connected to the STLINK
-
-For example, if the project is named `myproject` and is located in `/home/user/mrover-esw/src/`,
-the command to build would be:
-
-```sh
-./scripts/build.sh --src myproject
-```
-
-!!! note
-    In order to use the scripts to build and flash, ensure all `*/bin` directories from CubeCLT are included in `$PATH`
-
+You can now build the CMake project as you would normally or by using our build script as
+described in [Getting Started/STM32Cube](../getting-started/stm32cube/index.md).
