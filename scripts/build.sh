@@ -9,6 +9,8 @@ YELLOW="\e[1;33m"
 NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
+TOOLS_DIR="$ESW_ROOT/tools"
+VENV_PATH="$TOOLS_DIR/venv"
 SRC=""
 PRESET="Debug"
 TARGET_NAME=""
@@ -19,6 +21,7 @@ PORT="${PORT:-swd}"
 FREQ="${FREQ:-8000}"
 RESET="${RESET:-HWrst}"
 SCRIPT_NAME=$(basename "$0")
+CLANGD_SCRIPT="$TOOLS_DIR/scripts/clangd.py"
 
 usage() {
     cat <<EOF
@@ -58,9 +61,10 @@ check_deps() {
     done
 }
 
+# parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -s|--src)       SRC="$2"; shift 2 ;;
+        -s|--src)       SRC="$(realpath "$2")"; shift 2 ;;
         -p|--preset)    PRESET="$2"; shift 2 ;;
         -t|--target)    TARGET_NAME="$2"; shift 2 ;;
         -f|--flash)     DO_FLASH=true; shift ;;
@@ -75,7 +79,7 @@ if [[ -z "$SRC" ]]; then
     usage
 fi
 
-SRC_DIR="$ESW_ROOT/$SRC"
+SRC_DIR="$SRC"
 if [ ! -d "$SRC_DIR" ]; then
     printf "%b\n" "${RED}✗ failed: directory $SRC_DIR does not exist${NC}"
     exit 1
@@ -92,17 +96,22 @@ printf "%b\n" "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${Y
 pushd "$SRC_DIR" > /dev/null
 BUILD_DIR="build/$PRESET"
 
+# clean the project if that paramter was set
 if [[ "$DO_CLEAN" == "true" ]]; then
     run_step "cleaning build dir" rm -rf "$BUILD_DIR"
+    exit 0
 fi
 
+# configure cmake if preset target does not exist
 if [ ! -f "$BUILD_DIR/build.ninja" ]; then
     mkdir -p "$BUILD_DIR"
     run_step "configure cmake" cmake --preset "$PRESET"
 fi
 
+# execute build
 run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
 
+# flash if parameter set
 if [[ "$DO_FLASH" == "true" ]]; then
     ELF="$BUILD_DIR/${TARGET_NAME}.elf"
     if [[ ! -f "$ELF" ]]; then
@@ -113,10 +122,31 @@ if [[ "$DO_FLASH" == "true" ]]; then
     FLASH_CMD=(STM32_Programmer_CLI --connect port="$PORT" freq="$FREQ" reset="$RESET")
     FLASH_CMD+=(--write "$ELF")
     FLASH_CMD+=(--verify)
-    FLASH_CMD+=(--start)  # TODO: should this be conditional?
+    FLASH_CMD+=(--start)
 
     run_step "flash mcu" "${FLASH_CMD[@]}"
 fi
 
 popd > /dev/null
+
+# ensure .clangd file exists
+if [[ ! -f "$SRC_DIR/.clangd" ]]; then
+    # create venv if it does not exist
+    if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
+        mkdir -p "$BUILD_DIR"
+        if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
+            cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
+        fi
+        cmake --build "${BUILD_DIR}" --target python_env_ready
+        rm -rf "$BUILD_DIR"
+    fi
+
+    # activate venv
+    # shellcheck source=/dev/null
+    source "$VENV_PATH/bin/activate"
+
+    # create the clangd
+    run_step "create .clangd" "$VENV_PATH/bin/python" "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
+fi
+
 printf "%b\n" "${GREEN}====== success ======${NC}"
