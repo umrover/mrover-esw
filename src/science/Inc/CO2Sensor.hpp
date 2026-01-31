@@ -23,9 +23,11 @@ namespace mrover {
 		}
 
         // updates ppm using rx_buf data -> conversion formula: ppm = ((rx_buf - 2^14) / 2^15) * 100
-        void update_co2() {
+        float update_co2() {
             uint16_t raw = (rx_buf[0] << 8) | rx_buf[1];
             percent = (float(raw - (1 << 14)) / (1 << 15)) * 100.0f;
+			
+			return percent;
         }
 
         // requests raw co2 data over i2c, when sensor responds with data callback will be hit and will call receive_buf
