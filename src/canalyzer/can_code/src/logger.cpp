@@ -31,7 +31,8 @@ namespace logger {
 
         for (auto const& [name, value]: data) {
             char delim = is_first_field ? ' ' : ',';
-
+            is_first_field = false;
+            
             if (value.is_floating_point()) {
                 _f_f(delim, name, value.as_double(), 8);
             } else if (value.is_integral()) {
