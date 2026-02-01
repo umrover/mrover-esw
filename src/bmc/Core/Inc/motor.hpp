@@ -66,6 +66,7 @@ namespace mrover {
                     m_quad_encoder.update();
                     if (std::optional<EncoderReading> reading = m_quad_encoder.read()) {
                         auto const& [position, velocity] = reading.value();
+                        // Logger::instance().info("pos: %.2f | vel: %.2f", position.get(), velocity.get());
                         m_uncalibrated_position = position;
                         m_velocity = velocity;
                     } else {

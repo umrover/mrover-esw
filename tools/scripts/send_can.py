@@ -32,7 +32,11 @@ if __name__ == "__main__":
         bus.send("BMCConfigCmd", {"address": 0x24, "value": float2bits(1.0), "apply": 0x1}, node_id=0)
         
         # set motor en on board
-        bus.send("BMCConfigCmd", {"address": 0x01, "value": 0b00000001, "apply": 0x1}, node_id=0)
+        bus.send("BMCConfigCmd", {"address": 0x01, "value": 0b00000101, "apply": 0x1}, node_id=0)
+
+        # set quad params & en
+        bus.send("BMCConfigCmd", {"address": 0x04, "value": 4096.0, "apply": 0x1}, node_id=0)
+        bus.send("BMCConfigCmd", {"address": 0x18, "value": 1.0, "apply": 0x1}, node_id=0)
 
         # limit switches
         bus.send("BMCConfigCmd", {"address": 0x02, "value": 0b00010101, "apply": 0x1}, node_id=0)

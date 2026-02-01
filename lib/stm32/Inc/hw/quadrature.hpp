@@ -53,6 +53,8 @@ namespace mrover {
             m_multiplier = multiplier;
             m_cpr = cpr;
             m_initialized = true;
+            Logger::instance().info("CPR: %.2f", m_cpr.get());
+            Logger::instance().info("Multiplier: %.2f", m_multiplier.get());
         }
 
         [[nodiscard]] auto read() const -> std::optional<EncoderReading> {

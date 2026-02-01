@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace mrover {
 
     enum struct bmc_error_t : uint8_t {
