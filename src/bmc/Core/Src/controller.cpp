@@ -86,8 +86,14 @@ namespace mrover {
      */
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         if (!initialized) return;
+        static std::optional<uint8_t> can_id = std::nullopt;
+        static std::optional<uint8_t> host_can_id = std::nullopt;
+
+        if (!can_id.has_value()) can_id = config.get<bmc_config_t::can_id>();
+        if (!host_can_id.has_value()) host_can_id = config.get<bmc_config_t::host_can_id>();
+
         can_tx.set();
-        can_receiver.send(msg, config.get<bmc_config_t::can_id>(), config.get<bmc_config_t::host_can_id>());
+        can_receiver.send(msg, can_id.value(), host_can_id.value());
         Logger::instance().debug("CAN Message Sent");
         can_tx.reset();
     }

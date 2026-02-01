@@ -1,9 +1,9 @@
+#pragma once
 
 #include <algorithm>
 #include <array>
 #include <concepts>
 #include <cstdint>
-// #include <cstdio> // TODO: LOGGER
 #include <cstring>
 #include <optional>
 #include <string_view>
@@ -131,6 +131,7 @@ namespace mrover {
         /// Write a double word into flash.
         void program_double_word(uint32_t const address, uint64_t const value) {
             unlock();
+
             // printf ("address: 0x%lx\n\r", address);
             HAL_StatusTypeDef const status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, value);
             lock();
@@ -153,8 +154,8 @@ namespace mrover {
 
         template<typename T>
         void write(uint32_t const& custom_addr, T const& value) {
-            uint32_t physical_addr = m_region_start + custom_addr;
-            uint32_t page_num = get_page(physical_addr);
+            uint32_t const physical_addr = m_region_start + custom_addr;
+            uint32_t const page_num = get_page(physical_addr);
             uint32_t offset = physical_addr - get_page_start(page_num);
 
             if (page_num != m_loaded_page_num) {
@@ -181,7 +182,7 @@ namespace mrover {
         void flush() {
             if (!m_dirty || m_loaded_page_num == UINT32_MAX) return;
 
-            uint32_t start_addr = get_page_start(m_loaded_page_num);
+            uint32_t const start_addr = get_page_start(m_loaded_page_num);
             erase_page(m_loaded_page_num);
 
             for (size_t i = 0; i < m_page_size / 8; ++i) {
@@ -242,15 +243,16 @@ namespace mrover {
         [[nodiscard]] constexpr uint8_t reg() const { return addr; }
     };
 
-    template<auto cfg_ptr_t, size_t bit = 0, size_t width = 1>
+    template<auto cfg_ptr_v, size_t bit = 0, size_t width = 1>
     struct field_t {
         template<typename C>
-        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_t)>::value_t;
+        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_v)>::value_t;
+        static constexpr auto reg_ptr = cfg_ptr_v;
 
         static auto get(auto const& config) {
             using ConfigType = std::decay_t<decltype(config)>;
             using T = underlying_t<ConfigType>;
-            auto const& reg_item = (config.*cfg_ptr_t);
+            auto const& reg_item = (config.*cfg_ptr_v);
 
             if (!reg_item.value.has_value()) {
                 using FlashType = Flash<ConfigType, typename ConfigType::mem_layout>;
@@ -276,7 +278,7 @@ namespace mrover {
         static void set(auto& config, auto value) {
             using ConfigType = std::decay_t<decltype(config)>;
             using T = underlying_t<ConfigType>;
-            auto& reg_item = (config.*cfg_ptr_t);
+            auto& reg_item = (config.*cfg_ptr_v);
 
             if constexpr (std::is_floating_point_v<T>) {
                 reg_item.value = static_cast<T>(value);
