@@ -68,6 +68,8 @@ namespace mrover {
     Pin can_rx;
     CANBus1Handler can_receiver;
     Motor motor;
+
+    // Memory Controller
     Flash<bmc_config_t, bmc_config_t::mem_layout> flash;
 
     /**

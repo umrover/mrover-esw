@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bit>
+#include <functional>
 #include <cstdint>
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
@@ -30,6 +30,8 @@ namespace mrover {
     };
 
     struct bmc_config_t {
+        static inline void* flash_ptr = nullptr;
+
         FDCAN::Filter can_node_filter;
 
         reg_t<uint8_t> CAN_ID{"can_id", 0x00, 0x00};
@@ -101,7 +103,7 @@ namespace mrover {
         template<typename F>
         void set(auto value) { F::set(*this, value); }
 
-        auto all() {
+        constexpr auto all() {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
@@ -109,7 +111,7 @@ namespace mrover {
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
         }
 
-        auto all() const {
+        constexpr auto all() const {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
                     ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
@@ -129,7 +131,7 @@ namespace mrover {
         auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
             bool found = false;
             std::apply([&](auto const&... reg) {
-                ((reg.addr == address ? (raw = to_raw(reg.value), found = true) : false), ...);
+                ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
             },
                        all());
             return found;
@@ -142,8 +144,6 @@ namespace mrover {
             static constexpr int PAGE_SIZE = 2048;
             static constexpr int NUM_PAGES = 64;
         };
-
-        Flash<bmc_config_t, bmc_config_t::mem_layout> *flash_ptr;
 
         static consteval uint16_t size_bytes() {
             return validated_config_t<bmc_config_t>::size_bytes();
