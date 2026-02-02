@@ -3,11 +3,8 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <functional>
 #include <limits>
 #include <utility>
-
-#include <logger.hpp>
 
 #ifdef STM32
 #include "main.h"
@@ -20,7 +17,6 @@ namespace mrover {
     protected:
         TIM_HandleTypeDef* htim;
         uint32_t sys_clock;
-        std::string name;
         bool interrupt;
         bool is_en = false;
 
@@ -42,8 +38,8 @@ namespace mrover {
 
     public:
         Timer() = default;
-        explicit Timer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false, std::string const& name = "Timer")
-            : htim{tim_handle}, sys_clock{HAL_RCC_GetSysClockFreq()}, name{std::move(name)}, interrupt{interrupt} {
+        explicit Timer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false)
+            : htim{tim_handle}, sys_clock{HAL_RCC_GetSysClockFreq()}, interrupt{interrupt} {
             start();
         }
 
@@ -55,7 +51,6 @@ namespace mrover {
                 check(start_no_it() == HAL_OK, Error_Handler);
                 is_en = true;
             }
-            Logger::instance().info("%s @%.2f Hz", name.c_str(), get_update_frequency());
         }
 
         auto stop() -> void {
@@ -116,7 +111,8 @@ namespace mrover {
     class IStopwatch {
     public:
         virtual ~IStopwatch() = default;
-        using TimerCallback = std::function<void()>;
+        typedef void (*TimerCallback)();
+        // using TimerCallback = std::function<void()>;
 
         virtual auto remove_stopwatch() -> std::uint8_t = 0;
         virtual auto add_stopwatch() -> std::uint8_t = 0;
@@ -166,8 +162,8 @@ namespace mrover {
 
     public:
         ElapsedTimer() = default;
-        explicit ElapsedTimer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false, std::string const& name = "ElapsedTimer")
-            : Timer{tim_handle, interrupt, name} {
+        explicit ElapsedTimer(TIM_HandleTypeDef* tim_handle, bool const interrupt = false)
+            : Timer{tim_handle, interrupt} {
             m_is_first_read.fill(true);
             m_tick_prev.fill(0);
             for (size_t channel_id = 0; channel_id < NumChannels; ++channel_id) {

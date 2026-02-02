@@ -3,7 +3,6 @@
 #include <hw/limit_switch.hpp>
 #include <hw/pin.hpp>
 #include <hw/quadrature.hpp>
-#include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
 
@@ -45,12 +44,14 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
     static constexpr TIM_HandleTypeDef* ELAPSED_TIM = &htim2;
     static constexpr TIM_HandleTypeDef* ENCODER_TIM = &htim4;
-    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 10 Hz
-    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 10 Hz
-    static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 100 Hz
+    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 5 Hz
+    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 5 Hz
+    static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 12.5 Hz
 
     bmc_config_t config;
-    bool initialized = false;
+    volatile bool initialized = false;
+    volatile bool tx_pending = false;
+    volatile bool control_update = false;
 
     // Peripherals
     UART lpuart;
@@ -83,10 +84,15 @@ namespace mrover {
      */
     auto send_can_message(CANBus1Msg_t const& msg) -> void {
         if (!initialized) return;
-        can_tx.set();
-        can_receiver.send(msg, config.get<bmc_config_t::can_id>(), config.get<bmc_config_t::host_can_id>());
-        Logger::instance().debug("CAN Message Sent");
-        can_tx.reset();
+        static std::optional<uint8_t> can_id = std::nullopt;
+        static std::optional<uint8_t> host_can_id = std::nullopt;
+
+        if (!can_id.has_value()) can_id = config.get<bmc_config_t::can_id>();
+        if (!host_can_id.has_value()) host_can_id = config.get<bmc_config_t::host_can_id>();
+
+        // can_tx.set();
+        can_receiver.send(msg, can_id.value(), host_can_id.value());
+        // can_tx.reset();
     }
 
     /**
@@ -97,10 +103,10 @@ namespace mrover {
         if (!initialized) return;
 
         // start the CAN watchdog if it lapsed
-        if (!can_wwdg_tim.is_enabled()) {
+        // if (!can_wwdg_tim.is_enabled()) {
             motor.reset_wwdg();
-            can_wwdg_tim.start();
-        }
+            // can_wwdg_tim.start();
+        // }
 
         while (fdcan.messages_to_process() > 0) {
             if (auto const recv = can_receiver.receive(); recv) {
@@ -123,9 +129,9 @@ namespace mrover {
         adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
 
         // initialize logger
-        Logger::init(&lpuart);
-        auto const& logger = Logger::instance();
-        logger.info("Initializing");
+        // Logger::init(&lpuart);
+        // auto const& logger = Logger::instance();
+        // logger.info("Initializing");
 
         // setup debug LEDs
         can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
@@ -148,15 +154,29 @@ namespace mrover {
         };
 
         // setup timers
-        tx_tim = Timer{TX_TIM, true, "TX Timer"};                                                  // transmit timer (on interrupt)
-        can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"};                            // can watchdog timer (on interrupt)
-        control_tim = Timer{CONTROL_TIM, true, "Control Timer"};                                   // control timer (update driven output, on interrupt)
-        elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false, "PID Timer"}; // pid compute timer
+        tx_tim = Timer{TX_TIM, true};                                                 // transmit timer (on interrupt)
+        can_wwdg_tim = Timer{CAN_WWDG_TIM, true};                                     // can watchdog timer (on interrupt)
+        control_tim = Timer{CONTROL_TIM, true};                                       // control timer (update driven output, on interrupt)
+        elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false}; // pid compute timer
 
         // set initialization state and initial error state
-        logger.info("BMC Initialized");
+        // logger.info("BMC Initialized");
         initialized = true;
         __enable_irq();
+    }
+
+    [[noreturn]] auto loop() -> void {
+        for (;;) {
+            if (tx_pending) {
+                motor.send_state();
+                tx_pending = false;
+            }
+            if (control_update) {
+                motor.drive_output();
+                control_update = false;
+            }
+            __WFI();
+        }
     }
 
     /**
@@ -165,27 +185,30 @@ namespace mrover {
      * @param htim The timer whose period elapsed
      */
     auto timer_elapsed_callback(TIM_HandleTypeDef const* htim) -> void {
+        can_tx.set();
         if (!initialized) return;
         if (htim == TX_TIM) {
-            motor.send_state();
+            tx_pending = true;
+            // motor.send_state();
         } else if (htim == CAN_WWDG_TIM) {
-            can_wwdg_tim.stop();
+            // can_wwdg_tim.stop();
             motor.tx_watchdog_lapsed();
-            Logger::instance().warn("TX Watchdog Lapsed");
+            // Logger::instance().warn("TX Watchdog Lapsed");
         } else if (htim == CONTROL_TIM) {
-            motor.drive_output();
+            control_update = true;
         }
+        can_tx.reset();
     }
 
     /**
      * Callback enabling asynchronous serial logs via UART/DMA.
      * @param huart UART handle from callback
      */
-    auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
-        if (huart == LPUART_1) {
-            lpuart.handle_tx_complete();
-        }
-    }
+    // auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
+    //     if (huart == LPUART_1) {
+    //         lpuart.handle_tx_complete();
+    //     }
+    // }
 
 } // namespace mrover
 
@@ -193,6 +216,10 @@ extern "C" {
 
 void PostInit() {
     mrover::init();
+}
+
+void Loop() {
+    mrover::loop();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
@@ -204,14 +231,14 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
-    mrover::uart_tx_callback(huart);
+    // mrover::uart_tx_callback(huart);
 }
 
 // TODO(eric) implement
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim) {}
 void HAL_FDCAN_ErrorCallback(FDCAN_HandleTypeDef* hfdcan) {}
 void HAL_FDCAN_ErrorStatusCallback(FDCAN_HandleTypeDef* hfdcan, uint32_t ErrorStatusITs) {}
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {}
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {}
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {}
+// void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {}
+// void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {}
+// void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {}
 }

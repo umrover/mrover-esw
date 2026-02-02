@@ -29,6 +29,7 @@ set(MX_STARTUP_S "${CMAKE_SOURCE_DIR}/startup_stm32g431xx.s")
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map")
 
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
@@ -71,6 +72,9 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
 # Add fwlib dependency
 add_subdirectory(../../lib fwlib)
+
+# enable fp prints
+#target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}

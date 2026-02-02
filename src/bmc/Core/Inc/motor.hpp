@@ -3,11 +3,10 @@
 #include <CANBus1.hpp>
 #include <cinttypes>
 #include <err.hpp>
-#include <functional>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
-#include <logger.hpp>
+// #include <logger.hpp>
 #include <pidf.hpp>
 #include <variant>
 
@@ -18,8 +17,10 @@
 namespace mrover {
 
     class Motor {
-        using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
-        using can_reset_t = std::function<void()>;
+        typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
+        typedef void (*can_reset_t)();
+        // using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
+        // using can_reset_t = std::function<void()>;
 
         HBridge m_hbridge;
         AD8418A m_current_sensor;
@@ -158,7 +159,7 @@ namespace mrover {
          */
         auto init() -> void {
             __disable_irq();
-            Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
+            // Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
 
             // configure can peripheral
             // m_initialize_fdcan();
@@ -187,7 +188,7 @@ namespace mrover {
             float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
             m_limit_a.init(en, active_high, use_readjust, is_forward, position);
 
-            Logger::instance().info("LIMIT_A: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
+            // Logger::instance().info("LIMIT_A: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
             en = m_config_ptr->get<bmc_config_t::lim_b_en>();
             active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
@@ -196,7 +197,7 @@ namespace mrover {
             position = m_config_ptr->get<bmc_config_t::limit_b_position>();
             m_limit_b.init(en, active_high, use_readjust, is_forward, position);
 
-            Logger::instance().info("LIMIT_B: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
+            // Logger::instance().info("LIMIT_B: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
@@ -228,12 +229,12 @@ namespace mrover {
 
         template<typename T>
         auto handle(T const& _) const -> void {
-            Logger::instance().debug("Received Unhandled Message Type");
+            // Logger::instance().debug("Received Unhandled Message Type");
         }
 
         auto handle(BMCProbe const& msg) const -> void {
             // acknowledge probe
-            Logger::instance().info("BMC Probed with data %u", msg.data);
+            // Logger::instance().info("BMC Probed with data %u", msg.data);
             m_message_tx_f(BMCAck{msg.data});
         }
 
@@ -251,7 +252,7 @@ namespace mrover {
                 }
             }
             // m_pidf_elapsed_timer->forget_reads();
-            Logger::instance().info("Mode set to %u", m_mode);
+            // Logger::instance().info("Mode set to %u", m_mode);
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
@@ -276,25 +277,25 @@ namespace mrover {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
-                    Logger::instance().info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
+                    // Logger::instance().info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
                     // re-initialize after configuration is modified
                     init();
                 } else {
-                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
+                    // Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
                 }
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
                     m_message_tx_f(BMCAck{val});
                 } else {
-                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
+                    // Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
                 }
             }
         }
 
         auto handle(BMCResetCmd const& msg) -> void {
             reset();
-            Logger::instance().info("BMC Reset Received");
+            // Logger::instance().info("BMC Reset Received");
         }
 
     public:
