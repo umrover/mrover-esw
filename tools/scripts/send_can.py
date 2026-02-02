@@ -25,12 +25,12 @@ if __name__ == "__main__":
     with CANBus(get_dbc(dbc_name="CANBus1"), "can0", on_recv=on_msg_recv) as bus:
         # set mode to throttle
         bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-        # while True:
-        #     for _ in range(NUM_LOOPS):
-        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-        #         sleep(LOOP_DELAY)
-        #     TARGET += INC
-        #     if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
-        #         INC *= -1
+        while True:
+            for _ in range(NUM_LOOPS):
+                bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+                sleep(LOOP_DELAY)
+            TARGET += INC
+            if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
+                INC *= -1
 
         sleep(50)

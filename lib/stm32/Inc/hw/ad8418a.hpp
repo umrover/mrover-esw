@@ -2,8 +2,6 @@
 
 #include <adc.hpp>
 
-#include "logger.hpp"
-
 namespace mrover {
 #ifdef HAL_ADC_MODULE_ENABLED
     class AD8418A {

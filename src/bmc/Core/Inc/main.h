@@ -56,6 +56,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void PostInit();
+void Loop();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -69,12 +70,6 @@ void PostInit();
 #define LPUART_TX_GPIO_Port GPIOA
 #define LPUART_RX_Pin GPIO_PIN_3
 #define LPUART_RX_GPIO_Port GPIOA
-#define SPI_SCK_Pin GPIO_PIN_5
-#define SPI_SCK_GPIO_Port GPIOA
-#define SPI_MISO_Pin GPIO_PIN_6
-#define SPI_MISO_GPIO_Port GPIOA
-#define SPI_MOSI_Pin GPIO_PIN_7
-#define SPI_MOSI_GPIO_Port GPIOA
 #define SPI_CS_Pin GPIO_PIN_0
 #define SPI_CS_GPIO_Port GPIOB
 #define CAN_RX_LED_Pin GPIO_PIN_11
@@ -93,8 +88,6 @@ void PostInit();
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
-#define I2C_SCL_Pin GPIO_PIN_15
-#define I2C_SCL_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
 #define CAN_STB_Pin GPIO_PIN_5
