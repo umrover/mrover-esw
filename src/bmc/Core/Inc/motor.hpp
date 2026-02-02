@@ -19,8 +19,6 @@ namespace mrover {
     class Motor {
         typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
         typedef void (*can_reset_t)();
-        // using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
-        // using can_reset_t = std::function<void()>;
 
         HBridge m_hbridge;
         AD8418A m_current_sensor;
@@ -65,7 +63,6 @@ namespace mrover {
                     m_quad_encoder.update();
                     if (std::optional<EncoderReading> reading = m_quad_encoder.read()) {
                         auto const& [position, velocity] = reading.value();
-                        // Logger::instance().info("pos: %.2f | vel: %.2f", position.get(), velocity.get());
                         m_uncalibrated_position = position;
                         m_velocity = velocity;
                     } else {
@@ -160,8 +157,6 @@ namespace mrover {
          */
         auto init() -> void {
             __disable_irq();
-            // Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
-
             // configure can peripheral
             // m_initialize_fdcan();
 
@@ -189,16 +184,12 @@ namespace mrover {
             float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
             m_limit_a.init(en, active_high, use_readjust, is_forward, position);
 
-            // Logger::instance().info("LIMIT_A: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
-
             en = m_config_ptr->get<bmc_config_t::lim_b_en>();
             active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
             use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
             is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
             position = m_config_ptr->get<bmc_config_t::limit_b_position>();
             m_limit_b.init(en, active_high, use_readjust, is_forward, position);
-
-            // Logger::instance().info("LIMIT_B: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
@@ -230,12 +221,10 @@ namespace mrover {
 
         template<typename T>
         auto handle(T const& _) const -> void {
-            // Logger::instance().debug("Received Unhandled Message Type");
         }
 
         auto handle(BMCProbe const& msg) const -> void {
             // acknowledge probe
-            // Logger::instance().info("BMC Probed with data %u", msg.data);
             m_message_tx_f(BMCAck{msg.data});
         }
 
@@ -252,8 +241,7 @@ namespace mrover {
                     }
                 }
             }
-            // m_pidf_elapsed_timer->forget_reads();
-            // Logger::instance().info("Mode set to %u", m_mode);
+            m_pidf_elapsed_timer->forget_reads();
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
@@ -269,7 +257,6 @@ namespace mrover {
                 case mode_t::POSITION:
                 case mode_t::VELOCITY:
                     m_target = msg.target;
-                    // Logger::instance().info("Set Target to %.2f", m_target);
                     break;
             }
         }
@@ -278,7 +265,6 @@ namespace mrover {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
-                    // Logger::instance().info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
                     // re-initialize after configuration is modified
                     init();
                 } else {
@@ -296,7 +282,6 @@ namespace mrover {
 
         auto handle(BMCResetCmd const& msg) -> void {
             reset();
-            // Logger::instance().info("BMC Reset Received");
         }
 
     public:
@@ -337,8 +322,6 @@ namespace mrover {
         auto send_state() -> void {
             // m_current_sensor.update_sensor();
 
-            // Logger::instance().info("A: %u, FWD: %u, B: %u, REV: %u", m_limit_a_hit, m_limit_forward_hit, m_limit_b_hit, m_limit_backward_hit);
-
             auto const position = [this] {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
                 return std::numeric_limits<float>::quiet_NaN();
@@ -356,8 +339,6 @@ namespace mrover {
                     m_limit_b_hit,                 // limit_b_set
                     0                              // is_stalled
             });
-
-            // Logger::instance().info("Current: %f", m_current_sensor.current());
         }
 
         auto drive_output() -> void {

@@ -105,19 +105,16 @@ namespace mrover {
     auto receive_can_message() -> void {
         if (!initialized) return;
 
-        // start the CAN watchdog if it lapsed
-        // if (!can_wwdg_tim.is_enabled()) {
-            motor.reset_wwdg();
-            // can_wwdg_tim.start();
-        // }
+        // reset CAN watchdog if it lapsed
+        motor.reset_wwdg();
 
         while (fdcan.messages_to_process() > 0) {
             if (auto const recv = can_receiver.receive(); recv) {
-                can_rx.set();
+                // can_rx.set();
                 auto const& msg = *recv;
                 motor.receive(msg);
                 can_wwdg_tim.reset();
-                can_rx.reset();
+                // can_rx.reset();
             }
         }
     }
@@ -133,8 +130,6 @@ namespace mrover {
 
         // initialize logger
         // Logger::init(&lpuart);
-        // auto const& logger = Logger::instance();
-        // logger.info("Initializing");
 
         // setup debug LEDs
         can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
@@ -163,7 +158,6 @@ namespace mrover {
         elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false}; // pid compute timer
 
         // set initialization state and initial error state
-        // logger.info("BMC Initialized");
         initialized = true;
         __enable_irq();
     }
@@ -182,25 +176,31 @@ namespace mrover {
         }
     }
 
+    auto error() -> void {
+        can_tx.set();
+        can_rx.set();
+    }
+
     /**
      * Callback for timer periods elapsing.
      * Timers have to be started with "HAL_TIM_Base_Start_IT" for this interrupt to work for them.
      * @param htim The timer whose period elapsed
      */
     auto timer_elapsed_callback(TIM_HandleTypeDef const* htim) -> void {
-        can_tx.set();
         if (!initialized) return;
         if (htim == TX_TIM) {
+            can_tx.set();
             tx_pending = true;
-            // motor.send_state();
+            can_tx.reset();
         } else if (htim == CAN_WWDG_TIM) {
-            // can_wwdg_tim.stop();
+            can_tx.set();
             motor.tx_watchdog_lapsed();
-            // Logger::instance().warn("TX Watchdog Lapsed");
+            can_tx.reset();
         } else if (htim == CONTROL_TIM) {
+            can_rx.set();
             control_update = true;
+            can_rx.reset();
         }
-        can_tx.reset();
     }
 
     /**
@@ -223,6 +223,10 @@ void PostInit() {
 
 void Loop() {
     mrover::loop();
+}
+
+void Error() {
+    mrover::error();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {

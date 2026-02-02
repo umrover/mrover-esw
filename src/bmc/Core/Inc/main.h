@@ -57,6 +57,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 void PostInit();
 void Loop();
+void Error();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
