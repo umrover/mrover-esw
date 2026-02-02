@@ -2,7 +2,7 @@ from time import sleep
 
 from esw import esw_logger
 from esw.can.dbc import get_dbc
-from esw.can.canbus import CANBus, float2bits
+from esw.can.canbus import CANBus
 
 
 def on_msg_recv(msg):
@@ -19,15 +19,18 @@ if __name__ == "__main__":
     LOOP_DELAY = 0.05
     TARGET = 0
     INC = 0.10
-    CAN_ID = 30
+    CAN_ID = 3
+    SRC_ID = 1
 
     with CANBus(get_dbc(dbc_name="CANBus1"), "can0", on_recv=on_msg_recv) as bus:
         # set mode to throttle
-        bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, node_id=CAN_ID)
-        while True:
-            for _ in range(NUM_LOOPS):
-                bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, node_id=CAN_ID)
-                sleep(LOOP_DELAY)
-            TARGET += INC
-            if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
-                INC *= -1
+        bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        # while True:
+        #     for _ in range(NUM_LOOPS):
+        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        #         sleep(LOOP_DELAY)
+        #     TARGET += INC
+        #     if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
+        #         INC *= -1
+
+        sleep(50)

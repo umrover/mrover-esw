@@ -6,11 +6,9 @@
 #include <numeric>
 #include <utility>
 
-#include <units.hpp>
-
 namespace mrover {
 
-    template<IsUnit T, std::size_t Size>
+    template<typename T, std::size_t Size>
     class RunningMeanFilter {
 
         std::size_t m_index{};
@@ -32,7 +30,7 @@ namespace mrover {
         }
     };
 
-    template<IsUnit T, double Alpha>
+    template<typename T, double Alpha>
     class IIRFilter {
 
         T m_value{};
@@ -51,7 +49,7 @@ namespace mrover {
         }
     };
 
-    template<IsUnit T>
+    template<typename T>
     class ButterworthFilter {
     };
 

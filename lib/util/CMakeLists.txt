@@ -18,6 +18,5 @@ target_include_directories(util ${util_scope}
 )
 
 target_link_libraries(util ${util_scope}
-    units
     stm32
 )

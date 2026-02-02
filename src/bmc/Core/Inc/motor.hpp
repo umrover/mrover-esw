@@ -6,10 +6,9 @@
 #include <functional>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
-#include <logger.hpp>
 #include <hw/limit_switch.hpp>
+#include <logger.hpp>
 #include <pidf.hpp>
-#include <units.hpp>
 #include <variant>
 
 #include "config.hpp"
@@ -31,13 +30,12 @@ namespace mrover {
         tx_exec_t m_message_tx_f;
         can_reset_t m_initialize_fdcan;
 
-        std::optional<PIDF<Radians, Percent>> m_position_pidf{std::nullopt};
-        std::optional<PIDF<RadiansPerSecond, Percent>> m_velocity_pidf{std::nullopt};
+        std::optional<PIDF> m_pidf{std::nullopt};
         ITimerChannel* m_pidf_elapsed_timer;
 
-        std::optional<Radians> m_calibrated_offset{std::nullopt};
-        std::optional<Radians> m_uncalibrated_position{std::nullopt};
-        std::optional<RadiansPerSecond> m_velocity{std::nullopt};
+        std::optional<float> m_calibrated_offset{std::nullopt};     // radians
+        std::optional<float> m_uncalibrated_position{std::nullopt}; // radians
+        std::optional<float> m_velocity{std::nullopt};              // radians/second
         bmc_config_t* m_config_ptr;
         encoder_mode_t m_encoder_mode{encoder_mode_t::NONE};
         mode_t m_mode{mode_t::STOPPED};
@@ -58,7 +56,7 @@ namespace mrover {
 
         auto sample_encoder() -> void {
             switch (m_encoder_mode) {
-            case encoder_mode_t::NONE:
+                case encoder_mode_t::NONE:
                     m_uncalibrated_position.reset();
                     m_velocity.reset();
                     break;
@@ -91,14 +89,14 @@ namespace mrover {
                 limit.update_limit_switch();
                 if (limit.limit_forward()) {
                     at_limit = true;
-                    if (std::optional<Radians> const readjustment_position = limit.get_readjustment_position()) {
+                    if (std::optional<float> const readjustment_position = limit.get_readjustment_position()) {
                         if (m_uncalibrated_position) {
                             m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
                         }
                     }
                 } else if (limit.limit_backward()) {
                     at_limit = true;
-                    if (std::optional<Radians> const readjustment_position = limit.get_readjustment_position()) {
+                    if (std::optional<float> const readjustment_position = limit.get_readjustment_position()) {
                         if (m_uncalibrated_position) {
                             m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
                         }
@@ -121,31 +119,31 @@ namespace mrover {
                     case mode_t::THROTTLE:
                         if (!m_hbridge.is_on()) m_hbridge.start();
                         {
-                            auto setpoint_thr = Percent{m_target};
-                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
-                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            auto setpoint_thr = m_target;
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
                             m_hbridge.write(setpoint_thr);
                         }
                         break;
                     case mode_t::VELOCITY:
                         if (!m_hbridge.is_on()) m_hbridge.start();
                         {
-                            auto const target_vel = RadiansPerSecond{m_target};
+                            auto const target_vel = m_target;
                             auto const input_vel = m_velocity.value();
-                            auto setpoint_thr = m_velocity_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
-                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
-                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
                             m_hbridge.write(setpoint_thr);
                         }
                         break;
                     case mode_t::POSITION:
                         if (!m_hbridge.is_on()) m_hbridge.start();
                         {
-                            auto const target_pos = Radians{m_target};
+                            auto const target_pos = m_target;
                             auto const input_pos = m_uncalibrated_position.value() - m_calibrated_offset.value();
-                            auto setpoint_thr = m_position_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
-                            if (setpoint_thr > 0_percent && m_limit_forward_hit) setpoint_thr = 0_percent;
-                            if (setpoint_thr < 0_percent && m_limit_backward_hit) setpoint_thr = 0_percent;
+                            auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
                             m_hbridge.write(setpoint_thr);
                         }
                         break;
@@ -174,34 +172,31 @@ namespace mrover {
             m_current_sensor.init(get_current_sensor_options());
 
             // read pidf gains
-            m_position_pidf = PIDF<Radians, Percent>{};
-            m_position_pidf->with_p(m_config_ptr->get<bmc_config_t::k_p>());
-            m_position_pidf->with_i(m_config_ptr->get<bmc_config_t::k_i>());
-            m_position_pidf->with_d(m_config_ptr->get<bmc_config_t::k_d>());
-            m_position_pidf->with_ff(m_config_ptr->get<bmc_config_t::k_f>());
-            m_position_pidf->with_output_bound(-1.0, 1.0);
-
-            m_velocity_pidf = PIDF<RadiansPerSecond, Percent>{};
-            m_velocity_pidf->with_p(m_config_ptr->get<bmc_config_t::k_p>());
-            m_velocity_pidf->with_i(m_config_ptr->get<bmc_config_t::k_i>());
-            m_velocity_pidf->with_d(m_config_ptr->get<bmc_config_t::k_d>());
-            m_velocity_pidf->with_ff(m_config_ptr->get<bmc_config_t::k_f>());
-            m_velocity_pidf->with_output_bound(-1.0, 1.0);
+            m_pidf = PIDF{};
+            m_pidf->with_p(m_config_ptr->get<bmc_config_t::k_p>());
+            m_pidf->with_i(m_config_ptr->get<bmc_config_t::k_i>());
+            m_pidf->with_d(m_config_ptr->get<bmc_config_t::k_d>());
+            m_pidf->with_ff(m_config_ptr->get<bmc_config_t::k_f>());
+            m_pidf->with_output_bound(-1.0, 1.0);
 
             // init limit switches
-            m_limit_a.init(
-                    m_config_ptr->get<bmc_config_t::lim_a_en>(),
-                    m_config_ptr->get<bmc_config_t::lim_a_active_high>(),
-                    m_config_ptr->get<bmc_config_t::lim_a_use_readjust>(),
-                    m_config_ptr->get<bmc_config_t::lim_a_is_forward>(),
-                    m_config_ptr->get<bmc_config_t::limit_a_position>());
+            bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
+            bool active_high = m_config_ptr->get<bmc_config_t::lim_a_active_high>();
+            bool use_readjust = m_config_ptr->get<bmc_config_t::lim_a_use_readjust>();
+            bool is_forward = m_config_ptr->get<bmc_config_t::lim_a_is_forward>();
+            float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
+            m_limit_a.init(en, active_high, use_readjust, is_forward, position);
 
-            m_limit_b.init(
-                    m_config_ptr->get<bmc_config_t::lim_b_en>(),
-                    m_config_ptr->get<bmc_config_t::lim_b_active_high>(),
-                    m_config_ptr->get<bmc_config_t::lim_b_use_readjust>(),
-                    m_config_ptr->get<bmc_config_t::lim_b_is_forward>(),
-                    m_config_ptr->get<bmc_config_t::limit_b_position>());
+            Logger::instance().info("LIMIT_A: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
+
+            en = m_config_ptr->get<bmc_config_t::lim_b_en>();
+            active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
+            use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
+            is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
+            position = m_config_ptr->get<bmc_config_t::limit_b_position>();
+            m_limit_b.init(en, active_high, use_readjust, is_forward, position);
+
+            Logger::instance().info("LIMIT_B: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
@@ -214,9 +209,9 @@ namespace mrover {
 
             if (quad) {
                 m_encoder_mode = encoder_mode_t::QUAD;
-                Ratio const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? Ratio{1.0} : Ratio{-1.0};
-                Ratio const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
-                auto const cpr = Ticks{m_config_ptr->get<bmc_config_t::gear_ratio>()};
+                float const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? 1.0f : -1.0f;
+                float const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
+                float const cpr = m_config_ptr->get<bmc_config_t::gear_ratio>();
                 m_quad_encoder.init(phase * gear_ratio, cpr);
             } else if (abs_spi) {
                 m_encoder_mode = encoder_mode_t::NONE;
@@ -255,7 +250,7 @@ namespace mrover {
                     }
                 }
             }
-            m_pidf_elapsed_timer->forget_reads();
+            // m_pidf_elapsed_timer->forget_reads();
             Logger::instance().info("Mode set to %u", m_mode);
         }
 
@@ -344,15 +339,15 @@ namespace mrover {
 
             auto const position = [this] {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
-                return Radians{std::numeric_limits<float>::quiet_NaN()};
+                return std::numeric_limits<float>::quiet_NaN();
             }();
 
-            auto const velocity = m_velocity.value_or(RadiansPerSecond{std::numeric_limits<float>::quiet_NaN()}).get();
+            auto const velocity = m_velocity.value_or(std::numeric_limits<float>::quiet_NaN());
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
-                    position.get(),                // position
+                    position,                      // position
                     velocity,                      // velocity
                     m_current_sensor.current(),    // current
                     m_limit_a_hit,                 // limit_a_set

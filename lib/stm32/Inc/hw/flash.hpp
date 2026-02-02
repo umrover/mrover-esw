@@ -1,6 +1,7 @@
 #include "main.h"
 #include <algorithm>
 #include <array>
+#include <cinttypes>
 #include <concepts>
 #include <cstdint>
 #include <cstdio>
@@ -16,7 +17,13 @@ namespace mrover {
     // -------------------------------------------------------------------
     // CONFIG IMPLEMENTATIONS
     // -------------------------------------------------------------------
-
+    template<typename T>
+    concept mem_layout_t = requires {
+        { T::FLASH_BEGIN_ADDR } -> std::convertible_to<uint32_t>;
+        { T::FLASH_END_ADDR } -> std::convertible_to<uint32_t>;
+        { T::PAGE_SIZE } -> std::convertible_to<int>;
+        { T::NUM_PAGES } -> std::convertible_to<int>;
+    };
 
     template<typename T>
     concept config_t = requires {
@@ -25,14 +32,284 @@ namespace mrover {
         { T::size_bytes() } -> std::same_as<uint16_t>;
     };
 
+    template<config_t Config, mem_layout_t Mem>
+    class Flash {
+        std::array<uint8_t, Mem::PAGE_SIZE> m_page_buffer;
+        uint32_t m_loaded_page_num;
+        bool m_dirty;
+        static constexpr uint32_t m_flash_end = Mem::FLASH_END_ADDR;
+        static constexpr uint32_t m_flash_begin = Mem::FLASH_BEGIN_ADDR;
+        static constexpr int m_page_size = Mem::PAGE_SIZE;
+        static constexpr int m_num_pages = Mem::NUM_PAGES;
+        uint32_t m_last_page_start = m_flash_begin + m_page_size * (m_num_pages - 1);
+
+        // Unlock/lock the flash protection
+        void unlock() {
+            HAL_FLASH_Unlock();
+        }
+        void lock() {
+            HAL_FLASH_Lock();
+        }
+
+        void load_page(uint32_t const page_num) {
+            uint32_t const curr_addr = get_page_start(page_num);
+            for (size_t i = 0; i < m_page_size; ++i) {
+                uint8_t byte = read_byte(curr_addr + i);
+                m_page_buffer[i] = byte;
+            }
+            m_loaded_page_num = page_num;
+            m_dirty = false;
+        }
+
+        // Calculate what page of flash an address is in.
+        auto get_page(uint32_t const address) -> uint32_t {
+            return (address - m_flash_begin) / m_page_size;
+        }
+
+        // Calculate start address of page page_num
+        auto get_page_start(uint32_t const page_num) -> uint32_t {
+            return m_flash_begin + (page_num * m_page_size);
+        }
+
+        // get physical address from custom address
+        auto get_physical_addr(uint32_t const address) -> uint32_t {
+            return m_region_start + address;
+        }
+
+        // get start address of double word custom address is located in
+        auto get_double_word_start(uint32_t address) -> uint32_t {
+            uint32_t physical_addr = get_physical_addr(address);
+            return physical_addr = physical_addr & ~0x7ULL;
+        }
+
+        /// Erase the entirety of the managed flash section.
+        void erase_page(uint32_t const& page_num = (m_num_pages - 1)) {
+            unlock();
+
+            // uint32_t page_number = ((uint32_t)m_region_start - 0x08000000) / 0x800;
+            uint32_t const start_page_number = page_num;
+            uint32_t const end_page_number = page_num;
+            uint32_t const num_pages = ((end_page_number - start_page_number) / m_page_size) + 1;
+
+            FLASH_EraseInitTypeDef erase_init;
+            erase_init.TypeErase = FLASH_TYPEERASE_PAGES;
+            erase_init.Page = start_page_number;
+            erase_init.NbPages = num_pages;
+
+            uint32_t page_error = 0;
+            HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&erase_init, &page_error);
+            lock();
+
+            if (status != HAL_OK) {
+                // TODO logger for this
+                // printf("ERASE FAILED\n\r");
+            }
+        }
+
+    public:
+        uint32_t m_region_start = m_last_page_start; // default to last page only
+        uint32_t m_region_end = m_flash_end;
+
+        Flash() : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
+            // static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
+            Config::flash_ptr = this;
+        };
+        ~Flash() = default;
+        explicit Flash(uint32_t const start_addr) : m_loaded_page_num(UINT32_MAX), m_dirty(false) {
+            // static_assert(validated_config_t<Config>::is_valid(), "consumed config is valid");
+            m_region_start = start_addr;
+            m_region_end = m_flash_end;
+            Config::flash_ptr = this;
+        };
+
+        auto get_start() const -> uint32_t {
+            return m_region_start;
+        }
+
+        /// Write a double word into flash.
+        void program_double_word(uint32_t const address, uint64_t const value) {
+            unlock();
+
+            // printf ("address: 0x%lx\n\r", address);
+            HAL_StatusTypeDef const status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, value);
+            lock();
+
+            if (status != HAL_OK) {
+                // TODO logger for this
+                // printf("WRITE FAILED\n\r");
+            }
+        }
+
+        // Read a double word from flash.
+        auto read_double_word(uint32_t const start_addr) -> uint64_t {
+            uint64_t const word = *reinterpret_cast<uint64_t volatile*>(start_addr);
+            return word;
+        }
+        auto read_byte(uint32_t const start_addr) -> uint8_t {
+            uint8_t const byte = *reinterpret_cast<uint8_t volatile*>(start_addr);
+            return byte;
+        }
+
+        template<typename T>
+        void write(uint32_t const& custom_addr, T const& value) {
+            uint32_t const physical_addr = m_region_start + custom_addr;
+            uint32_t const page_num = get_page(physical_addr);
+            uint32_t offset = physical_addr - get_page_start(page_num);
+
+            if (page_num != m_loaded_page_num) {
+                if (m_dirty) flush();
+                load_page(page_num);
+            }
+
+            memcpy(&m_page_buffer[offset], &value, sizeof(T));
+            m_dirty = true;
+        }
+
+        template<typename T>
+        T read(uint32_t const address) {
+
+            uint32_t const physical_addr = get_physical_addr(address);
+
+            T result;
+            memcpy(&result, reinterpret_cast<void*>(physical_addr), sizeof(T));
+            return result;
+        }
+
+
+        // once changes are finalized, erase and rewrite a flash page
+        void flush() {
+            if (!m_dirty || m_loaded_page_num == UINT32_MAX) return;
+
+            uint32_t const start_addr = get_page_start(m_loaded_page_num);
+            erase_page(m_loaded_page_num);
+
+            for (size_t i = 0; i < m_page_size / 8; ++i) {
+                uint64_t double_word = 0;
+                for (int j = 0; j < 8; ++j) {
+                    double_word |= static_cast<uint64_t>(m_page_buffer[i * 8 + j]) << (8 * j);
+                }
+                program_double_word(start_addr + (i * 8), double_word);
+            }
+
+            m_dirty = false;
+            load_page(m_loaded_page_num);
+        }
+
+        template<typename Field, typename Value>
+        auto write_config(Field const& f, Value const& v) {
+            using field_type = Field::value_t;
+            write(f.addr, static_cast<field_type>(v));
+            flush();
+        }
+
+        template<typename Field>
+        auto read_config(Field const& f) -> Field::value_t {
+            using V = Field::value_t;
+            V value{};
+            value = read<V>(f.addr);
+            return value;
+        }
+    };
+
+    template<typename T>
+    static auto from_raw(uint32_t raw) -> T {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<T>(raw);
+        } else {
+            return static_cast<T>(raw);
+        }
+    }
+
+    template<typename T>
+    static auto to_raw(T value) -> uint32_t {
+        static_assert(std::is_trivially_copyable_v<T>);
+        if constexpr (sizeof(T) == sizeof(uint32_t)) {
+            return std::bit_cast<uint32_t>(value);
+        } else {
+            return static_cast<uint32_t>(value);
+        }
+    }
+
     template<typename T>
     struct reg_t {
         using value_t = T;
 
         std::string_view name;
-        uint16_t addr{};
+        uint8_t addr{};
+        mutable std::optional<T> value = std::nullopt;
         static consteval size_t size() { return sizeof(T); }
-        [[nodiscard]] constexpr uint16_t reg() const { return addr; }
+        [[nodiscard]] constexpr uint8_t reg() const { return addr; }
+
+        template<typename Config>
+        T read(Config const& cfg) const {
+            if (!value.has_value()) {
+                using FlashType = Flash<Config, typename Config::mem_layout>;
+                if (auto* flash = static_cast<FlashType*>(Config::flash_ptr)) {
+                    value = flash->template read<T>(addr);
+                } else {
+                    value = T{};
+                }
+            }
+            return *value;
+        }
+
+        template<typename Config>
+        void write(Config const& cfg, T v) const {
+            value = v;
+            using FlashType = Flash<Config, typename Config::mem_layout>;
+            if (auto* flash = static_cast<FlashType*>(Config::flash_ptr)) {
+                flash->write(addr, v);
+                flash->flush();
+            }
+        }
+    };
+
+    template<auto cfg_ptr_v, size_t bit = 0, size_t width = 0>
+    struct field_t {
+        static constexpr auto reg_ptr = cfg_ptr_v;
+
+        template<typename C>
+        using reg_type = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_v)>;
+
+        template<typename C>
+        using T = reg_type<C>::value_t;
+
+        template<typename Config>
+        static auto get(Config const& cfg) {
+            using V = T<Config>;
+            auto const& reg = cfg.*cfg_ptr_v;
+            V raw = reg.read(cfg);
+
+            if constexpr (std::is_floating_point_v<V>) {
+                return raw;
+            } else {
+                constexpr size_t w = (width == 0) ? 1 : width;
+
+                if constexpr (w == 1) {
+                    return static_cast<bool>((raw >> bit) & 1);
+                } else {
+                    constexpr V mask = (static_cast<V>(1) << w) - 1;
+                    return static_cast<V>((raw >> bit) & mask);
+                }
+            }
+        }
+
+        template<typename Config, typename Value>
+        static void set(Config const& cfg, Value v) {
+            using V = T<Config>;
+            auto const& reg = cfg.*cfg_ptr_v;
+
+            if constexpr (std::is_floating_point_v<V>) {
+                reg.write(cfg, static_cast<V>(v));
+            } else {
+                constexpr size_t w = (width == 0) ? 1 : width;
+                V current = reg.read(cfg);
+                constexpr V mask = ((static_cast<V>(1) << w) - 1) << bit;
+                V updated = (current & ~mask) | ((static_cast<V>(v) << bit) & mask);
+                reg.write(cfg, updated);
+            }
+        }
     };
 
     template<config_t Config>

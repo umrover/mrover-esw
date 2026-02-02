@@ -84,24 +84,18 @@ class CANBus:
             else:
                 esw_logger.error(f"CAN ERROR: decode error on ID {hex(msg.arbitration_id)}: {e}")
 
-    def send(
-        self, message_name: str, signals: dict[str, Any], node_id: int = 0, floats_to_uint32: bool = False
-    ) -> None:
+    def send(self, message_name: str, signals: dict[str, Any], src_id: int = 0, dest_id: int = 0) -> None:
         if self._bus is None:
             esw_logger.error("CAN ERROR: CAN Bus Not Active")
             return
 
         processed_signals = signals.copy()
-        # if floats_to_uint32:
-        #     for key, value in processed_signals.items():
-        #         if isinstance(value, float):
-        #             processed_signals[key] = struct.unpack("<I", struct.pack("<f", value))[0]
 
         try:
             dbc_msg = self._dbc.get_message_by_name(message_name)
             data = dbc_msg.encode(processed_signals)
             msg = can.Message(
-                arbitration_id=dbc_msg.frame_id + node_id,
+                arbitration_id=dbc_msg.frame_id + (src_id << 8) + dest_id,
                 data=data,
                 is_extended_id=dbc_msg.is_extended_frame,
                 is_fd=self._can_fd,

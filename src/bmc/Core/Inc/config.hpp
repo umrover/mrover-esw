@@ -1,7 +1,7 @@
 #pragma once
 
-#include <bit>
 #include <cstdint>
+#include <functional>
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
 #include <tuple>
@@ -9,6 +9,7 @@
 #include <CANBus1.hpp>
 #include <adc.hpp>
 #include <hw/ad8418a.hpp>
+#include <hw/flash.hpp>
 
 
 namespace mrover {
@@ -180,13 +181,24 @@ namespace mrover {
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
         }
 
-        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
-            bool updated = false;
-            std::apply([&](auto&... reg) {
-                ((reg.addr == address ? (reg.value = from_raw<typename std::decay_t<decltype(reg)>::value_t>(raw), updated = true) : false), ...);
-            },
-                       all());
-            return updated;
+        auto set_raw(uint8_t address, uint32_t raw) -> bool {
+            bool found = false;
+
+            std::apply(
+                    [&](auto const&... reg) {
+                        (
+                                [&] {
+                                    if (reg.addr == address) {
+                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
+                                        reg.write(*this, from_raw<T>(raw));
+                                        found = true;
+                                    }
+                                }(),
+                                ...);
+                    },
+                    all());
+
+            return found;
         }
 
         auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
