@@ -2,7 +2,6 @@
 
 #include <filtering.hpp>
 #include <timer.hpp>
-#include <units.hpp>
 
 #ifdef STM32
 #include "main.h"
@@ -11,8 +10,8 @@
 namespace mrover {
 
     struct EncoderReading {
-        Radians position;
-        RadiansPerSecond velocity;
+        float position; // radians
+        float velocity; // radians/second
     };
 
 #ifdef HAL_TIM_MODULE_ENABLED
@@ -35,26 +34,27 @@ namespace mrover {
         ITimerChannel* m_elapsed_timer;
 
         std::uint16_t m_counts_unwrapped_prev{};
-        Ratio m_multiplier;
-        Ticks m_cpr;
+        float m_multiplier;
+        float m_cpr;
         bool m_initialized{false};
 
-        Radians m_position;
-        RunningMeanFilter<RadiansPerSecond, VELOCITY_BUFFER_SIZE> m_velocity_filter;
+        float m_position;
+        RunningMeanFilter<float, VELOCITY_BUFFER_SIZE> m_velocity_filter;
 
     public:
         QuadratureEncoder() = default;
-        QuadratureEncoder(TIM_HandleTypeDef* tick_timer, ITimerChannel* elapsed_timer) : m_tick_timer{tick_timer}, m_elapsed_timer{elapsed_timer} {
+        QuadratureEncoder(TIM_HandleTypeDef* tick_timer, ITimerChannel* elapsed_timer) : m_tick_timer{tick_timer},
+                                                                                         m_elapsed_timer{elapsed_timer}, m_multiplier{0.0f}, m_cpr{0.0f}, m_position{0.0f} {
             check(HAL_TIM_Encoder_Start_IT(m_tick_timer, TIM_CHANNEL_ALL) == HAL_OK, Error_Handler);
         }
 
-        auto init(Ratio const multiplier, Ticks const cpr) -> void {
+        auto init(float const multiplier, float const cpr) -> void {
             m_counts_unwrapped_prev = __HAL_TIM_GET_COUNTER(m_tick_timer);
             m_multiplier = multiplier;
             m_cpr = cpr;
             m_initialized = true;
-            Logger::instance().info("CPR: %.2f", m_cpr.get());
-            Logger::instance().info("Multiplier: %.2f", m_multiplier.get());
+            Logger::instance().info("CPR: %.2f", m_cpr);
+            Logger::instance().info("Multiplier: %.2f", m_multiplier);
         }
 
         [[nodiscard]] auto read() const -> std::optional<EncoderReading> {
@@ -66,10 +66,10 @@ namespace mrover {
 
         auto update() -> void {
             if (!m_initialized) return;
-            Seconds const elapsed_time = m_elapsed_timer->get_dt();
+            float const elapsed_time = m_elapsed_timer->get_dt();
             std::int16_t const delta_ticks = count_delta_and_update(m_counts_unwrapped_prev, m_tick_timer);
             // TODO(eric) fix this monstrosity
-            auto const delta_angle = Radians{m_multiplier.get() * static_cast<float>(delta_ticks) / m_cpr.get()};
+            auto const delta_angle = m_multiplier * static_cast<float>(delta_ticks) / m_cpr;
 
             m_position += delta_angle;
             m_velocity_filter.add_reading(delta_angle / elapsed_time);
@@ -77,7 +77,7 @@ namespace mrover {
 
         auto expired() -> void {
             if (!m_initialized) return;
-            m_velocity_filter.add_reading(RadiansPerSecond{0});
+            m_velocity_filter.add_reading(0.0f);
         }
     };
 #else  // HAL_TIM_MODULE_ENABLED

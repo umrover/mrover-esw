@@ -1,15 +1,15 @@
 #pragma once
 
-#include <functional>
 #include <cstdint>
+#include <functional>
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
 #include <tuple>
 
 #include <CANBus1.hpp>
 #include <adc.hpp>
-#include <hw/flash.hpp>
 #include <hw/ad8418a.hpp>
+#include <hw/flash.hpp>
 
 
 namespace mrover {
@@ -97,17 +97,6 @@ namespace mrover {
 
         using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
-        using all_fields = std::tuple<
-            can_id, motor_en, motor_inv, quad_en, quad_phase,
-            abs_i2c_en, abs_i2c_phase, abs_spi_en, abs_spi_phase,
-            lim_a_en, lim_a_active_high, lim_a_is_forward, lim_a_use_readjust,
-            lim_b_en, lim_b_active_high, lim_b_is_forward, lim_b_use_readjust,
-            quad_cpr, abs_i2c_ratio, abs_i2c_offset, abs_spi_ratio,
-            abs_spi_offset, gear_ratio, limit_a_position, limit_b_position,
-            max_pwm, min_pos, max_pos, min_vel, max_vel, k_p, k_i, k_d, k_f,
-            host_can_id
-        >;
-
         template<typename F>
         auto get() const { return F::get(*this); }
 
@@ -130,21 +119,22 @@ namespace mrover {
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
         }
 
-        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
+        auto set_raw(uint8_t address, uint32_t raw) -> bool {
             bool found = false;
 
-            [&]<std::size_t... I>(std::index_sequence<I...>) {
-                ([&] {
-                    using F = std::tuple_element_t<I, all_fields>;
-                    auto const& reg = this->*F::reg_ptr;
-
-                    if (reg.addr == address) {
-                        using T = F::template underlying_t<bmc_config_t>;
-                        F::set(*this, from_raw<T>(raw));
-                        found = true;
-                    }
-                }(), ...);
-            }(std::make_index_sequence<std::tuple_size_v<all_fields>>{});
+            std::apply(
+                    [&](auto const&... reg) {
+                        (
+                                [&] {
+                                    if (reg.addr == address) {
+                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
+                                        reg.write(*this, from_raw<T>(raw));
+                                        found = true;
+                                    }
+                                }(),
+                                ...);
+                    },
+                    all());
 
             return found;
         }
@@ -171,7 +161,6 @@ namespace mrover {
         }
     };
 
-    
 
     /**
      * Get the BMC CAN settings.

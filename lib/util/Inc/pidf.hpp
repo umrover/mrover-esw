@@ -1,109 +1,113 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
 #include <optional>
-
-#include <units.hpp>
 
 namespace mrover {
 
-    /**
-     * A PIDF controller. An output signal is generated based on the error of the current input and the desired input target.
-     *
-     * P - Proportional    Multiplied by the error
-     * I - Integral        Multiplied by the integral of the error. Alleviates steady state error, use with caution.
-     * D - Derivative      Multiplied by the derivative of the error
-     * F - Feedforward     Multiplied by the target. This is useful for gravity compensation.
-     *
-     * @tparam InputUnit   Unit of input, usually a sensor reading (for example encoder ticks for an arm)
-     * @tparam OutputUnit  Unit of output, usually a motor command (for example voltage for a motor)
-     * @tparam TimeUnit    Unit of time
-     */
-    template<IsUnit InputUnit, IsUnit OutputUnit, IsUnit TimeUnit = Seconds>
     struct PIDF {
     private:
-        using TotalError = compound_unit<InputUnit, TimeUnit>;
-        // Settings
-        compound_unit<OutputUnit, inverse<InputUnit>> m_p{};
-        compound_unit<OutputUnit, inverse<InputUnit>, inverse<TimeUnit>> m_i{};
-        compound_unit<OutputUnit, inverse<compound_unit<InputUnit, inverse<TimeUnit>>>> m_d{};
-        compound_unit<OutputUnit, inverse<InputUnit>> m_ff{};
-        InputUnit m_dead_band{};
-        std::pair<OutputUnit, OutputUnit> m_output_bound{};
-        std::optional<std::pair<InputUnit, InputUnit>> m_input_bound;
-        // State
-        TotalError m_total_error{};
-        InputUnit m_last_error{};
-        TimeUnit m_last_time{};
+        // gains
+        float m_kp{0.0};
+        float m_ki{0.0};
+        float m_kd{0.0};
+        float m_kff{0.0};
+
+        // settings
+        float m_dead_band{0.0};
+        float m_out_min{0.0};
+        float m_out_max{0.0};
+
+        // input bounds
+        std::optional<std::pair<float, float>> m_input_bound;
+
+        // internal state
+        float m_total_error{0.0};
+        float m_last_error{0.0};
 
     public:
         /**
-         * TODO: documentation
+         * Calculates the next output signal.
          *
-         * @param input     Current value
-         * @param target    Desired final value
-         * @param dt        Time since last call
-         * @return          Output value to control the input to move to the target
+         * @param input     Current sensor reading
+         * @param target    Desired setpoint
+         * @param dt        Time delta since last call (seconds)
+         * @return          Clamped output value
          */
-        auto calculate(InputUnit input, InputUnit target, TimeUnit dt) -> OutputUnit {
-            InputUnit error = target - input;
+        float calculate(float const input, float const target, float const dt) {
+            if (dt <= 0.0) return m_out_min;
 
+            float error = target - input;
+
+            // continuous input wrapping
             if (m_input_bound) {
                 auto [in_min, in_max] = m_input_bound.value();
-                if (abs(error) > (in_max - in_min) / 2) {
-                    if (error > InputUnit{}) {
-                        error -= in_max - in_min;
+                if (float const range = in_max - in_min; std::abs(error) > range / 2.0) {
+                    if (error > 0) {
+                        error -= range;
                     } else {
-                        error += in_max - in_min;
+                        error += range;
                     }
                 }
             }
 
-            auto [out_min, out_max] = m_output_bound;
-            if (out_min < error * m_p && error * m_p < out_max) {
+            // anti-windup
+            if (float const p_term = m_kp * error; p_term > m_out_min && p_term < m_out_max) {
                 m_total_error += error * dt;
             } else {
-                m_total_error = TotalError{};
+                m_total_error = 0.0;
             }
 
-            InputUnit error_for_p = abs(error) < m_dead_band ? InputUnit{} : error;
-            OutputUnit result = m_p * error_for_p + m_i * m_total_error + m_d * (error - m_last_error) / dt + m_ff * target;
+            // deadband
+            float const error_for_p = (std::abs(error) < m_dead_band) ? 0.0 : error;
+
+            // term calcs
+            float const d_term = m_kd * (error - m_last_error) / dt;
+            float const i_term = m_ki * m_total_error;
+            float const ff_term = m_kff * target;
+
+            // calc result
+            float const result = (m_kp * error_for_p) + i_term + d_term + ff_term;
+
             m_last_error = error;
 
-            return clamp(result, out_min, out_max);
+            return std::clamp(result, m_out_min, m_out_max);
         }
 
-        auto with_p(double p) -> PIDF& {
-            m_p = decltype(m_p){p};
+        PIDF& with_p(float const p) {
+            m_kp = p;
             return *this;
         }
 
-        auto with_i(double i) -> PIDF& {
-            m_i = decltype(m_i){i};
+        PIDF& with_i(float const i) {
+            m_ki = i;
             return *this;
         }
 
-        auto with_d(double d) -> PIDF& {
-            m_d = decltype(m_d){d};
+        PIDF& with_d(float const d) {
+            m_kd = d;
             return *this;
         }
 
-        auto with_ff(double ff) -> PIDF& {
-            m_ff = decltype(m_ff){ff};
+        PIDF& with_ff(float const ff) {
+            m_kff = ff;
             return *this;
         }
 
-        auto with_dead_band(InputUnit dead_band) -> PIDF& {
+        PIDF& with_dead_band(float const dead_band) {
             m_dead_band = dead_band;
             return *this;
         }
 
-        auto with_input_bound(InputUnit min, InputUnit max) -> PIDF& {
+        PIDF& with_input_bound(float min, float max) {
             m_input_bound = {min, max};
             return *this;
         }
 
-        auto with_output_bound(OutputUnit min, OutputUnit max) -> PIDF& {
-            m_output_bound = {min, max};
+        PIDF& with_output_bound(float const min, float const max) {
+            m_out_min = min;
+            m_out_max = max;
             return *this;
         }
     };

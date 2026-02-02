@@ -4,7 +4,6 @@ import yaml
 CONFIG_MAP = {
     "can_id": ("CAN_ID", 0x00, int, 0, 8),
     "host_can_id": ("HOST_CAN_ID", 0x45, int, 0, 8),
-
     # system config bits
     "motor_en": ("SYS_CFG", 0x01, bool, 0, 1),
     "motor_inv": ("SYS_CFG", 0x01, bool, 1, 1),
@@ -14,7 +13,6 @@ CONFIG_MAP = {
     "abs_i2c_phase": ("SYS_CFG", 0x01, bool, 5, 1),
     "abs_spi_en": ("SYS_CFG", 0x01, bool, 6, 1),
     "abs_spi_phase": ("SYS_CFG", 0x01, bool, 7, 1),
-
     # limit config bits
     "lim_a_en": ("LIMIT_CFG", 0x02, bool, 0, 1),
     "lim_a_active_high": ("LIMIT_CFG", 0x02, bool, 1, 1),
@@ -24,7 +22,6 @@ CONFIG_MAP = {
     "lim_b_active_high": ("LIMIT_CFG", 0x02, bool, 5, 1),
     "lim_b_is_forward": ("LIMIT_CFG", 0x02, bool, 6, 1),
     "lim_b_use_readjust": ("LIMIT_CFG", 0x02, bool, 7, 1),
-
     # floats
     "quad_cpr": ("QUAD_CPR", 0x04, float, 0, 32),
     "abs_i2c_ratio": ("ABS_I2C_RATIO", 0x08, float, 0, 32),
@@ -55,13 +52,13 @@ def parse_config(yaml_path):
         val = user_data.get(field, 0)
 
         if addr not in reg_states:
-            reg_states[addr] = {"name": name, "value": 0, "is_float": (dtype == float)}
+            reg_states[addr] = {"name": name, "value": 0, "is_float": isinstance(dtype, float)}
 
-        if dtype == float:
+        if isinstance(dtype, float):
             reg_states[addr]["value"] = float(val)
-        elif dtype == bool:
+        elif isinstance(dtype, bool):
             if bool(val):
-                reg_states[addr]["value"] |= (1 << offset)
+                reg_states[addr]["value"] |= 1 << offset
         else:
             mask = (1 << width) - 1
             reg_states[addr]["value"] |= (int(val) & mask) << offset
@@ -70,6 +67,6 @@ def parse_config(yaml_path):
     for addr in sorted(reg_states.keys()):
         info = reg_states[addr]
         val = info["value"]
-        registers[info['name']] = (addr, val)
+        registers[info["name"]] = (addr, val)
 
     return registers

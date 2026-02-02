@@ -52,10 +52,10 @@ namespace mrover {
         }
 
         [[nodiscard]] auto get_readjustment_position() const
-                -> std::optional<Radians> {
+                -> std::optional<float> {
             // Returns std::null_opt if the value should not be readjusted
             return is_used_for_readjustment() && m_is_pressed
-                           ? std::make_optional(Radians{m_associated_position})
+                           ? std::make_optional(m_associated_position)
                            : std::nullopt;
         }
 

@@ -157,10 +157,10 @@ namespace mrover {
         };
 
         // setup timers
-        tx_tim = Timer{TX_TIM, true, "TX Timer"};                       // transmit timer (on interrupt)
-        can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"}; // can watchdog timer (on interrupt)
-        control_tim = Timer{CONTROL_TIM, true, "Control Timer"};        // control timer (update driven output, on interrupt)
-        elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false, "PID Timer"};  // pid compute timer
+        tx_tim = Timer{TX_TIM, true, "TX Timer"};                                                  // transmit timer (on interrupt)
+        can_wwdg_tim = Timer{CAN_WWDG_TIM, true, "CAN Watchdog Timer"};                            // can watchdog timer (on interrupt)
+        control_tim = Timer{CONTROL_TIM, true, "Control Timer"};                                   // control timer (update driven output, on interrupt)
+        elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false, "PID Timer"}; // pid compute timer
 
         // set initialization state and initial error state
         logger.info("BMC Initialized");

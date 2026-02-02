@@ -8,7 +8,6 @@
 #include <utility>
 
 #include <logger.hpp>
-#include <units.hpp>
 
 #ifdef STM32
 #include "main.h"
@@ -56,7 +55,7 @@ namespace mrover {
                 check(start_no_it() == HAL_OK, Error_Handler);
                 is_en = true;
             }
-            Logger::instance().info("%s @%.2f Hz", name.c_str(), get_update_frequency().rep);
+            Logger::instance().info("%s @%.2f Hz", name.c_str(), get_update_frequency());
         }
 
         auto stop() -> void {
@@ -73,15 +72,15 @@ namespace mrover {
             return is_en;
         }
 
-        auto get_update_frequency() const -> Hertz {
+        auto get_update_frequency() const -> float {
             uint32_t const psc = htim->Instance->PSC;
             uint32_t const arr = htim->Instance->ARR;
 
-            return Hertz{static_cast<float>(sys_clock) / ((psc + 1) * (arr + 1))};
+            return static_cast<float>(sys_clock) / ((psc + 1) * (arr + 1));
         }
 
-        auto get_counter_frequency() const -> Hertz {
-            return Hertz{static_cast<float>(sys_clock) / (htim->Instance->PSC + 1)};
+        auto get_counter_frequency() const -> float {
+            return static_cast<float>(sys_clock) / (htim->Instance->PSC + 1);
         }
 
         auto reset() const -> void {
@@ -101,8 +100,8 @@ namespace mrover {
         std::uint16_t arr;
     };
 
-    constexpr auto configure_timer_16bit(Hertz const tim_frequency, std::chrono::nanoseconds const period) -> TimerConfig {
-        uint32_t const expiration_ticks = (tim_frequency.get() * period.count()) / std::nano::den;
+    constexpr auto configure_timer_16bit(float const tim_frequency, std::chrono::nanoseconds const period) -> TimerConfig {
+        uint32_t const expiration_ticks = (tim_frequency * period.count()) / std::nano::den;
 
         for (uint16_t psc = 1; psc <= 65535; ++psc) {
             if (uint32_t const arr = expiration_ticks / psc; arr > 0 && (arr - 1) <= 65535) {
@@ -122,7 +121,7 @@ namespace mrover {
         virtual auto remove_stopwatch() -> std::uint8_t = 0;
         virtual auto add_stopwatch() -> std::uint8_t = 0;
         virtual auto add_stopwatch(std::optional<TimerCallback> callback) -> std::uint8_t = 0;
-        virtual auto get_time_since_last_read(std::uint8_t index) -> Seconds = 0;
+        virtual auto get_time_since_last_read(std::uint8_t index) -> float = 0;
     };
 
 #ifdef HAL_TIM_MODULE_ENABLED
@@ -131,7 +130,7 @@ namespace mrover {
         ITimerChannel() = default;
         virtual ~ITimerChannel() = default;
 
-        virtual auto get_dt() -> Seconds = 0;
+        virtual auto get_dt() -> float = 0;
         virtual auto forget_reads() -> void = 0;
     };
 
@@ -146,12 +145,12 @@ namespace mrover {
             ChannelHandle_t() = default;
 
             // 2. Explicit constructor (required for the {*this, id} syntax)
-            ChannelHandle_t(ElapsedTimer& parent, size_t channel)
+            ChannelHandle_t(ElapsedTimer& parent, size_t const channel)
                 : m_parent(&parent), m_channel(channel) {}
 
-            auto get_dt() -> Seconds override {
+            auto get_dt() -> float override {
                 // Safety check in case it's called before being linked
-                if (!m_parent) return Seconds{0.0f};
+                if (!m_parent) return 0.0f;
                 return m_parent->get_time_since_last_read(m_channel);
             }
 
@@ -176,22 +175,22 @@ namespace mrover {
             }
         }
 
-        auto get_time_since_last_read(size_t const channel) -> Seconds {
-            if (channel >= NumChannels) return Seconds{0.0f};
+        auto get_time_since_last_read(size_t const channel) -> float {
+            if (channel >= NumChannels) return 0.0f;
 
             uint32_t const current_tick = __HAL_TIM_GET_COUNTER(htim);
-            Seconds result{0.0f};
+            float result{0.0f};
 
             if (m_is_first_read[channel]) {
                 m_is_first_read[channel] = false;
             } else {
                 uint32_t const arr = htim->Instance->ARR;
                 uint32_t const delta_ticks = (current_tick >= m_tick_prev[channel])
-                    ? (current_tick - m_tick_prev[channel])
-                    : (arr + 1 - m_tick_prev[channel] + current_tick);
+                                                     ? (current_tick - m_tick_prev[channel])
+                                                     : (arr + 1 - m_tick_prev[channel] + current_tick);
 
-                float const freq = get_counter_frequency().rep;
-                result = Seconds{static_cast<float>(delta_ticks) / freq};
+                float const freq = get_counter_frequency();
+                result = static_cast<float>(delta_ticks) / freq;
             }
 
             m_tick_prev[channel] = current_tick;
@@ -210,7 +209,7 @@ namespace mrover {
     };
 #else  // HAL_TIM_MODULE_ENABLED
     class __attribute__((unavailable("enable 'TIM' in STM32CubeMX to use mrover::ITimerChannel"))) ITimerChannel {
-        public:
+    public:
         template<typename... Args>
         explicit ITimerChannel(Args&&... args) {}
     };
@@ -223,7 +222,7 @@ namespace mrover {
 
 
 #ifdef HAL_TIM_MODULE_ENABLED
-    template<std::uint8_t MaxStopwatchCount, typename CountType, Hertz TimFrequency>
+    template<std::uint8_t MaxStopwatchCount, typename CountType, float TimFrequency>
     class VirtualStopwatches final : public IStopwatch {
         static_assert(std::is_unsigned_v<CountType>, "Template parameter CountType must be an unsigned integer type");
         static_assert(sizeof(CountType) <= 4, "Template parameter CountType must be less than or equal to 32 bits");
@@ -286,9 +285,9 @@ namespace mrover {
             }
         }
 
-        auto get_time_since_last_read(std::uint8_t index) -> Seconds override {
+        auto get_time_since_last_read(std::uint8_t index) -> float override {
             if (index >= m_num_stopwatches) {
-                return static_cast<Seconds>(0);
+                return static_cast<float>(0.0);
             }
 
             HAL_TIM_Base_Stop_IT(m_hardware_tim);

@@ -1,6 +1,6 @@
 # CAN messaging
-can_id: 30
-host_can_id: 10
+can_id: 3
+host_can_id: 1
 
 # system configuration
 motor_en: true

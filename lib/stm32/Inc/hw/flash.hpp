@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cinttypes>
 #include <concepts>
 #include <cstdint>
 #include <cstring>
@@ -21,7 +22,7 @@ namespace mrover {
     // CONFIG IMPLEMENTATIONS
     // -------------------------------------------------------------------
     template<typename T>
-        concept mem_layout_t = requires {
+    concept mem_layout_t = requires {
         { T::FLASH_BEGIN_ADDR } -> std::convertible_to<uint32_t>;
         { T::FLASH_END_ADDR } -> std::convertible_to<uint32_t>;
         { T::PAGE_SIZE } -> std::convertible_to<int>;
@@ -144,11 +145,11 @@ namespace mrover {
 
         // Read a double word from flash.
         auto read_double_word(uint32_t const start_addr) -> uint64_t {
-            uint64_t const word = *reinterpret_cast<volatile uint64_t*>(start_addr);
+            uint64_t const word = *reinterpret_cast<uint64_t volatile*>(start_addr);
             return word;
         }
         auto read_byte(uint32_t const start_addr) -> uint8_t {
-            uint8_t const byte = *reinterpret_cast<volatile uint8_t*>(start_addr);
+            uint8_t const byte = *reinterpret_cast<uint8_t volatile*>(start_addr);
             return byte;
         }
 
@@ -238,60 +239,77 @@ namespace mrover {
         using value_t = T;
         std::string_view name;
         uint8_t addr{};
-        mutable std::optional<value_t> value = std::nullopt;
+        mutable std::optional<T> value = std::nullopt;
         static consteval size_t size() { return sizeof(T); }
         [[nodiscard]] constexpr uint8_t reg() const { return addr; }
-    };
 
-    template<auto cfg_ptr_v, size_t bit = 0, size_t width = 1>
-    struct field_t {
-        template<typename C>
-        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_v)>::value_t;
-        static constexpr auto reg_ptr = cfg_ptr_v;
-
-        static auto get(auto const& config) {
-            using ConfigType = std::decay_t<decltype(config)>;
-            using T = underlying_t<ConfigType>;
-            auto const& reg_item = (config.*cfg_ptr_v);
-
-            if (!reg_item.value.has_value()) {
-                using FlashType = Flash<ConfigType, typename ConfigType::mem_layout>;
-                if (auto* flash = static_cast<FlashType*>(ConfigType::flash_ptr)) {
-                    reg_item.value = flash->template read<T>(reg_item.addr);
+        template<typename Config>
+        T read(Config const& cfg) const {
+            if (!value.has_value()) {
+                using FlashType = Flash<Config, typename Config::mem_layout>;
+                if (auto* flash = static_cast<FlashType*>(Config::flash_ptr)) {
+                    value = flash->template read<T>(addr);
+                } else {
+                    value = T{};
                 }
             }
+            return *value;
+        }
 
-            T actual_val = reg_item.value.value_or(T{});
+        template<typename Config>
+        void write(Config const& cfg, T v) const {
+            value = v;
+            using FlashType = Flash<Config, typename Config::mem_layout>;
+            if (auto* flash = static_cast<FlashType*>(Config::flash_ptr)) {
+                flash->write(addr, v);
+                flash->flush();
+            }
+        }
+    };
 
-            if constexpr (std::is_floating_point_v<T>) {
-                return actual_val;
+    template<auto cfg_ptr_v, size_t bit = 0, size_t width = 0>
+    struct field_t {
+        static constexpr auto reg_ptr = cfg_ptr_v;
+
+        template<typename C>
+        using reg_type = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_v)>;
+
+        template<typename C>
+        using T = reg_type<C>::value_t;
+
+        template<typename Config>
+        static auto get(Config const& cfg) {
+            using V = T<Config>;
+            auto const& reg = cfg.*cfg_ptr_v;
+            V raw = reg.read(cfg);
+
+            if constexpr (std::is_floating_point_v<V>) {
+                return raw;
             } else {
-                if constexpr (width == 1) {
-                    return static_cast<bool>((actual_val >> bit) & 1);
+                constexpr size_t w = (width == 0) ? 1 : width;
+
+                if constexpr (w == 1) {
+                    return static_cast<bool>((raw >> bit) & 1);
                 } else {
-                    constexpr T mask = (static_cast<T>(1) << width) - 1;
-                    return static_cast<T>((actual_val >> bit) & mask);
+                    constexpr V mask = (static_cast<V>(1) << w) - 1;
+                    return static_cast<V>((raw >> bit) & mask);
                 }
             }
         }
 
-        static void set(auto& config, auto value) {
-            using ConfigType = std::decay_t<decltype(config)>;
-            using T = underlying_t<ConfigType>;
-            auto& reg_item = (config.*cfg_ptr_v);
+        template<typename Config, typename Value>
+        static void set(Config const& cfg, Value v) {
+            using V = T<Config>;
+            auto const& reg = cfg.*cfg_ptr_v;
 
-            if constexpr (std::is_floating_point_v<T>) {
-                reg_item.value = static_cast<T>(value);
+            if constexpr (std::is_floating_point_v<V>) {
+                reg.write(cfg, static_cast<V>(v));
             } else {
-                T current = reg_item.value.value_or(0);
-                constexpr T mask = ((static_cast<T>(1) << width) - 1) << bit;
-                reg_item.value = (current & ~mask) | ((static_cast<T>(value) << bit) & mask);
-            }
-
-            using FlashType = Flash<ConfigType, typename ConfigType::mem_layout>;
-            if (auto* flash = static_cast<FlashType*>(ConfigType::flash_ptr)) {
-                flash->write(reg_item.addr, reg_item.value.value());
-                flash->flush();
+                constexpr size_t w = (width == 0) ? 1 : width;
+                V current = reg.read(cfg);
+                constexpr V mask = ((static_cast<V>(1) << w) - 1) << bit;
+                V updated = (current & ~mask) | ((static_cast<V>(v) << bit) & mask);
+                reg.write(cfg, updated);
             }
         }
     };
@@ -313,10 +331,10 @@ namespace mrover {
             auto cfg = Config{};
             auto tup = cfg.all();
             return std::array<reg_descriptor_t, N>{
-                reg_descriptor_t{
-                    std::get<Is>(tup).name,
-                    std::get<Is>(tup).addr,
-                    std::get<Is>(tup).size()}...};
+                    reg_descriptor_t{
+                            std::get<Is>(tup).name,
+                            std::get<Is>(tup).addr,
+                            std::get<Is>(tup).size()}...};
         }
 
         static constexpr auto fields = [] {
