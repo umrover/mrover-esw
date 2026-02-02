@@ -149,10 +149,12 @@ public:
 
 
 	// update the temp, humidity, and pressure values
-	void update_thp() {
+	THP_data update_thp() {
 		compensate_temperature();
 		compensate_pressure();
 		compensate_humidity();
+
+		return thp_data;
 	}
 
 	THP_data get_thp() {

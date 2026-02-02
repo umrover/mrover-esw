@@ -16,9 +16,9 @@ namespace mrover {
     static constexpr I2C_HandleTypeDef* I2C = &hi2c3;
 
     UART lpuart;
-    // THP thp_sensor;
+    THP thp_sensor;
     CO2Sensor co2_sensor;
-    // THP_data thp_data;
+    THP_data thp_data;
     double co2 = 0;
 
     void init() {
@@ -27,8 +27,8 @@ namespace mrover {
         Logger::init(&lpuart);
         auto const& logger = Logger::instance();
 
-        // thp_sensor = THP{I2C};
-	    // thp_sensor.init();
+        thp_sensor = THP{I2C};
+	    thp_sensor.init();
     
         co2_sensor = CO2Sensor{I2C};
         co2_sensor.init();
@@ -37,12 +37,7 @@ namespace mrover {
 
         HAL_TIM_Base_Start_IT(mrover::SENS_TIM);
 
-        while (true) {
-            // thp_sensor.read_thp();
-            // logger.info("temp: %f", thp_data.temp);
-            // logger.info("humidity: %f", thp_data.humidity);
-            // logger.info("pressure: %f", thp_data.pressure);
-        }
+        while (true) {}
     }
 }
 
@@ -52,9 +47,15 @@ extern "C" {
     }
 
     void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
+        static bool is_co2 = true;
         if (htim == mrover::SENS_TIM) {
             // start requests for sensor data
-            mrover::co2_sensor.request_co2();
+            if (is_co2)
+                mrover::co2_sensor.request_co2();
+            else
+                mrover::thp_sensor.read_thp();
+
+            is_co2 = !is_co2;
         } else if (htim == mrover::CO2_TIM) {
             // handle CO2 sensor
             mrover::co2_sensor.receive_buf();
@@ -76,8 +77,13 @@ extern "C" {
         logger.info("co2: %f", mrover::co2);
     }
 
-    // void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
-	// 	mrover::thp_sensor.update_thp();
-    //     mrover::thp_data = mrover::thp_sensor.get_thp();
-	// }
+    void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+        // get updated thp
+		mrover::thp_data = mrover::thp_sensor.update_thp();
+
+        auto const& logger = mrover::Logger::instance();
+        logger.info("temp: %f", mrover::thp_data.temp);
+        logger.info("humidity: %f", mrover::thp_data.humidity);
+        logger.info("pressure: %f", mrover::thp_data.pressure);
+	}
 }
