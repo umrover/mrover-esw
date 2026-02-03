@@ -59,6 +59,8 @@ if __name__ == "__main__":
                     val_bits = val
                 bus.send("BMCConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=node_id)
                 sleep(0.5)
+                sleep(50)
+                exit(1)
 
         sleep(1)
         esw_logger.info("Configuration Complete!")

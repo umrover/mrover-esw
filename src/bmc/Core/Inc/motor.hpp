@@ -22,26 +22,26 @@ namespace mrover {
         // using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
         // using can_reset_t = std::function<void()>;
 
-        HBridge m_hbridge;
-        AD8418A m_current_sensor;
-        LimitSwitch m_limit_a;
-        LimitSwitch m_limit_b;
-        QuadratureEncoder m_quad_encoder;
+        std::optional<HBridge> m_hbridge;
+        std::optional<AD8418A> m_current_sensor;
+        std::optional<LimitSwitch> m_limit_a;
+        std::optional<LimitSwitch> m_limit_b;
+        std::optional<QuadratureEncoder> m_quad_encoder;
 
-        tx_exec_t m_message_tx_f;
-        can_reset_t m_initialize_fdcan;
+        tx_exec_t m_message_tx_f{};
+        can_reset_t m_initialize_fdcan{};
 
         std::optional<PIDF> m_pidf{std::nullopt};
-        ITimerChannel* m_pidf_elapsed_timer;
+        ITimerChannel* m_pidf_elapsed_timer{};
 
         std::optional<float> m_calibrated_offset{std::nullopt};     // radians
         std::optional<float> m_uncalibrated_position{std::nullopt}; // radians
         std::optional<float> m_velocity{std::nullopt};              // radians/second
-        bmc_config_t* m_config_ptr;
+        bmc_config_t* m_config_ptr{};
         encoder_mode_t m_encoder_mode{encoder_mode_t::NONE};
         mode_t m_mode{mode_t::STOPPED};
         bmc_error_t m_error{bmc_error_t::NONE};
-        float m_target;
+        float m_target{};
 
         bool m_enabled{false};
         bool m_limit_a_hit{false};
@@ -62,8 +62,8 @@ namespace mrover {
                     m_velocity.reset();
                     break;
                 case encoder_mode_t::QUAD:
-                    m_quad_encoder.update();
-                    if (std::optional<EncoderReading> reading = m_quad_encoder.read()) {
+                    m_quad_encoder->update();
+                    if (std::optional<EncoderReading> reading = m_quad_encoder->read()) {
                         auto const& [position, velocity] = reading.value();
                         m_uncalibrated_position = position;
                         m_velocity = velocity;
@@ -85,19 +85,19 @@ namespace mrover {
             }
         }
 
-        auto apply_limit(LimitSwitch& limit, bool& at_limit) -> void {
-            if (limit.enabled()) {
-                limit.update_limit_switch();
-                if (limit.limit_forward()) {
+        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
+            if (limit->enabled()) {
+                limit->update_limit_switch();
+                if (limit->limit_forward()) {
                     at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit.get_readjustment_position()) {
+                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
                         if (m_uncalibrated_position) {
                             m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
                         }
                     }
-                } else if (limit.limit_backward()) {
+                } else if (limit->limit_backward()) {
                     at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit.get_readjustment_position()) {
+                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
                         if (m_uncalibrated_position) {
                             m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
                         }
@@ -112,40 +112,38 @@ namespace mrover {
             if (m_enabled) {
                 switch (m_mode) {
                     case mode_t::STOPPED:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
-                        break;
                     case mode_t::FAULT:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        if (m_hbridge->is_on()) m_hbridge->stop();
                         break;
                     case mode_t::THROTTLE:
-                        if (!m_hbridge.is_on()) m_hbridge.start();
+                        if (!m_hbridge->is_on()) m_hbridge->start();
                         {
                             auto setpoint_thr = m_target;
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
-                            m_hbridge.write(setpoint_thr);
+                            m_hbridge->write(setpoint_thr);
                         }
                         break;
                     case mode_t::VELOCITY:
-                        if (!m_hbridge.is_on()) m_hbridge.start();
+                        if (!m_hbridge->is_on()) m_hbridge->start();
                         {
                             auto const target_vel = m_target;
                             auto const input_vel = m_velocity.value();
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
-                            m_hbridge.write(setpoint_thr);
+                            m_hbridge->write(setpoint_thr);
                         }
                         break;
                     case mode_t::POSITION:
-                        if (!m_hbridge.is_on()) m_hbridge.start();
+                        if (!m_hbridge->is_on()) m_hbridge->start();
                         {
                             auto const target_pos = m_target;
                             auto const input_pos = m_uncalibrated_position.value() - m_calibrated_offset.value();
                             auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
-                            m_hbridge.write(setpoint_thr);
+                            m_hbridge->write(setpoint_thr);
                         }
                         break;
                 }
@@ -166,11 +164,11 @@ namespace mrover {
 
             // configure motor parameters
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
-            m_hbridge.set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
-            m_hbridge.set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
+            m_hbridge->set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
+            m_hbridge->set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
 
             // configure current sensor
-            m_current_sensor.init(get_current_sensor_options());
+            m_current_sensor->init(get_current_sensor_options());
 
             // read pidf gains
             m_pidf = PIDF{};
@@ -186,7 +184,7 @@ namespace mrover {
             bool use_readjust = m_config_ptr->get<bmc_config_t::lim_a_use_readjust>();
             bool is_forward = m_config_ptr->get<bmc_config_t::lim_a_is_forward>();
             float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
-            m_limit_a.init(en, active_high, use_readjust, is_forward, position);
+            m_limit_a->init(en, active_high, use_readjust, is_forward, position);
 
             // Logger::instance().info("LIMIT_A: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
@@ -195,7 +193,7 @@ namespace mrover {
             use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
             is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
             position = m_config_ptr->get<bmc_config_t::limit_b_position>();
-            m_limit_b.init(en, active_high, use_readjust, is_forward, position);
+            m_limit_b->init(en, active_high, use_readjust, is_forward, position);
 
             // Logger::instance().info("LIMIT_B: en: %u, active_high: %u, use_readjust: %u, is_forward: %u, position: %f", en, active_high, use_readjust, is_forward, position);
 
@@ -213,7 +211,7 @@ namespace mrover {
                 float const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? 1.0f : -1.0f;
                 float const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
                 float const cpr = m_config_ptr->get<bmc_config_t::gear_ratio>();
-                m_quad_encoder.init(phase * gear_ratio, cpr);
+                m_quad_encoder->init(phase * gear_ratio, cpr);
             } else if (abs_spi) {
                 m_encoder_mode = encoder_mode_t::NONE;
                 // TODO(eric) impl
@@ -310,24 +308,25 @@ namespace mrover {
                 tx_exec_t const& message_tx_f,
                 can_reset_t const& initialize_fdcan,
                 ITimerChannel* elapsed_timer,
-                bmc_config_t* config) : m_hbridge{motor_driver},
-                                        m_current_sensor{current_sensor},
-                                        m_limit_a{limit_a},
-                                        m_limit_b{limit_b},
-                                        m_quad_encoder{quad_encoder},
-                                        m_message_tx_f{message_tx_f},
-                                        m_initialize_fdcan{initialize_fdcan},
-                                        m_pidf_elapsed_timer{elapsed_timer},
-                                        m_config_ptr{config},
-                                        m_mode{mode_t::STOPPED},
-                                        m_error{bmc_error_t::NONE},
-                                        m_target{0.0f} {
+                bmc_config_t* config
+            ) : m_message_tx_f{message_tx_f},
+                m_initialize_fdcan{initialize_fdcan},
+                m_pidf_elapsed_timer{elapsed_timer},
+                m_config_ptr{config},
+                m_mode{mode_t::STOPPED},
+                m_error{bmc_error_t::NONE},
+                m_target{0.0f} {
+            m_hbridge.emplace(motor_driver);
+            m_current_sensor.emplace(current_sensor);
+            m_limit_a.emplace(limit_a);
+            m_limit_b.emplace(limit_b);
+            m_quad_encoder.emplace(quad_encoder);
             reset();
             init();
         }
 
         auto receive(CANBus1Msg_t const& v) -> void {
-            std::visit([this](auto&& value) {
+            std::visit([this](auto&& value) -> auto {
                 handle(value);
             },
                        v);
@@ -338,7 +337,7 @@ namespace mrover {
 
             // Logger::instance().info("A: %u, FWD: %u, B: %u, REV: %u", m_limit_a_hit, m_limit_forward_hit, m_limit_b_hit, m_limit_backward_hit);
 
-            auto const position = [this] {
+            auto const position = [this] -> float {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
                 return std::numeric_limits<float>::quiet_NaN();
             }();
@@ -350,7 +349,7 @@ namespace mrover {
                     static_cast<uint8_t>(m_error), // fault-code
                     position,                      // position
                     velocity,                      // velocity
-                    m_current_sensor.current(),    // current
+                    m_current_sensor->current(),   // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
                     0                              // is_stalled
@@ -363,8 +362,8 @@ namespace mrover {
             // update limit switch state
             apply_limit(m_limit_a, m_limit_a_hit);
             apply_limit(m_limit_b, m_limit_b_hit);
-            m_limit_forward_hit = m_limit_a.is_forward_limit() ? m_limit_a_hit : (m_limit_b.is_forward_limit() ? m_limit_b_hit : false);
-            m_limit_backward_hit = !m_limit_a.is_forward_limit() ? m_limit_a_hit : (!m_limit_b.is_forward_limit() ? m_limit_b_hit : false);
+            m_limit_forward_hit = m_limit_a->is_forward_limit() ? m_limit_a_hit : (m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
+            m_limit_backward_hit = !m_limit_a->is_forward_limit() ? m_limit_a_hit : (!m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
             sample_encoder();
             write_output_pwm();
         }

@@ -2,7 +2,7 @@
 
 #include <array>
 #include <chrono>
-#include <cstdint>
+#include <cassert>
 #include <limits>
 #include <utility>
 
@@ -112,7 +112,6 @@ namespace mrover {
     public:
         virtual ~IStopwatch() = default;
         typedef void (*TimerCallback)();
-        // using TimerCallback = std::function<void()>;
 
         virtual auto remove_stopwatch() -> std::uint8_t = 0;
         virtual auto add_stopwatch() -> std::uint8_t = 0;
@@ -137,21 +136,18 @@ namespace mrover {
             size_t m_channel = 0;
 
         public:
-            // 1. Default constructor (required for std::array)
             ChannelHandle_t() = default;
-
-            // 2. Explicit constructor (required for the {*this, id} syntax)
             ChannelHandle_t(ElapsedTimer& parent, size_t const channel)
                 : m_parent(&parent), m_channel(channel) {}
 
             auto get_dt() -> float override {
-                // Safety check in case it's called before being linked
                 if (!m_parent) return 0.0f;
+                assert(m_parent->htim != nullptr && "Dangling Timer Handle Detected!");
                 return m_parent->get_time_since_last_read(m_channel);
             }
 
             auto forget_reads() -> void override {
-                if (!m_parent) return;
+                if (!m_parent || !m_parent->htim) return;
                 m_parent->make_next_read_first_read(m_channel);
             }
         };
@@ -170,6 +166,10 @@ namespace mrover {
                 m_channels[channel_id] = ChannelHandle_t{*this, channel_id};
             }
         }
+
+        ElapsedTimer(const ElapsedTimer&) = delete;
+        ElapsedTimer& operator=(const ElapsedTimer&) = delete;
+        ElapsedTimer(ElapsedTimer&&) = delete;
 
         auto get_time_since_last_read(size_t const channel) -> float {
             if (channel >= NumChannels) return 0.0f;

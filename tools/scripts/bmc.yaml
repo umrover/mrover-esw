@@ -1,5 +1,5 @@
 # CAN messaging
-can_id: 3
+can_id: 4
 host_can_id: 1
 
 # system configuration

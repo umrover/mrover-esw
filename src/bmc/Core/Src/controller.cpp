@@ -59,16 +59,16 @@ namespace mrover {
     FDCAN fdcan;
 
     // Timers
-    Timer tx_tim;
-    Timer can_wwdg_tim;
-    Timer control_tim;
-    ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS> elapsed_timer;
+    std::optional<Timer> tx_tim;
+    std::optional<Timer> can_wwdg_tim;
+    std::optional<Timer> control_tim;
+    std::optional<ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>> elapsed_timer;
 
     // Hardware Units
-    Pin can_tx;
-    Pin can_rx;
-    CANBus1Handler can_receiver;
-    Motor motor;
+    std::optional<Pin> can_tx;
+    std::optional<Pin> can_rx;
+    std::optional<CANBus1Handler> can_receiver;
+    std::optional<Motor> motor;
 
     /**
      * Initialize the FDCAN peripheral - re-instantiates the peripheral object and resets the receiver
@@ -90,9 +90,9 @@ namespace mrover {
         if (!can_id.has_value()) can_id = config.get<bmc_config_t::can_id>();
         if (!host_can_id.has_value()) host_can_id = config.get<bmc_config_t::host_can_id>();
 
-        // can_tx.set();
-        can_receiver.send(msg, can_id.value(), host_can_id.value());
-        // can_tx.reset();
+        can_tx->set();
+        can_receiver->send(msg, can_id.value(), host_can_id.value());
+        can_tx->reset();
     }
 
     /**
@@ -102,19 +102,15 @@ namespace mrover {
     auto receive_can_message() -> void {
         if (!initialized) return;
 
-        // start the CAN watchdog if it lapsed
-        // if (!can_wwdg_tim.is_enabled()) {
-            motor.reset_wwdg();
-            // can_wwdg_tim.start();
-        // }
+        motor->reset_wwdg();
 
         while (fdcan.messages_to_process() > 0) {
-            if (auto const recv = can_receiver.receive(); recv) {
-                can_rx.set();
+            if (auto const recv = can_receiver->receive(); recv) {
+                can_rx->set();
                 auto const& msg = *recv;
-                motor.receive(msg);
-                can_wwdg_tim.reset();
-                can_rx.reset();
+                motor->receive(msg);
+                can_wwdg_tim->reset();
+                can_rx->reset();
             }
         }
     }
@@ -124,6 +120,8 @@ namespace mrover {
      */
     auto init() -> void {
         __disable_irq();
+        HAL_DBGMCU_EnableDBGSleepMode();
+
         // initialize peripherals
         lpuart = UART{LPUART_1, get_uart_options()};
         adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
@@ -133,31 +131,35 @@ namespace mrover {
         // auto const& logger = Logger::instance();
         // logger.info("Initializing");
 
+        // setup timers
+        tx_tim.emplace(TX_TIM, true);                                                 // transmit timer (on interrupt)
+        can_wwdg_tim.emplace(CAN_WWDG_TIM, true);                                     // can watchdog timer (on interrupt)
+        control_tim.emplace(CONTROL_TIM, true);                                       // control timer (update driven output, on interrupt)
+        elapsed_timer.emplace(ELAPSED_TIM, false); // pid compute timer
+
+        // timer channels
+        auto* pid_timer_handle = elapsed_timer->get_handle(ELAPSED_TIMER_CH_1);
+        auto* enc_timer_handle = elapsed_timer->get_handle(ELAPSED_TIMER_CH_2);
+
         // setup debug LEDs
-        can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
-        can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
+        can_tx.emplace(CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin);
+        can_rx.emplace(CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin);
 
         // initialize fdcan
         init_fdcan_peripheral();
 
         // setup motor instance
-        motor = Motor{
+        motor.emplace(
                 HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
                 AD8418A{&adc, ADC_CHANNEL_0},
                 LimitSwitch{Pin{LIMIT_A_GPIO_Port, LIMIT_A_Pin}},
                 LimitSwitch{Pin{LIMIT_B_GPIO_Port, LIMIT_B_Pin}},
-                QuadratureEncoder{ENCODER_TIM, elapsed_timer.get_handle(ELAPSED_TIMER_CH_2)},
+                QuadratureEncoder{ENCODER_TIM, enc_timer_handle},
                 send_can_message,
                 init_fdcan_peripheral,
-                elapsed_timer.get_handle(ELAPSED_TIMER_CH_1),
-                &config,
-        };
-
-        // setup timers
-        tx_tim = Timer{TX_TIM, true};                                                 // transmit timer (on interrupt)
-        can_wwdg_tim = Timer{CAN_WWDG_TIM, true};                                     // can watchdog timer (on interrupt)
-        control_tim = Timer{CONTROL_TIM, true};                                       // control timer (update driven output, on interrupt)
-        elapsed_timer = ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>{ELAPSED_TIM, false}; // pid compute timer
+                pid_timer_handle,
+                &config
+        );
 
         // set initialization state and initial error state
         // logger.info("BMC Initialized");
@@ -168,14 +170,16 @@ namespace mrover {
     [[noreturn]] auto loop() -> void {
         for (;;) {
             if (tx_pending) {
-                motor.send_state();
+                motor->send_state();
                 tx_pending = false;
             }
             if (control_update) {
-                motor.drive_output();
+                motor->drive_output();
                 control_update = false;
             }
-            __WFI();
+            __DSB();
+            // __WFI();
+            HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
         }
     }
 
@@ -185,19 +189,14 @@ namespace mrover {
      * @param htim The timer whose period elapsed
      */
     auto timer_elapsed_callback(TIM_HandleTypeDef const* htim) -> void {
-        can_tx.set();
         if (!initialized) return;
         if (htim == TX_TIM) {
             tx_pending = true;
-            // motor.send_state();
         } else if (htim == CAN_WWDG_TIM) {
-            // can_wwdg_tim.stop();
-            motor.tx_watchdog_lapsed();
-            // Logger::instance().warn("TX Watchdog Lapsed");
+            motor->tx_watchdog_lapsed();
         } else if (htim == CONTROL_TIM) {
             control_update = true;
         }
-        can_tx.reset();
     }
 
     /**
