@@ -31,20 +31,20 @@ namespace mrover {
         static constexpr std::size_t VELOCITY_BUFFER_SIZE = 16;
 
         TIM_HandleTypeDef* m_tick_timer{};
-        ITimerChannel* m_elapsed_timer;
+        ITimerChannel* m_elapsed_timer{};
 
         std::uint16_t m_counts_unwrapped_prev{};
-        float m_multiplier;
-        float m_cpr;
+        float m_multiplier{};
+        float m_cpr{};
         bool m_initialized{false};
 
-        float m_position;
+        float m_position{};
         RunningMeanFilter<float, VELOCITY_BUFFER_SIZE> m_velocity_filter;
 
     public:
         QuadratureEncoder() = default;
         QuadratureEncoder(TIM_HandleTypeDef* tick_timer, ITimerChannel* elapsed_timer) : m_tick_timer{tick_timer},
-                                                                                         m_elapsed_timer{elapsed_timer}, m_multiplier{0.0f}, m_cpr{0.0f}, m_position{0.0f} {
+                                                                                         m_elapsed_timer{elapsed_timer} {
             check(HAL_TIM_Encoder_Start_IT(m_tick_timer, TIM_CHANNEL_ALL) == HAL_OK, Error_Handler);
         }
 
@@ -53,8 +53,6 @@ namespace mrover {
             m_multiplier = multiplier;
             m_cpr = cpr;
             m_initialized = true;
-            // Logger::instance().info("CPR: %.2f", m_cpr);
-            // Logger::instance().info("Multiplier: %.2f", m_multiplier);
         }
 
         [[nodiscard]] auto read() const -> std::optional<EncoderReading> {

@@ -116,7 +116,7 @@ namespace mrover {
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
         }
 
-        auto set_raw(uint8_t address, uint32_t raw) -> bool {
+        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
             bool found = false;
 
             std::apply(

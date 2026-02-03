@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <chrono>
 #include <cassert>
+#include <chrono>
 #include <limits>
 #include <utility>
 
@@ -167,8 +167,8 @@ namespace mrover {
             }
         }
 
-        ElapsedTimer(const ElapsedTimer&) = delete;
-        ElapsedTimer& operator=(const ElapsedTimer&) = delete;
+        ElapsedTimer(ElapsedTimer const&) = delete;
+        ElapsedTimer& operator=(ElapsedTimer const&) = delete;
         ElapsedTimer(ElapsedTimer&&) = delete;
 
         auto get_time_since_last_read(size_t const channel) -> float {

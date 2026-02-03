@@ -3,7 +3,7 @@ import yaml
 # field: (register, addr, dtype, offset, width)
 CONFIG_MAP = {
     "can_id": ("CAN_ID", 0x00, int, 0, 8),
-    "host_can_id": ("HOST_CAN_ID", 0x45, int, 0, 8),
+    "host_can_id": ("HOST_CAN_ID", 0x48, int, 0, 8),
     # system config bits
     "motor_en": ("SYS_CFG", 0x01, bool, 0, 1),
     "motor_inv": ("SYS_CFG", 0x01, bool, 1, 1),

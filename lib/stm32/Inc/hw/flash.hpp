@@ -35,10 +35,10 @@ namespace mrover {
             auto cfg = Config{};
             auto tup = cfg.all();
             return std::array<reg_descriptor_t, N>{
-                reg_descriptor_t{
-                    std::get<Is>(tup).name,
-                    std::get<Is>(tup).addr,
-                    std::get<Is>(tup).size()}...};
+                    reg_descriptor_t{
+                            std::get<Is>(tup).name,
+                            std::get<Is>(tup).addr,
+                            std::get<Is>(tup).size()}...};
         }
 
         static constexpr auto fields = [] {
@@ -137,8 +137,8 @@ namespace mrover {
             HAL_FLASH_Unlock();
             FLASH_EraseInitTypeDef erase_init;
             erase_init.TypeErase = FLASH_TYPEERASE_PAGES;
-            erase_init.Page      = (page_addr - 0x08000000) / Mem::PAGE_SIZE;
-            erase_init.NbPages   = 1;
+            erase_init.Page = (page_addr - 0x08000000) / Mem::PAGE_SIZE;
+            erase_init.NbPages = 1;
 
             uint32_t page_error = 0;
             if (HAL_FLASHEx_Erase(&erase_init, &page_error) == HAL_OK) {

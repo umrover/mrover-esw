@@ -44,14 +44,14 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* MOTOR_PWM_TIM = &htim1;
     static constexpr TIM_HandleTypeDef* ELAPSED_TIM = &htim2;
     static constexpr TIM_HandleTypeDef* ENCODER_TIM = &htim4;
-    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 5 Hz
-    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 5 Hz
-    static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 12.5 Hz
+    static constexpr TIM_HandleTypeDef* TX_TIM = &htim6;        // 10 Hz
+    static constexpr TIM_HandleTypeDef* CAN_WWDG_TIM = &htim16; // 10 Hz
+    static constexpr TIM_HandleTypeDef* CONTROL_TIM = &htim17;  // 25 Hz
 
     bmc_config_t config;
-    volatile bool initialized = false;
-    volatile bool tx_pending = false;
-    volatile bool control_update = false;
+    bool volatile initialized = false;
+    bool volatile tx_pending = false;
+    bool volatile control_update = false;
 
     // Peripherals
     UART lpuart;
@@ -128,13 +128,11 @@ namespace mrover {
 
         // initialize logger
         // Logger::init(&lpuart);
-        // auto const& logger = Logger::instance();
-        // logger.info("Initializing");
 
         // setup timers
-        tx_tim.emplace(TX_TIM, true);                                                 // transmit timer (on interrupt)
-        can_wwdg_tim.emplace(CAN_WWDG_TIM, true);                                     // can watchdog timer (on interrupt)
-        control_tim.emplace(CONTROL_TIM, true);                                       // control timer (update driven output, on interrupt)
+        tx_tim.emplace(TX_TIM, true);              // transmit timer (on interrupt)
+        can_wwdg_tim.emplace(CAN_WWDG_TIM, true);  // can watchdog timer (on interrupt)
+        control_tim.emplace(CONTROL_TIM, true);    // control timer (update driven output, on interrupt)
         elapsed_timer.emplace(ELAPSED_TIM, false); // pid compute timer
 
         // timer channels
@@ -158,17 +156,16 @@ namespace mrover {
                 send_can_message,
                 init_fdcan_peripheral,
                 pid_timer_handle,
-                &config
-        );
+                &config);
 
         // set initialization state and initial error state
-        // logger.info("BMC Initialized");
         initialized = true;
         __enable_irq();
     }
 
     [[noreturn]] auto loop() -> void {
         for (;;) {
+            // TODO(eric) feels like FreeRTOS would be nice here
             if (tx_pending) {
                 motor->send_state();
                 tx_pending = false;
@@ -178,7 +175,6 @@ namespace mrover {
                 control_update = false;
             }
             __DSB();
-            // __WFI();
             HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
         }
     }
