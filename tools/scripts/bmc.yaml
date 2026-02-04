@@ -23,12 +23,12 @@ lim_b_is_forward: false
 lim_b_use_readjust: false
 
 # encoder params
-quad_cpr: 4096.0
+quad_cpr: 64.0
 abs_i2c_ratio: 1.0
 abs_i2c_offset: 0.0
 abs_spi_ratio: 1.0
 abs_spi_offset: 0.0
-gear_ratio: 50.0
+gear_ratio: 10.0  # :1
 
 # position & velocity limits
 limit_a_position: 0.0

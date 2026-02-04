@@ -52,11 +52,11 @@ def parse_config(yaml_path):
         val = user_data.get(field, 0)
 
         if addr not in reg_states:
-            reg_states[addr] = {"name": name, "value": 0, "is_float": isinstance(dtype, float)}
+            reg_states[addr] = {"name": name, "value": 0, "dtype": dtype}
 
-        if isinstance(dtype, float):
+        if dtype is float:
             reg_states[addr]["value"] = float(val)
-        elif isinstance(dtype, bool):
+        elif dtype is bool:
             if bool(val):
                 reg_states[addr]["value"] |= 1 << offset
         else:

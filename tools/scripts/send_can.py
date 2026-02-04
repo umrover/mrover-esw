@@ -17,20 +17,21 @@ def on_msg_recv(msg):
 if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
-    TARGET = 0
+    TARGET = -1.0
     INC = 0.10
     CAN_ID = 3
     SRC_ID = 1
 
     with CANBus(get_dbc(dbc_name="CANBus1"), "can0", on_recv=on_msg_recv) as bus:
+        # sleep(3)
         # set mode to throttle
         bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         while True:
             for _ in range(NUM_LOOPS):
                 bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
                 sleep(LOOP_DELAY)
-            TARGET += INC
-            if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
-                INC *= -1
+            # TARGET += INC
+            # if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
+            #     INC *= -1
 
         sleep(50)

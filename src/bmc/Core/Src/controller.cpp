@@ -5,6 +5,7 @@
 #include <hw/quadrature.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
+#include <logger.hpp>
 
 #include "config.hpp"
 #include "main.h"
@@ -127,7 +128,7 @@ namespace mrover {
         adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
 
         // initialize logger
-        // Logger::init(&lpuart);
+        Logger::init(&lpuart);
 
         // setup timers
         tx_tim.emplace(TX_TIM, true);              // transmit timer (on interrupt)

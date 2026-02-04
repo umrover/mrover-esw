@@ -66,7 +66,6 @@ namespace mrover {
             if (!m_initialized) return;
             float const elapsed_time = m_elapsed_timer->get_dt();
             std::int16_t const delta_ticks = count_delta_and_update(m_counts_unwrapped_prev, m_tick_timer);
-            // TODO(eric) fix this monstrosity
             auto const delta_angle = m_multiplier * static_cast<float>(delta_ticks) / m_cpr;
 
             m_position += delta_angle;

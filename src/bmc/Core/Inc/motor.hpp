@@ -207,7 +207,7 @@ namespace mrover {
                 float const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? 1.0f : -1.0f;
                 float const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
                 float const cpr = m_config_ptr->get<bmc_config_t::quad_cpr>();
-                m_quad_encoder->init(phase * gear_ratio, cpr);
+                m_quad_encoder->init(phase / gear_ratio, cpr);
             } else if (abs_spi) {
                 m_encoder_mode = encoder_mode_t::NONE;
                 // TODO(eric) impl

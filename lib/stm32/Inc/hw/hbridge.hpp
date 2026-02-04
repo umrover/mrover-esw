@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include <util.hpp>
+#include <logger.hpp>
 
 #ifdef STM32
 #include "main.h"
