@@ -1,5 +1,4 @@
 #include "main.h"
-#include "stm32g4xx_hal.h"
 
 #define CO2_ADDR 0x29
 

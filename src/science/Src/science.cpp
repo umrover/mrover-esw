@@ -1,4 +1,5 @@
 #include "CO2Sensor.hpp"
+#include "OzoneSensor.hpp"
 #include "stm32g4xx_hal_tim.h"
 #include "thp_sensor.hpp"
 #include <logger.hpp>
@@ -10,6 +11,12 @@ extern UART_HandleTypeDef hlpuart1;
 extern I2C_HandleTypeDef hi2c3;
 
 namespace mrover {
+    enum Sensor {
+        sensor_co2 = 0,
+        sensor_thp = 1,
+        sensor_ozone = 2,
+    };
+
     static constexpr TIM_HandleTypeDef* SENS_TIM = &htim2;
     static constexpr TIM_HandleTypeDef* CO2_TIM = &htim3;
     static constexpr UART_HandleTypeDef* LPUART = &hlpuart1;
@@ -19,11 +26,13 @@ namespace mrover {
     THP thp_sensor;
     CO2Sensor co2_sensor;
     THP_data thp_data;
+    OzoneSensor ozone_sensor;
+    Sensor current_sensor = sensor_co2;
     double co2 = 0;
+    double ozone;
 
     void init() {
         lpuart = UART{LPUART, get_uart_options()};
-
         Logger::init(&lpuart);
         auto const& logger = Logger::instance();
 
@@ -33,11 +42,24 @@ namespace mrover {
         co2_sensor = CO2Sensor{I2C};
         co2_sensor.init();
 
+        ozone_sensor = OzoneSensor(I2C);
+	    ozone_sensor.init();
+
         logger.info("Polling sensors...");
 
         HAL_TIM_Base_Start_IT(mrover::SENS_TIM);
 
         while (true) {}
+    }
+
+    void log_data() {
+        static auto const& logger = Logger::instance();
+
+        logger.info("co2: %f", mrover::co2);
+        logger.info("temp: %f", mrover::thp_data.temp);
+        logger.info("humidity: %f", mrover::thp_data.humidity);
+        logger.info("pressure: %f", mrover::thp_data.pressure);
+        logger.info("ozone: %f", mrover::ozone);
     }
 }
 
@@ -47,17 +69,19 @@ extern "C" {
     }
 
     void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
-        static bool is_co2 = true;
         if (htim == mrover::SENS_TIM) {
             // start requests for sensor data
-            if (is_co2)
+            if (mrover::current_sensor == mrover::sensor_co2) {
                 mrover::co2_sensor.request_co2();
-            else
+            } else if (mrover::current_sensor == mrover::sensor_thp) {
                 mrover::thp_sensor.read_thp();
+            } else if (mrover::current_sensor == mrover::sensor_ozone) {
+                mrover::ozone_sensor.receive_buf();
+            }
 
-            is_co2 = !is_co2;
+            mrover::log_data();
         } else if (htim == mrover::CO2_TIM) {
-            // handle CO2 sensor
+            // handle thp sensor
             mrover::co2_sensor.receive_buf();
             HAL_TIM_Base_Stop_IT(mrover::CO2_TIM);
         }
@@ -70,20 +94,23 @@ extern "C" {
     }
 
     void HAL_I2C_MasterRxCpltCallback (I2C_HandleTypeDef* hi2c) {
-        // get updated co2
-        mrover::co2 = mrover::co2_sensor.update_co2();
-
         auto const& logger = mrover::Logger::instance();
-        logger.info("co2: %f", mrover::co2);
+
+        if (mrover::current_sensor == mrover::sensor_co2) {
+            mrover::co2 = mrover::co2_sensor.update_co2();
+            mrover::current_sensor = mrover::sensor_thp;
+        }
     }
 
     void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
-        // get updated thp
-		mrover::thp_data = mrover::thp_sensor.update_thp();
-
         auto const& logger = mrover::Logger::instance();
-        logger.info("temp: %f", mrover::thp_data.temp);
-        logger.info("humidity: %f", mrover::thp_data.humidity);
-        logger.info("pressure: %f", mrover::thp_data.pressure);
+
+        if (mrover::current_sensor == mrover::sensor_thp) {
+		    mrover::thp_data = mrover::thp_sensor.update_thp();
+            mrover::current_sensor = mrover::sensor_ozone;
+        } else if (mrover::current_sensor == mrover::sensor_ozone) {
+            mrover::ozone_sensor.update_ozone();
+            mrover::current_sensor = mrover::sensor_co2;
+        }
 	}
 }
