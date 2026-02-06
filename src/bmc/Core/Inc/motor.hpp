@@ -42,6 +42,7 @@ namespace mrover {
         mode_t m_mode{mode_t::STOPPED};
         bmc_error_t m_error{bmc_error_t::NONE};
         float m_target{};
+        float m_position{};
 
         bool m_enabled{false};
         bool m_limit_a_hit{false};
@@ -237,7 +238,7 @@ namespace mrover {
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
                 if (m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) {
-                    if (!m_uncalibrated_position.has_value()) {
+                    if (std::isnan(m_position)) {
                         m_mode = mode_t::FAULT;
                         m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
                     }
@@ -317,7 +318,7 @@ namespace mrover {
         auto send_state() -> void {
             // m_current_sensor.update_sensor();
 
-            auto const position = [this] -> float {
+            m_position = [this] -> float {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
                 return std::numeric_limits<float>::quiet_NaN();
             }();
@@ -327,7 +328,7 @@ namespace mrover {
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
-                    position,                      // position
+                    m_position,                    // position
                     velocity,                      // velocity
                     m_current_sensor->current(),   // current
                     m_limit_a_hit,                 // limit_a_set
