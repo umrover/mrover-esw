@@ -10,7 +10,7 @@ namespace mrover {
 	class OzoneSensor {
 	private:
 		I2C_HandleTypeDef* i2c; // i2c handle pointer
-		double ozone; // ozone value in ppm
+		float ozone; // ozone value in ppm
 		uint8_t rx_buf[2]; // receive buffer
 
 	public:
@@ -20,13 +20,15 @@ namespace mrover {
 			: i2c(i2c_in), ozone(0.0) {}
 
 		// converts raw ozone data into ppm
-		void update_ozone() {
+		float update_ozone() {
 			int16_t ozone_raw = ((int16_t)rx_buf[0] << 8) | rx_buf[1];
 			ozone = ozone_raw / 1000.0;
+			
+			return ozone;
 		}
 
 		// returns the current ozone data in ppm
-		double get_ozone() {
+		float get_ozone() {
 			return ozone;
 		}
 
