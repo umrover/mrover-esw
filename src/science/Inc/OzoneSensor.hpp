@@ -33,7 +33,7 @@ namespace mrover {
 		}
 
 		// receives raw ozone data over i2c
-		void receive_buf() {
+		void read_ozone() {
 			HAL_I2C_Mem_Read_IT(i2c, (OZONE_ADDR << 1) | 1, AUTO_DATA_HIGH_REGISTER, 1, rx_buf, 2);
 		}
 
