@@ -53,6 +53,7 @@ namespace mrover {
         reg_t<float> K_D{"kd", 0x40};
         reg_t<float> K_F{"kf", 0x44};
         reg_t<uint8_t> HOST_CAN_ID{"host_can_id", 0x48};
+        reg_t<float> SCALAR{"scalar", 0x49};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
 
@@ -80,6 +81,7 @@ namespace mrover {
         using abs_spi_ratio = field_t<&bmc_config_t::ABS_SPI_RATIO>;
         using abs_spi_offset = field_t<&bmc_config_t::ABS_SPI_OFFSET>;
         using gear_ratio = field_t<&bmc_config_t::GEAR_RATIO>;
+        using scalar = field_t<&bmc_config_t::SCALAR>;
         using limit_a_position = field_t<&bmc_config_t::LIMIT_A_POSITION>;
         using limit_b_position = field_t<&bmc_config_t::LIMIT_B_POSITION>;
         using max_pwm = field_t<&bmc_config_t::MAX_PWM>;

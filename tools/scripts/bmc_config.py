@@ -58,7 +58,7 @@ if __name__ == "__main__":
                 else:
                     val_bits = val
                 bus.send("BMCConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=node_id)
-                sleep(0.5)
+                sleep(0.1)
                 # sleep(50)
                 # exit(1)
 

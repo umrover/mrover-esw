@@ -44,6 +44,8 @@ namespace mrover {
         float m_target{};
         float m_position{};
 
+        float scalar{};
+
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
@@ -198,6 +200,7 @@ namespace mrover {
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
             bool const abs_spi = m_config_ptr->get<bmc_config_t::abs_spi_en>();
             bool const abs_i2c = m_config_ptr->get<bmc_config_t::abs_i2c_en>();
+            float const scalar = m_config_ptr->get<bmc_config_t::scalar>();
             if ((quad + abs_spi + abs_i2c) > 1) {
                 m_mode = mode_t::FAULT;
                 m_error = bmc_error_t::INVALID_FLASH_CONFIG;
@@ -322,6 +325,7 @@ namespace mrover {
                 if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
                 return std::numeric_limits<float>::quiet_NaN();
             }();
+
 
             auto const velocity = m_velocity.value_or(std::numeric_limits<float>::quiet_NaN());
 

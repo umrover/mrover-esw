@@ -1,11 +1,11 @@
 # CAN messaging
-can_id: 53
+can_id: 51
 host_can_id: 10
 
 # system configuration
 motor_en: true
 motor_inv: false
-quad_en: true
+quad_en: false
 quad_phase: false
 abs_i2c_en: false
 abs_i2c_phase: false
@@ -13,7 +13,7 @@ abs_spi_en: false
 abs_spi_phase: false
 
 # limit configuration
-lim_a_en: true
+lim_a_en: false
 lim_a_active_high: false
 lim_a_is_forward: true
 lim_a_use_readjust: true
@@ -29,7 +29,6 @@ abs_i2c_offset: 0.0
 abs_spi_ratio: 1.0
 abs_spi_offset: 0.0
 gear_ratio: 47.0  # :1
-scalar: 0.005334 # (0.21 in/rev * 0.0254m/in)
 
 # position & velocity limits
 limit_a_position: 0.0

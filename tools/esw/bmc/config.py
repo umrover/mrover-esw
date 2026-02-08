@@ -40,6 +40,7 @@ CONFIG_MAP = {
     "k_i": ("K_I", 0x3C, float, 0, 32),
     "k_d": ("K_D", 0x40, float, 0, 32),
     "k_f": ("K_F", 0x44, float, 0, 32),
+    "scalar": ("SCALAR", 0x49, float, 0, 32),
 }
 
 
