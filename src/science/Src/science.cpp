@@ -1,6 +1,8 @@
 #include "CO2Sensor.hpp"
 #include "OxygenSensor.hpp"
 #include "OzoneSensor.hpp"
+#include "UVSensor.hpp"
+#include "stm32g4xx_hal_adc.h"
 #include "stm32g4xx_hal_tim.h"
 #include "thp_sensor.hpp"
 #include <logger.hpp>
@@ -10,6 +12,7 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern UART_HandleTypeDef hlpuart1;
 extern I2C_HandleTypeDef hi2c3;
+extern ADC_HandleTypeDef hadc1;
 
 namespace mrover {
     enum Sensor {
@@ -17,12 +20,14 @@ namespace mrover {
         sensor_thp = 1,
         sensor_ozone = 2,
         sensor_oxygen = 3,
+        sensor_uv = 4,
     };
 
     static constexpr TIM_HandleTypeDef* SENS_TIM = &htim2;
     static constexpr TIM_HandleTypeDef* CO2_TIM = &htim3;
     static constexpr UART_HandleTypeDef* LPUART = &hlpuart1;
     static constexpr I2C_HandleTypeDef* I2C = &hi2c3;
+    static constexpr ADC_HandleTypeDef* HADC = &hadc1;
 
     UART lpuart;
     THP thp_sensor;
@@ -30,10 +35,26 @@ namespace mrover {
     THP_data thp_data;
     OzoneSensor ozone_sensor;
     OxygenSensor oxygen_sensor;
+    UVSensor uv_sensor;
     Sensor current_sensor = sensor_co2;
+
     float co2 = 0;
     float ozone = 0;
     float oxygen = 0;
+    float uv_index = 0;
+    bool new_data = false;
+
+    void log_data() {
+        static auto const& logger = Logger::instance();
+
+        logger.info("co2: %f", mrover::co2);
+        logger.info("temp: %f", mrover::thp_data.temp);
+        logger.info("humidity: %f", mrover::thp_data.humidity);
+        logger.info("pressure: %f", mrover::thp_data.pressure);
+        logger.info("ozone: %f", mrover::ozone);
+        logger.info("oxygen: %f", mrover::oxygen);
+        logger.info("uv index: %f", mrover::uv_index);
+    }
 
     void init() {
         lpuart = UART{LPUART, get_uart_options()};
@@ -52,22 +73,18 @@ namespace mrover {
         oxygen_sensor = OxygenSensor(I2C);
 	    oxygen_sensor.init();
 
+        uv_sensor = UVSensor(HADC);
+
         logger.info("Polling sensors...");
 
         HAL_TIM_Base_Start_IT(mrover::SENS_TIM);
 
-        while (true) {}
-    }
-
-    void log_data() {
-        static auto const& logger = Logger::instance();
-
-        logger.info("co2: %f", mrover::co2);
-        logger.info("temp: %f", mrover::thp_data.temp);
-        logger.info("humidity: %f", mrover::thp_data.humidity);
-        logger.info("pressure: %f", mrover::thp_data.pressure);
-        logger.info("ozone: %f", mrover::ozone);
-        logger.info("oxygen: %f", mrover::oxygen);
+        while (true) {
+            if (new_data) {
+                new_data = false;
+                log_data();
+            }
+        }
     }
 }
 
@@ -87,14 +104,20 @@ extern "C" {
                 mrover::ozone_sensor.receive_buf();
             } else if (mrover::current_sensor == mrover::sensor_oxygen) {
                 mrover::oxygen_sensor.read_oxygen();
+            } else if (mrover::current_sensor == mrover::sensor_uv) {
+                mrover::uv_sensor.sample_sensor();
             }
-
-            mrover::log_data();
         } else if (htim == mrover::CO2_TIM) {
             // handle thp sensor
             mrover::co2_sensor.receive_buf();
             HAL_TIM_Base_Stop_IT(mrover::CO2_TIM);
         }
+    }
+
+    void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+        mrover::uv_index = mrover::uv_sensor.update_uv();
+        mrover::new_data = true;
+        mrover::current_sensor = mrover::sensor_co2;
     }
 
     void HAL_I2C_MasterTxCpltCallback (I2C_HandleTypeDef* hi2c) {
@@ -119,7 +142,7 @@ extern "C" {
             mrover::current_sensor = mrover::sensor_oxygen;
         } else if (mrover::current_sensor == mrover::sensor_oxygen) {
             mrover::oxygen = mrover::oxygen_sensor.update_oxygen();
-            mrover::current_sensor = mrover::sensor_co2;
+            mrover::current_sensor = mrover::sensor_uv;
         }
 	}
 }

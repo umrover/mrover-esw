@@ -2,7 +2,7 @@
 #include "stm32g4xx_hal_def.h"
 #include "stm32g4xx_hal_i2c.h"
 
-#define DEV_ADDR 0x73
+#define DEV_ADDR 0x70
 #define OXYGEN_DATA_REGISTER 0x03
 #define OXYGEN_KEY_REGISTER 0x0A
 
@@ -21,10 +21,10 @@ namespace mrover {
             : i2c(i2c_in), calibration_multiplier(0.0), percent(0.0) {};
 
         void init() {
-            uint8_t calibration_buf[2];
+            uint8_t calibration_buf[1];
             HAL_I2C_Mem_Read(i2c, (DEV_ADDR << 1) | 1, OXYGEN_KEY_REGISTER, 1, calibration_buf, 2, HAL_MAX_DELAY);
             
-            calibration_multiplier = ((calibration_buf[1] << 8) | calibration_buf[0]) / 1000.0;
+            calibration_multiplier = calibration_buf[0] / 1000.0;
             if (calibration_multiplier == 0)
                 calibration_multiplier = 20.9 / 120.0;
         }
@@ -38,7 +38,7 @@ namespace mrover {
             return percent;
         }
 
-        float get_oxygen() {
+        [[nodiscard]]float get_oxygen() {
             return percent;
         }
     }; // class UVSensor

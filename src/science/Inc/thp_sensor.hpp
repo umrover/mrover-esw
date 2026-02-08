@@ -157,7 +157,7 @@ public:
 		return thp_data;
 	}
 
-	THP_data get_thp() {
+	[[nodiscard]] THP_data get_thp() {
 		return thp_data;
 	}
 };

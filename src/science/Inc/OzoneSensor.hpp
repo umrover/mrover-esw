@@ -28,7 +28,7 @@ namespace mrover {
 		}
 
 		// returns the current ozone data in ppm
-		float get_ozone() {
+		[[nodiscard]] float get_ozone() {
 			return ozone;
 		}
 

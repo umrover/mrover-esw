@@ -17,7 +17,7 @@ namespace mrover {
 			: i2c(i2c_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0) {}
 
 		// returns the current ozone data in ppm
-		float get_co2() const {
+		[[nodiscard]] float get_co2() const {
 			return percent;
 		}
 
