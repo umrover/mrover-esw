@@ -1,6 +1,6 @@
 #include "main.h"
 
-#define ADDRESS_3 0x73
+#define ADDRESS_3 0x70
 #define OXYGEN_DATA_REGISTER 0x03
 #define OXYGEN_KEY_REGISTER 0x0A
 
