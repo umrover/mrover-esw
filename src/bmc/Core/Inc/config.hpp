@@ -105,7 +105,7 @@ namespace mrover {
         constexpr auto all() {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
+                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, SCALAR,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
         }
@@ -113,7 +113,7 @@ namespace mrover {
         constexpr auto all() const {
             return std::forward_as_tuple(
                     CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
+                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, SCALAR,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
                     MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
         }

@@ -43,8 +43,7 @@ namespace mrover {
         bmc_error_t m_error{bmc_error_t::NONE};
         float m_target{};
         float m_position{};
-
-        float scalar{};
+        float m_scalar{};
 
         bool m_enabled{false};
         bool m_limit_a_hit{false};
@@ -121,7 +120,7 @@ namespace mrover {
                     case mode_t::THROTTLE:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto setpoint_thr = m_target;
+                            auto setpoint_thr = m_target; // input is throttle
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
                             m_hbridge->write(setpoint_thr);
@@ -130,8 +129,8 @@ namespace mrover {
                     case mode_t::VELOCITY:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_vel = m_target;
-                            auto const input_vel = m_velocity.value();
+                            auto const target_vel = m_target; // unit of scalar
+                            auto const input_vel = m_velocity.value() * m_scalar; // revolutions/sec * scalar
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -141,8 +140,8 @@ namespace mrover {
                     case mode_t::POSITION:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_pos = m_target;
-                            auto const input_pos = m_uncalibrated_position.value() - m_calibrated_offset.value();
+                            auto const target_pos = m_target; // unit of scalar
+                            auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_scalar; // revolutions * scalar
                             auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -200,7 +199,7 @@ namespace mrover {
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
             bool const abs_spi = m_config_ptr->get<bmc_config_t::abs_spi_en>();
             bool const abs_i2c = m_config_ptr->get<bmc_config_t::abs_i2c_en>();
-            float const scalar = m_config_ptr->get<bmc_config_t::scalar>();
+            m_scalar = m_config_ptr->get<bmc_config_t::scalar>();
             if ((quad + abs_spi + abs_i2c) > 1) {
                 m_mode = mode_t::FAULT;
                 m_error = bmc_error_t::INVALID_FLASH_CONFIG;
@@ -322,7 +321,7 @@ namespace mrover {
             // m_current_sensor.update_sensor();
 
             m_position = [this] -> float {
-                if (m_uncalibrated_position && m_calibrated_offset) return m_uncalibrated_position.value() - m_calibrated_offset.value();
+                if (m_uncalibrated_position && m_calibrated_offset) return (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_scalar;
                 return std::numeric_limits<float>::quiet_NaN();
             }();
 

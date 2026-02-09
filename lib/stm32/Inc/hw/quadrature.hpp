@@ -10,8 +10,8 @@
 namespace mrover {
 
     struct EncoderReading {
-        float position; // revolutions
-        float velocity; // revolutions/second
+        float position; // unit of scalar
+        float velocity; // unit of scalar/second
     };
 
 #ifdef HAL_TIM_MODULE_ENABLED

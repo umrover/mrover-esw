@@ -4,7 +4,7 @@ host_can_id: 10
 
 # system configuration
 motor_en: true
-motor_inv: false
+motor_inv: true
 quad_en: true
 quad_phase: false
 abs_i2c_en: false
@@ -15,7 +15,7 @@ abs_spi_phase: false
 # limit configuration
 lim_a_en: true
 lim_a_active_high: false
-lim_a_is_forward: true
+lim_a_is_forward: false
 lim_a_use_readjust: true
 lim_b_en: false
 lim_b_active_high: false
@@ -41,7 +41,7 @@ min_vel: -0.5
 max_vel: 0.5
 
 # control gains
-k_p: 1.2
-k_i: 0.8
-k_d: 0.4
+k_p: 120.0
+k_i: 0.0
+k_d: 0.0
 k_f: 0.0
