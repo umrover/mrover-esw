@@ -1,6 +1,6 @@
 # CAN messaging
 can_id: 53
-host_can_id: 10
+host_can_id: 16
 
 # system configuration
 motor_en: true
@@ -23,25 +23,25 @@ lim_b_is_forward: false
 lim_b_use_readjust: false
 
 # encoder params
-quad_cpr: 24.0
+quad_cpr: 48.0  # was 24 - TODO this changes with new enc updates
 abs_i2c_ratio: 1.0
 abs_i2c_offset: 0.0
 abs_spi_ratio: 1.0
 abs_spi_offset: 0.0
-gear_ratio: 47.0  # :1
+gear_ratio: 76.9  # ratio to one, 47:1 gearbox, 11:18 sprocket
 scalar: 0.005334 # (0.21 in/rev * 0.0254m/in)
 
 # position & velocity limits
 limit_a_position: 0.0
-limit_b_position: 16.5
+limit_b_position: 0.09
 max_pwm: 1.0
 min_pos: 0.0
-max_pos: 16.5
-min_vel: -0.5
-max_vel: 0.5
+max_pos: 0.09
+min_vel: -0.2
+max_vel: 0.2
 
 # control gains
-k_p: 120.0
-k_i: 0.0
+k_p: 300.0
+k_i: 10.0
 k_d: 0.0
 k_f: 0.0

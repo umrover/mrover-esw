@@ -2,6 +2,7 @@
 
 #include <filtering.hpp>
 #include <timer.hpp>
+#include <util.hpp>
 
 #ifdef STM32
 #include "main.h"
