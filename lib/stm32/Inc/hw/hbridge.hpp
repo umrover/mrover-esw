@@ -4,8 +4,8 @@
 #include <cmath>
 #include <cstdint>
 
-#include <util.hpp>
 #include <logger.hpp>
+#include <util.hpp>
 
 #ifdef STM32
 #include "main.h"

@@ -73,9 +73,6 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add fwlib dependency
 add_subdirectory(../../lib fwlib)
 
-# enable fp prints
-# target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
-
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx

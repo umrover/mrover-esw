@@ -22,8 +22,6 @@ namespace mrover {
     enum struct encoder_mode_t : uint8_t {
         NONE = 0,
         QUAD,
-        ABS_SPI,
-        ABS_I2C,
     };
 
     struct bmc_config_t {
@@ -31,40 +29,36 @@ namespace mrover {
 
         FDCAN::Filter can_node_filter{};
 
-        reg_t<uint8_t> CAN_ID{"can_id", 0x00};
-        reg_t<uint8_t> SYS_CFG{"system_configuration", 0x01};
-        reg_t<uint8_t> LIMIT_CFG{"limit_configuration", 0x02};
-        reg_t<uint8_t> USER_REG{"user_reg", 0x03};
-        reg_t<float> QUAD_CPR{"quad_cpr", 0x04};
-        reg_t<float> ABS_I2C_RATIO{"abs_i2c_ratio", 0x08};
-        reg_t<float> ABC_I2C_OFFSET{"abs_i2c_offset", 0x0C};
-        reg_t<float> ABS_SPI_RATIO{"abs_spi_ratio", 0x10};
-        reg_t<float> ABS_SPI_OFFSET{"abs_spi_offset", 0x14};
-        reg_t<float> GEAR_RATIO{"gear_ratio", 0x18};
-        reg_t<float> LIMIT_A_POSITION{"limit_a_readjust_pos", 0x1C};
-        reg_t<float> LIMIT_B_POSITION{"limit_b_readjust_pos", 0x20};
-        reg_t<float> MAX_PWM{"max_pwm", 0x24};
-        reg_t<float> MIN_POS{"min_pos", 0x28};
-        reg_t<float> MAX_POS{"max_pos", 0x2C};
-        reg_t<float> MIN_VEL{"min_vel", 0x30};
-        reg_t<float> MAX_VEL{"max_vel", 0x34};
-        reg_t<float> K_P{"kp", 0x38};
-        reg_t<float> K_I{"ki", 0x3C};
-        reg_t<float> K_D{"kd", 0x40};
-        reg_t<float> K_F{"kf", 0x44};
-        reg_t<uint8_t> HOST_CAN_ID{"host_can_id", 0x48};
-        reg_t<float> SCALAR{"scalar", 0x49};
+        reg_t<uint8_t> CAN_ID{0x00};
+        reg_t<uint8_t> HOST_CAN_ID{0x01};
+        reg_t<uint8_t> SYS_CFG{0x02};
+        reg_t<uint8_t> LIMIT_CFG{0x03};
+        reg_t<float> QUAD_CPR{0x04};
+        reg_t<float> GEAR_RATIO{0x08};
+        reg_t<float> ROTOR_OUTPUT_RATIO{0x0C};
+        reg_t<float> LIMIT_A_POSITION{0x10};
+        reg_t<float> LIMIT_B_POSITION{0x14};
+        reg_t<float> MAX_PWM{0x18};
+        reg_t<float> MIN_POS{0x1C};
+        reg_t<float> MAX_POS{0x20};
+        reg_t<float> MIN_VEL{0x24};
+        reg_t<float> MAX_VEL{0x28};
+        reg_t<float> POS_K_P{0x2C};
+        reg_t<float> POS_K_I{0x30};
+        reg_t<float> POS_K_D{0x34};
+        reg_t<float> POS_K_F{0x38};
+        reg_t<float> VEL_K_P{0x3C};
+        reg_t<float> VEL_K_I{0x40};
+        reg_t<float> VEL_K_D{0x44};
+        reg_t<float> VEL_K_F{0x48};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
+        using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
         using motor_en = field_t<&bmc_config_t::SYS_CFG, 0>;
         using motor_inv = field_t<&bmc_config_t::SYS_CFG, 1>;
         using quad_en = field_t<&bmc_config_t::SYS_CFG, 2>;
         using quad_phase = field_t<&bmc_config_t::SYS_CFG, 3>;
-        using abs_i2c_en = field_t<&bmc_config_t::SYS_CFG, 4>;
-        using abs_i2c_phase = field_t<&bmc_config_t::SYS_CFG, 5>;
-        using abs_spi_en = field_t<&bmc_config_t::SYS_CFG, 6>;
-        using abs_spi_phase = field_t<&bmc_config_t::SYS_CFG, 7>;
 
         using lim_a_en = field_t<&bmc_config_t::LIMIT_CFG, 0>;
         using lim_a_active_high = field_t<&bmc_config_t::LIMIT_CFG, 1>;
@@ -76,12 +70,8 @@ namespace mrover {
         using lim_b_use_readjust = field_t<&bmc_config_t::LIMIT_CFG, 7>;
 
         using quad_cpr = field_t<&bmc_config_t::QUAD_CPR>;
-        using abs_i2c_ratio = field_t<&bmc_config_t::ABS_I2C_RATIO>;
-        using abs_i2c_offset = field_t<&bmc_config_t::ABC_I2C_OFFSET>;
-        using abs_spi_ratio = field_t<&bmc_config_t::ABS_SPI_RATIO>;
-        using abs_spi_offset = field_t<&bmc_config_t::ABS_SPI_OFFSET>;
         using gear_ratio = field_t<&bmc_config_t::GEAR_RATIO>;
-        using scalar = field_t<&bmc_config_t::SCALAR>;
+        using rotor_output_ratio = field_t<&bmc_config_t::ROTOR_OUTPUT_RATIO>;
         using limit_a_position = field_t<&bmc_config_t::LIMIT_A_POSITION>;
         using limit_b_position = field_t<&bmc_config_t::LIMIT_B_POSITION>;
         using max_pwm = field_t<&bmc_config_t::MAX_PWM>;
@@ -89,12 +79,15 @@ namespace mrover {
         using max_pos = field_t<&bmc_config_t::MAX_POS>;
         using min_vel = field_t<&bmc_config_t::MIN_VEL>;
         using max_vel = field_t<&bmc_config_t::MAX_VEL>;
-        using k_p = field_t<&bmc_config_t::K_P>;
-        using k_i = field_t<&bmc_config_t::K_I>;
-        using k_d = field_t<&bmc_config_t::K_D>;
-        using k_f = field_t<&bmc_config_t::K_F>;
+        using pos_k_p = field_t<&bmc_config_t::POS_K_P>;
+        using pos_k_i = field_t<&bmc_config_t::POS_K_I>;
+        using pos_k_d = field_t<&bmc_config_t::POS_K_D>;
+        using pos_k_f = field_t<&bmc_config_t::POS_K_F>;
+        using vel_k_p = field_t<&bmc_config_t::VEL_K_P>;
+        using vel_k_i = field_t<&bmc_config_t::VEL_K_I>;
+        using vel_k_d = field_t<&bmc_config_t::VEL_K_D>;
+        using vel_k_f = field_t<&bmc_config_t::VEL_K_F>;
 
-        using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
         template<typename F>
         auto get() const { return F::get(*this); }
@@ -104,27 +97,25 @@ namespace mrover {
 
         constexpr auto all() {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, SCALAR,
-                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
-                    MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
+                    CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
         }
 
         constexpr auto all() const {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_CPR, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO, SCALAR,
-                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
-                    MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F, HOST_CAN_ID);
+                    CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
         }
 
         auto set_raw(uint8_t address, uint32_t const raw) -> bool {
             bool found = false;
 
             std::apply(
-                    [&](auto const&... reg) {
+                    [&](auto const&... reg) -> void {
                         (
-                                [&] {
+                                [&] -> void {
                                     if (reg.addr == address) {
                                         using T = std::remove_reference_t<decltype(reg)>::value_t;
                                         reg.write(*this, from_raw<T>(raw));
@@ -140,7 +131,7 @@ namespace mrover {
 
         auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
             bool found = false;
-            std::apply([&](auto const&... reg) {
+            std::apply([&](auto const&... reg) -> void {
                 ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
             },
                        all());
@@ -155,7 +146,7 @@ namespace mrover {
             static constexpr int NUM_PAGES = 64;
         };
 
-        static consteval uint16_t size_bytes() {
+        static consteval auto size_bytes() -> uint16_t {
             return validated_config_t<bmc_config_t>::size_bytes();
         }
     };
@@ -197,7 +188,7 @@ namespace mrover {
      */
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
-        options.use_dma = false;
+        options.use_dma = true;
         return options;
     }
 

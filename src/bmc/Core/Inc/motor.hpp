@@ -1,26 +1,23 @@
 #pragma once
 
 #include <CANBus1.hpp>
+#include <algorithm>
 #include <cinttypes>
 #include <err.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
-// #include <logger.hpp>
+#include <hw/quadrature.hpp>
 #include <pidf.hpp>
 #include <variant>
 
 #include "config.hpp"
-#include "hw/quadrature.hpp"
 
 
 namespace mrover {
 
     class Motor {
         typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
-        typedef void (*can_reset_t)();
-        // using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
-        // using can_reset_t = std::function<void()>;
 
         std::optional<HBridge> m_hbridge;
         std::optional<AD8418A> m_current_sensor;
@@ -29,21 +26,26 @@ namespace mrover {
         std::optional<QuadratureEncoder> m_quad_encoder;
 
         tx_exec_t m_message_tx_f{};
-        can_reset_t m_initialize_fdcan{};
 
         std::optional<PIDF> m_pidf{std::nullopt};
         ITimerChannel* m_pidf_elapsed_timer{};
 
-        std::optional<float> m_calibrated_offset{std::nullopt};     // radians
-        std::optional<float> m_uncalibrated_position{std::nullopt}; // radians
-        std::optional<float> m_velocity{std::nullopt};              // radians/second
+        std::optional<float> m_calibrated_offset{std::nullopt};     // revolutions
+        std::optional<float> m_uncalibrated_position{std::nullopt}; // revolutions
+        std::optional<float> m_velocity_raw{std::nullopt};          // revolutions/second
         bmc_config_t* m_config_ptr{};
         encoder_mode_t m_encoder_mode{encoder_mode_t::NONE};
         mode_t m_mode{mode_t::STOPPED};
         bmc_error_t m_error{bmc_error_t::NONE};
         float m_target{};
         float m_position{};
-        float m_scalar{};
+        float m_velocity{};
+        float m_rotor_output_ratio{};
+
+        float m_min_position{};
+        float m_max_position{};
+        float m_min_velocity{};
+        float m_max_velocity{};
 
         bool m_enabled{false};
         bool m_limit_a_hit{false};
@@ -61,30 +63,27 @@ namespace mrover {
             switch (m_encoder_mode) {
                 case encoder_mode_t::NONE:
                     m_uncalibrated_position.reset();
-                    m_velocity.reset();
+                    m_velocity_raw.reset();
                     break;
                 case encoder_mode_t::QUAD:
                     m_quad_encoder->update();
                     if (std::optional<EncoderReading> reading = m_quad_encoder->read()) {
                         auto const& [position, velocity] = reading.value();
                         m_uncalibrated_position = position;
-                        m_velocity = velocity;
+                        m_velocity_raw = velocity;
                     } else {
                         m_uncalibrated_position.reset();
-                        m_velocity.reset();
+                        m_velocity_raw.reset();
                     }
                     break;
-                case encoder_mode_t::ABS_SPI:
-                    // TODO(eric) impl
-                    m_uncalibrated_position.reset();
-                    m_velocity.reset();
-                    break;
-                case encoder_mode_t::ABS_I2C:
-                    // TODO(eric) impl
-                    m_uncalibrated_position.reset();
-                    m_velocity.reset();
-                    break;
             }
+
+            m_position = [this] -> float {
+                if (m_uncalibrated_position && m_calibrated_offset) return (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio;
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
+
+            m_velocity = m_velocity_raw.value_or(std::numeric_limits<float>::quiet_NaN());
         }
 
         auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
@@ -129,8 +128,8 @@ namespace mrover {
                     case mode_t::VELOCITY:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_vel = m_target; // unit of scalar
-                            auto const input_vel = m_velocity.value() * m_scalar; // revolutions/sec * scalar
+                            auto const target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity); // unit of output
+                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio;         // revolutions/sec * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -140,8 +139,8 @@ namespace mrover {
                     case mode_t::POSITION:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_pos = m_target; // unit of scalar
-                            auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_scalar; // revolutions * scalar
+                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position);                                  // unit of output
+                            auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio; // revolutions * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -159,10 +158,6 @@ namespace mrover {
          */
         auto init() -> void {
             __disable_irq();
-            // Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
-
-            // configure can peripheral
-            // m_initialize_fdcan();
 
             // configure motor parameters
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
@@ -174,11 +169,13 @@ namespace mrover {
 
             // read pidf gains
             m_pidf = PIDF{};
-            m_pidf->with_p(m_config_ptr->get<bmc_config_t::k_p>());
-            m_pidf->with_i(m_config_ptr->get<bmc_config_t::k_i>());
-            m_pidf->with_d(m_config_ptr->get<bmc_config_t::k_d>());
-            m_pidf->with_ff(m_config_ptr->get<bmc_config_t::k_f>());
             m_pidf->with_output_bound(-1.0, 1.0);
+
+            // get velocity clamps
+            m_min_position = m_config_ptr->get<bmc_config_t::min_pos>();
+            m_max_position = m_config_ptr->get<bmc_config_t::max_pos>();
+            m_min_velocity = m_config_ptr->get<bmc_config_t::min_vel>();
+            m_max_velocity = m_config_ptr->get<bmc_config_t::max_vel>();
 
             // init limit switches
             bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
@@ -197,13 +194,7 @@ namespace mrover {
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
-            bool const abs_spi = m_config_ptr->get<bmc_config_t::abs_spi_en>();
-            bool const abs_i2c = m_config_ptr->get<bmc_config_t::abs_i2c_en>();
-            m_scalar = m_config_ptr->get<bmc_config_t::scalar>();
-            if ((quad + abs_spi + abs_i2c) > 1) {
-                m_mode = mode_t::FAULT;
-                m_error = bmc_error_t::INVALID_FLASH_CONFIG;
-            }
+            m_rotor_output_ratio = m_config_ptr->get<bmc_config_t::rotor_output_ratio>();
 
             if (quad) {
                 m_encoder_mode = encoder_mode_t::QUAD;
@@ -211,12 +202,6 @@ namespace mrover {
                 float const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
                 float const cpr = m_config_ptr->get<bmc_config_t::quad_cpr>();
                 m_quad_encoder->init(phase / gear_ratio, cpr);
-            } else if (abs_spi) {
-                m_encoder_mode = encoder_mode_t::NONE;
-                // TODO(eric) impl
-            } else if (abs_i2c) {
-                m_encoder_mode = encoder_mode_t::NONE;
-                // TODO(eric) impl
             } else {
                 m_encoder_mode = encoder_mode_t::NONE;
             }
@@ -244,6 +229,18 @@ namespace mrover {
                         m_mode = mode_t::FAULT;
                         m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
                     }
+                }
+                if (m_mode == mode_t::POSITION) {
+                    m_pidf->with_p(m_config_ptr->get<bmc_config_t::pos_k_p>());
+                    m_pidf->with_i(m_config_ptr->get<bmc_config_t::pos_k_i>());
+                    m_pidf->with_d(m_config_ptr->get<bmc_config_t::pos_k_d>());
+                    m_pidf->with_ff(m_config_ptr->get<bmc_config_t::pos_k_f>());
+                }
+                if (m_mode == mode_t::VELOCITY) {
+                    m_pidf->with_p(m_config_ptr->get<bmc_config_t::vel_k_p>());
+                    m_pidf->with_i(m_config_ptr->get<bmc_config_t::vel_k_i>());
+                    m_pidf->with_d(m_config_ptr->get<bmc_config_t::vel_k_d>());
+                    m_pidf->with_ff(m_config_ptr->get<bmc_config_t::vel_k_f>());
                 }
             }
             m_pidf_elapsed_timer->forget_reads();
@@ -295,10 +292,8 @@ namespace mrover {
                 LimitSwitch const& limit_b,
                 QuadratureEncoder const& quad_encoder,
                 tx_exec_t const& message_tx_f,
-                can_reset_t const& initialize_fdcan,
                 ITimerChannel* elapsed_timer,
                 bmc_config_t* config) : m_message_tx_f{message_tx_f},
-                                        m_initialize_fdcan{initialize_fdcan},
                                         m_pidf_elapsed_timer{elapsed_timer},
                                         m_config_ptr{config} {
             m_hbridge.emplace(motor_driver);
@@ -320,19 +315,12 @@ namespace mrover {
         auto send_state() -> void {
             // m_current_sensor.update_sensor();
 
-            m_position = [this] -> float {
-                if (m_uncalibrated_position && m_calibrated_offset) return (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_scalar;
-                return std::numeric_limits<float>::quiet_NaN();
-            }();
-
-
-            auto const velocity = m_velocity.value_or(std::numeric_limits<float>::quiet_NaN());
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
                     m_position,                    // position
-                    velocity,                      // velocity
+                    m_velocity,                    // velocity
                     m_current_sensor->current(),   // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
@@ -346,7 +334,7 @@ namespace mrover {
             apply_limit(m_limit_b, m_limit_b_hit);
             m_limit_forward_hit = m_limit_a->is_forward_limit() ? m_limit_a_hit : (m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
             m_limit_backward_hit = !m_limit_a->is_forward_limit() ? m_limit_a_hit : (!m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
-            sample_encoder();
+            if (m_encoder_mode != encoder_mode_t::NONE) sample_encoder();
             write_output_pwm();
         }
 

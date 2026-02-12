@@ -51,7 +51,7 @@ if __name__ == "__main__":
         else:
             # send all configs
             for reg, (addr, val) in cfg.items():
-                if not str(reg).lower().startswith("k_"):
+                if "k_" not in str(reg).lower():
                     continue
                 esw_logger.info(f"Configured {reg} - ADDR 0x{addr:x} @ {val}")
                 val_bits: int

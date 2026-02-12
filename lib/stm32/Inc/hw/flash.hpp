@@ -24,10 +24,9 @@ namespace mrover {
         static constexpr size_t N = std::tuple_size_v<decltype(std::declval<Config>().all())>;
 
         struct reg_descriptor_t {
-            std::string_view name;
             uint16_t addr{};
             size_t size{};
-            [[nodiscard]] constexpr uint16_t reg() const { return addr; }
+            [[nodiscard]] constexpr auto reg() const -> uint16_t { return addr; }
         };
 
         template<std::size_t... Is>
@@ -36,20 +35,19 @@ namespace mrover {
             auto tup = cfg.all();
             return std::array<reg_descriptor_t, N>{
                     reg_descriptor_t{
-                            std::get<Is>(tup).name,
                             std::get<Is>(tup).addr,
                             std::get<Is>(tup).size()}...};
         }
 
-        static constexpr auto fields = [] {
+        static constexpr auto fields = [] -> auto {
             auto tmp = tuple_to_array(std::make_index_sequence<N>{});
             std::sort(tmp.begin(), tmp.end(),
-                      [](auto const& a, auto const& b) { return a.reg() < b.reg(); });
+                      [](auto const& a, auto const& b) -> auto { return a.reg() < b.reg(); });
             return tmp;
         }();
 
     public:
-        static consteval bool is_valid() {
+        static consteval auto is_valid() -> bool {
             if constexpr (N == 0) return false;
             for (size_t i = 1; i < N; ++i) {
                 auto const& prev = fields[i - 1];
@@ -59,7 +57,7 @@ namespace mrover {
             return true;
         }
 
-        static consteval uint16_t size_bytes() {
+        static consteval auto size_bytes() -> uint16_t {
             if constexpr (N == 0) return 0;
             auto constexpr last_field = fields[N - 1];
             return last_field.addr + last_field.size;
@@ -68,11 +66,11 @@ namespace mrover {
 
     template<typename Config>
     struct validated_config_t {
-        static consteval bool is_valid() {
+        static consteval auto is_valid() -> bool {
             return config_validator_t<Config>::is_valid();
         }
 
-        static consteval uint16_t size_bytes() {
+        static consteval auto size_bytes() -> uint16_t {
             return config_validator_t<Config>::size_bytes();
         }
     };
@@ -100,7 +98,6 @@ namespace mrover {
     template<typename T>
     struct reg_t {
         using value_t = T;
-        std::string_view name;
         uint8_t addr{};
         mutable std::optional<T> value = std::nullopt;
         static consteval auto size() -> size_t { return sizeof(T); }
@@ -152,21 +149,6 @@ namespace mrover {
             }
             HAL_FLASH_Lock();
         }
-        // template<typename Config>
-        // void write(Config const& cfg, T v) const {
-        //     value = v;
-        //     using FlashType = Flash<Config, typename Config::mem_layout>;
-        //     auto* flash = static_cast<FlashType*>(Config::flash_ptr);
-        //     if (flash) {
-        //         __disable_irq();
-        //         auto const pin = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
-        //         pin.set();
-        //         flash->write(addr, v);
-        //         flash->flush();
-        //         pin.reset();
-        //         __enable_irq();
-        //     }
-        // }
     };
 
     template<auto cfg_ptr_v, size_t bit = 0, size_t width = 0>

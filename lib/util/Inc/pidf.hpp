@@ -35,7 +35,7 @@ namespace mrover {
          * @param dt        Time delta since last call (seconds)
          * @return          Clamped output value
          */
-        float calculate(float const input, float const target, float const dt) {
+        auto calculate(float const input, float const target, float const dt) -> float {
             if (dt <= 0.0) return m_out_min;
 
             float error = target - input;
@@ -75,37 +75,37 @@ namespace mrover {
             return std::clamp(result, m_out_min, m_out_max);
         }
 
-        PIDF& with_p(float const p) {
+        auto with_p(float const p) -> PIDF& {
             m_kp = p;
             return *this;
         }
 
-        PIDF& with_i(float const i) {
+        auto with_i(float const i) -> PIDF& {
             m_ki = i;
             return *this;
         }
 
-        PIDF& with_d(float const d) {
+        auto with_d(float const d) -> PIDF& {
             m_kd = d;
             return *this;
         }
 
-        PIDF& with_ff(float const ff) {
+        auto with_ff(float const ff) -> PIDF& {
             m_kff = ff;
             return *this;
         }
 
-        PIDF& with_dead_band(float const dead_band) {
+        auto with_dead_band(float const dead_band) -> PIDF& {
             m_dead_band = dead_band;
             return *this;
         }
 
-        PIDF& with_input_bound(float min, float max) {
+        auto with_input_bound(float min, float max) -> PIDF& {
             m_input_bound = {min, max};
             return *this;
         }
 
-        PIDF& with_output_bound(float const min, float const max) {
+        auto with_output_bound(float const min, float const max) -> PIDF& {
             m_out_min = min;
             m_out_max = max;
             return *this;

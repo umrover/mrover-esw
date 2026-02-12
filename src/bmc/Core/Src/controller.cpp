@@ -1,19 +1,18 @@
+#include <CANBus1.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
 #include <hw/pin.hpp>
 #include <hw/quadrature.hpp>
+#include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <timer.hpp>
-#include <logger.hpp>
 
 #include "config.hpp"
 #include "main.h"
 #include "motor.hpp"
 #include "stm32g431xx.h"
 #include "stm32g4xx_hal_tim.h"
-
-#include "CANBus1.hpp"
 
 
 extern ADC_HandleTypeDef hadc1;
@@ -22,11 +21,8 @@ extern FDCAN_HandleTypeDef hfdcan1;
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
-// extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim6;
-// extern TIM_HandleTypeDef htim8;
-// extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
 
@@ -70,14 +66,6 @@ namespace mrover {
     std::optional<Pin> can_rx;
     std::optional<CANBus1Handler> can_receiver;
     std::optional<Motor> motor;
-
-    /**
-     * Initialize the FDCAN peripheral - re-instantiates the peripheral object and resets the receiver
-     */
-    auto init_fdcan_peripheral() -> void {
-        fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
-        can_receiver = CANBus1Handler{&fdcan};
-    }
 
     /**
      * Send a CAN message defined in CANBus1.dbc on the bus.
@@ -126,6 +114,7 @@ namespace mrover {
         // initialize peripherals
         lpuart = UART{LPUART_1, get_uart_options()};
         adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
+        fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
 
         // initialize logger
         Logger::init(&lpuart);
@@ -145,7 +134,7 @@ namespace mrover {
         can_rx.emplace(CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin);
 
         // initialize fdcan
-        init_fdcan_peripheral();
+        can_receiver = CANBus1Handler{&fdcan};
 
         // setup motor instance
         motor.emplace(
@@ -155,7 +144,6 @@ namespace mrover {
                 LimitSwitch{Pin{LIMIT_B_GPIO_Port, LIMIT_B_Pin}},
                 QuadratureEncoder{ENCODER_TIM, enc_timer_handle},
                 send_can_message,
-                init_fdcan_peripheral,
                 pid_timer_handle,
                 &config);
 
@@ -200,11 +188,11 @@ namespace mrover {
      * Callback enabling asynchronous serial logs via UART/DMA.
      * @param huart UART handle from callback
      */
-    // auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
-    //     if (huart == LPUART_1) {
-    //         lpuart.handle_tx_complete();
-    //     }
-    // }
+    auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
+        if (huart == LPUART_1) {
+            lpuart.handle_tx_complete();
+        }
+    }
 
 } // namespace mrover
 
@@ -227,7 +215,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
-    // mrover::uart_tx_callback(huart);
+    mrover::uart_tx_callback(huart);
 }
 
 // TODO(eric) implement

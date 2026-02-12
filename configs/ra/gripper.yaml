@@ -7,10 +7,6 @@ motor_en: true
 motor_inv: true
 quad_en: true
 quad_phase: false
-abs_i2c_en: false
-abs_i2c_phase: false
-abs_spi_en: false
-abs_spi_phase: false
 
 # limit configuration
 lim_a_en: true
@@ -24,10 +20,6 @@ lim_b_use_readjust: false
 
 # encoder params
 quad_cpr: 48.0  # was 24 - TODO this changes with new enc updates
-abs_i2c_ratio: 1.0
-abs_i2c_offset: 0.0
-abs_spi_ratio: 1.0
-abs_spi_offset: 0.0
 gear_ratio: 76.9  # ratio to one, 47:1 gearbox, 11:18 sprocket
 scalar: 0.005334 # (0.21 in/rev * 0.0254m/in)
 
@@ -41,7 +33,11 @@ min_vel: -0.2
 max_vel: 0.2
 
 # control gains
-k_p: 300.0
-k_i: 10.0
-k_d: 0.0
-k_f: 0.0
+pos_k_p: 300.0
+pos_k_i: 10.0
+pos_k_d: 0.0
+pos_k_f: 0.0
+vel_k_p: 1.0
+vel_k_i: 0.0
+vel_k_d: 0.0
+vel_k_f: 0.0

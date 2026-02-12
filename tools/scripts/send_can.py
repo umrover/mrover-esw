@@ -17,40 +17,47 @@ def on_msg_recv(msg):
 if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
-    TARGET = -1.0 # m
-    INC = 0.10
-    CAN_ID = 49
+    TARGET = 3.0  # rev
+    INC = 0.1
+    CAN_ID = 103
     SRC_ID = 16
 
     with CANBus(get_dbc(dbc_name="CANBus1"), "can2", on_recv=on_msg_recv) as bus:
         # sleep(1000000)
 
-        if abs(TARGET) > 0.25: # this is mac joint b & some
-            print("THROTTLE")
-            sleep(2)
-            bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-            while True:
-                for _ in range(NUM_LOOPS):
-                    bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-                    sleep(LOOP_DELAY)
+        # if abs(TARGET) > 0.25:
+        # print("THROTTLE")
+        # sleep(2)
+        # i = 0
+        # bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        # while True:
+        #     for _ in range(NUM_LOOPS):
+        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        #         sleep(LOOP_DELAY)
+        #         i += 1
+        #         if (i % 100 ==0):
+        #             TARGET *= -1
 
+        # print("POSITION")
+        # sleep(2)
+        # # set mode to position
+        # bus.send("BMCModeCmd", {"mode": 6, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        # while True:
+        #     for _ in range(NUM_LOOPS):
+        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        #         sleep(LOOP_DELAY)
 
-        print("POSITION")
-        sleep(4)
-        # set mode to position
-        bus.send("BMCModeCmd", {"mode": 6, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        print("VELOCITY")
+        sleep(2)
+        # set mode to velocity
+        i = 0
+        bus.send("BMCModeCmd", {"mode": 7, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         while True:
             for _ in range(NUM_LOOPS):
                 bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
                 sleep(LOOP_DELAY)
+                i += 1
+                if i % 100 == 0:
+                    TARGET += INC
 
-
-
-
-
-
-            # TARGET += INC
-            # if abs(TARGET - 1.0) < 0.01 or abs(TARGET + 1.0) < 0.01:
-            #     INC *= -1
-
-        sleep(50)
+        # sleep(50)
