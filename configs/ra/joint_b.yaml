@@ -21,7 +21,7 @@ lim_b_use_readjust: false
 # encoder params
 quad_cpr: 964.0 # pulses/inch
 gear_ratio: 1.0  # :1
-scalar: 0.0254 # meters per inch
+rotor_output_ratio: 0.0254 # meters per inch
 
 # position & velocity limits
 limit_a_position: 0.0
