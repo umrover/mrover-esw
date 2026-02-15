@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "../../../../lib/dbc/runtime/include/dbc_runtime.hpp" //we should fix this
+#include "dbc_runtime.hpp"
 #include "Yaml.hpp"
 #include "influxdb.hpp"
 
@@ -124,14 +124,11 @@ namespace logger {
         void print();
         void print_error();
 
-        friend void test_factory(std::vector<Logger>& loggers);
-
         Logger(Logger const&) = delete;
         Logger& operator=(Logger const&) = delete;
     };
 
     std::vector<Logger> logger_factory(std::string& yaml_path, bool debug = false);
-    void test_factory(std::vector<Logger> const& loggers);
 
     void handle_SIGINT(int);
     void run_bus(std::vector<Logger>& loggers);
