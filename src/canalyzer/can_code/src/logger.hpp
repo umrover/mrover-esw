@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "../../../../lib/dbc/runtime/include/dbc_runtime.hpp" //we should fix this
+#include "dbc_runtime.hpp" //we should fix this
 #include "Yaml.hpp"
 #include "influxdb.hpp"
 
