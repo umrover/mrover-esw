@@ -23,7 +23,7 @@ namespace mrover {
         lpuart = UART{LPUART, get_uart_options()};
 
         Logger::init(&lpuart);
-        auto const& logger = Logger::instance();
+        auto& logger = Logger::instance();
         logger.info("Hello World!");
 
         for (auto i = 0;; ++i) {
