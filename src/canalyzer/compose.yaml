@@ -31,7 +31,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=matt
+      - GF_SECURITY_ADMIN_USER=mrover
       - GF_SECURITY_ADMIN_PASSWORD=password
     depends_on:
       - influxdb
