@@ -2,9 +2,12 @@
 #include "OxygenSensor.hpp"
 #include "OzoneSensor.hpp"
 #include "UVSensor.hpp"
+#include "main.h"
 #include "stm32g4xx_hal_adc.h"
 #include "stm32g4xx_hal_tim.h"
 #include "thp_sensor.hpp"
+#include <CANBus1.hpp>
+#include <hw/pin.hpp>
 #include <logger.hpp>
 #include <config.hpp>
 #include <queue>
@@ -41,24 +44,43 @@ namespace mrover {
     OzoneSensor ozone_sensor;
     OxygenSensor oxygen_sensor;
     UVSensor uv_sensor;
+    Pin can_tx;
+    Pin can_rx;
+    CANBus1Handler can_handler;
+
+    sb_config_t config;
 
     float co2 = 0;
     float ozone = 0;
     float oxygen = 0;
     float uv_index = 0;
     bool adc_free = true;
+    bool initialized = false;
     std::queue<I2CSensor> i2c_queue;
 
     void log_data() {
+        if (!initialized)
+            return;
+
         static auto const& logger = Logger::instance();
 
-        logger.info("co2: %f", mrover::co2);
-        logger.info("temp: %f", mrover::thp_data.temp);
-        logger.info("humidity: %f", mrover::thp_data.humidity);
-        logger.info("pressure: %f", mrover::thp_data.pressure);
-        logger.info("ozone: %f", mrover::ozone);
-        logger.info("oxygen: %f", mrover::oxygen);
-        logger.info("uv index: %f", mrover::uv_index);
+        logger.info("uv index: %f", uv_index);
+        logger.info("temp: %f", thp_data.temp);
+        logger.info("humidity: %f", thp_data.humidity);
+        logger.info("pressure: %f", thp_data.pressure);
+        logger.info("oxygen: %f", oxygen);
+        logger.info("ozone: %f", ozone);
+        logger.info("co2: %f", co2);
+    }
+
+    void send_can() {
+        if (!initialized)
+            return;
+
+        can_tx.set();
+        const CANBus1Msg_t msg = ScienceSensorData(uv_index, thp_data.temp, thp_data.humidity, thp_data.pressure, oxygen, ozone, co2);
+        can_handler.send(msg, config.get<sb_config_t::can_id>());
+        can_tx.reset();
     }
 
     void init() {
@@ -77,6 +99,20 @@ namespace mrover {
 	    oxygen_sensor.init();
         uv_sensor = UVSensor(HADC);
 
+        can_handler = CANBus1Handler{FDCAN{CAN, get_can_options()}};
+        can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
+        can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
+
+        Pin dbg_led1 = Pin{Debug_LED1_GPIO_Port, Debug_LED1_Pin};
+        Pin dbg_led2 = Pin{Debug_LED2_GPIO_Port, Debug_LED2_Pin};
+        Pin dbg_led3 = Pin{Debug_LED3_GPIO_Port, Debug_LED3_Pin};
+
+        dbg_led1.set();
+        dbg_led2.set();
+        dbg_led3.set();
+        can_tx.set();
+        can_rx.set();
+
         logger.info("Polling sensors...");
 
         // begin polling sensors
@@ -88,11 +124,14 @@ namespace mrover {
         i2c_queue.push(mrover::sensor_ozone);
         uv_sensor.sample_sensor();
 
+        can_tx.set();
+        
+        initialized = true;
+
         while (true) {
             // check if there is an i2c message in the queue and the bus is free
             if (!i2c_queue.empty() && !__HAL_I2C_GET_FLAG(I2C, I2C_FLAG_BUSY)) {
                 I2CSensor current_sensor = i2c_queue.front();
-                size_t size = i2c_queue.size();
                 // handle current sensor based on sensor
                 if (current_sensor == sensor_co2_tx)
                     co2_sensor.request_co2();
@@ -131,6 +170,7 @@ extern "C" {
             mrover::i2c_queue.push(mrover::sensor_co2_rx);
         } else if (htim == mrover::CAN_TIM) {
             mrover::log_data();
+            mrover::send_can();
         }
     }
 
