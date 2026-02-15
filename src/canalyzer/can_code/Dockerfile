@@ -2,7 +2,7 @@
 # Stage 1: Build the Application
 # CHANGE: Use 'bookworm' (Debian 12). It comes with GCC 13 and CMake 3.25 built-in.
 # -----------------------------------------------------------------------------
-FROM gcc:13-bookworm AS builder
+FROM gcc:13
 
 # 1. Install CMake
 #    (Debian 12 "Bookworm" repos include CMake 3.25, so no pip needed)
@@ -27,14 +27,6 @@ RUN rm -rf build && \
     cmake -S . -B build && \
     cmake --build build
 
-# ---------------------------------------------------
-WORKDIR /app
-
-# Copy the executable from the builder stage
-COPY --from=builder /usr/src/repo/src/canalyzer/can_code/build/canalyzer .
-
-# Create log directory
-RUN mkdir -p /var/log/can_logger
 
 # Run the application
-ENTRYPOINT ["./canalyzer"]
+ENTRYPOINT [".build/canalyzer"]
