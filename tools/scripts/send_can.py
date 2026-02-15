@@ -26,17 +26,17 @@ if __name__ == "__main__":
         # sleep(1000000)
 
         # if abs(TARGET) > 0.25:
-        # print("THROTTLE")
-        # sleep(2)
-        # i = 0
-        # bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-        # while True:
-        #     for _ in range(NUM_LOOPS):
-        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-        #         sleep(LOOP_DELAY)
-        #         i += 1
-        #         if (i % 100 ==0):
-        #             TARGET *= -1
+        print("THROTTLE")
+        sleep(2)
+        i = 0
+        bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        while True:
+            for _ in range(NUM_LOOPS):
+                bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+                sleep(LOOP_DELAY)
+                i += 1
+                if (i % 100 ==0):
+                    TARGET *= -1
 
         # print("POSITION")
         # sleep(2)
@@ -47,17 +47,17 @@ if __name__ == "__main__":
         #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         #         sleep(LOOP_DELAY)
 
-        print("VELOCITY")
-        sleep(2)
-        # set mode to velocity
-        i = 0
-        bus.send("BMCModeCmd", {"mode": 7, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-        while True:
-            for _ in range(NUM_LOOPS):
-                bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
-                sleep(LOOP_DELAY)
-                i += 1
-                if i % 100 == 0:
-                    TARGET += INC
+        # print("VELOCITY")
+        # sleep(2)
+        # # set mode to velocity
+        # i = 0
+        # bus.send("BMCModeCmd", {"mode": 7, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        # while True:
+        #     for _ in range(NUM_LOOPS):
+        #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        #         sleep(LOOP_DELAY)
+        #         i += 1
+        #         if i % 100 == 0:
+        #             TARGET += INC
 
-        # sleep(50)
+        sleep(50)

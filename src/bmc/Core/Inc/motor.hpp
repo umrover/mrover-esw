@@ -53,6 +53,12 @@ namespace mrover {
         bool m_limit_forward_hit{false};
         bool m_limit_backward_hit{false};
 
+        bool m_stalled{false};
+        //TODO: Add to config file
+        bool m_stall_en{false};
+        float m_ambient_current = -164.0;
+        float m_stall_threshold = 0.001;
+
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
             m_error = bmc_error_t::NONE;
@@ -106,6 +112,19 @@ namespace mrover {
                 } else {
                     at_limit = false;
                 }
+            }
+        }
+
+        auto detect_stall() -> void {
+            if (m_stall_en &&
+                m_current_sensor &&
+                m_quad_encoder &&
+                m_current_sensor->current() > m_ambient_current &&
+                m_quad_encoder->get_delta_position() < m_stall_threshold) {
+                    m_stalled = true;
+                }
+            else {
+                m_stalled = false;
             }
         }
 
@@ -313,8 +332,9 @@ namespace mrover {
         }
 
         auto send_state() -> void {
-            // m_current_sensor.update_sensor();
-
+            if (m_current_sensor) m_current_sensor->update_sensor();
+            
+            if (m_encoder_mode != encoder_mode_t::NONE) detect_stall();
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
@@ -324,7 +344,7 @@ namespace mrover {
                     m_current_sensor->current(),   // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
-                    0                              // is_stalled
+                    m_stalled                      // is_stalled
             });
         }
 

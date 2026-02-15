@@ -42,6 +42,8 @@ namespace mrover {
         float m_position{};
         RunningMeanFilter<float, VELOCITY_BUFFER_SIZE> m_velocity_filter;
 
+        bool m_delta_position{};
+
     public:
         QuadratureEncoder() = default;
         QuadratureEncoder(TIM_HandleTypeDef* tick_timer, ITimerChannel* elapsed_timer) : m_tick_timer{tick_timer},
@@ -63,14 +65,18 @@ namespace mrover {
                     .velocity = m_velocity_filter.get_filtered()});
         }
 
+        [[nodiscard]] auto get_delta_position() const -> float {
+            return m_delta_position;
+        }
+
         auto update() -> void {
             if (!m_initialized) return;
             float const elapsed_time = m_elapsed_timer->get_dt();
             std::int16_t const delta_ticks = count_delta_and_update(m_counts_unwrapped_prev, m_tick_timer);
-            auto const delta_angle = m_multiplier * static_cast<float>(delta_ticks) / m_cpr;
+            m_delta_position = m_multiplier * static_cast<float>(delta_ticks) / m_cpr;
 
-            m_position += delta_angle;
-            m_velocity_filter.add_reading(delta_angle / elapsed_time);
+            m_position += m_delta_position;
+            m_velocity_filter.add_reading(m_delta_position / elapsed_time);
         }
 
         auto expired() -> void {
