@@ -383,14 +383,14 @@ namespace logger {
             std::string num = "";
             for (size_t j = 0; j < log_spec_str.size(); ++j) {
                 if (log_spec_str[j] == ',') {
-                    log_ids.insert(std::stoi(num));
+                    log_ids.insert(std::stoi(num, nullptr, 0));
                     num.clear();
                 } else {
                     num.push_back(log_spec_str[j]);
                 }
             }
             if (num.size()) {
-                log_ids.insert(std::stoi(num));
+                log_ids.insert(std::stoi(num, nullptr, 0));
             }
 
             std::string dbc_file_paths_str = loggers_node[i]["dbc_file_paths"].As<std::string>();
