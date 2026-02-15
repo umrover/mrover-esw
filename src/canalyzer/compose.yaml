@@ -51,7 +51,6 @@ services:
       args:
         PROJECT_REL_PATH: src/canalyzer/can_code
     stop_signal: SIGINT
-    privileged: true
     network_mode: host
     devices:
       - /dev/vcan0:/dev/vcan0

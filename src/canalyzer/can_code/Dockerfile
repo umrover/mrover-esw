@@ -7,7 +7,7 @@ FROM gcc:13-bookworm AS builder
 # 1. Install CMake
 #    (Debian 12 "Bookworm" repos include CMake 3.25, so no pip needed)
 RUN apt-get update && \
-    apt-get install -y cmake && \
+    apt-get install -y cmake libstdc++6 && \
     rm -rf /var/lib/apt/lists/*
 
 # 2. Accept the argument from the shell script
@@ -27,17 +27,7 @@ RUN rm -rf build && \
     cmake -S . -B build && \
     cmake --build build
 
-# -----------------------------------------------------------------------------
-# Stage 2: Runtime Image
-# CHANGE: Must match the builder OS (Bookworm) to avoid GLIBC errors
-# -----------------------------------------------------------------------------
-FROM debian:bookworm-slim
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libstdc++6 \
-    && rm -rf /var/lib/apt/lists/*
-
+# ---------------------------------------------------
 WORKDIR /app
 
 # Copy the executable from the builder stage
@@ -47,4 +37,4 @@ COPY --from=builder /usr/src/repo/src/canalyzer/can_code/build/canalyzer .
 RUN mkdir -p /var/log/can_logger
 
 # Run the application
-CMD ["./canalyzer"]
+ENTRYPOINT ["./canalyzer"]
