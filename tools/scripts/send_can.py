@@ -34,6 +34,9 @@ if __name__ == "__main__":
             for _ in range(NUM_LOOPS):
                 bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
                 sleep(LOOP_DELAY)
+                i += 1
+                #if (i % 100 ==0):
+                 #   TARGET *= -1
 
         # print("POSITION")
         # sleep(2)
