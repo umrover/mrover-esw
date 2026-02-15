@@ -17,7 +17,7 @@ def on_msg_recv(msg):
 if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
-    TARGET = -0.6 #0.01  # m/s
+    TARGET = -0.6  # 0.01  # m/s
     INC = 0.1
     CAN_ID = 54
     SRC_ID = 16
