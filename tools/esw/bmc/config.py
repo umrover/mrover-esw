@@ -37,6 +37,10 @@ CONFIG_MAP = {
     "vel_k_i": ("VEL_K_I", 0x40, float, 0, 32),
     "vel_k_d": ("VEL_K_D", 0x44, float, 0, 32),
     "vel_k_f": ("VEL_K_F", 0x48, float, 0, 32),
+    "stall_en": ("STALL_EN", 0x52, bool, 0, 1),
+    "ambient_current": ("AMBIENT_CURRENT", 0x53, float, 0, 32),
+    "pos_threshold": ("POS_THRESHOLD", 0x57, float, 0, 32),
+    "ambient_voltage": ("AMBIENT_VOLTAGE", 0x61, float, 0, 32),
 }
 
 

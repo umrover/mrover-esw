@@ -41,3 +41,10 @@ vel_k_p: 0.4
 vel_k_i: 0.1
 vel_k_d: 0.1
 vel_k_f: 0.2
+
+# stall detection
+stall_en: 1
+ambient_current: 0.01
+pos_threshold: 1.0  #post-multiplier (already in units)
+ambient_voltage: 1.598
+

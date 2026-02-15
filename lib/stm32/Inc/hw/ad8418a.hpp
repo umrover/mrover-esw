@@ -2,6 +2,7 @@
 
 #include <adc.hpp>
 #include <filtering.hpp>
+#include <logger.hpp>
 
 namespace mrover {
 #ifdef HAL_ADC_MODULE_ENABLED
@@ -11,7 +12,7 @@ namespace mrover {
             float gain{20.0f};
             float shunt_resistance{0.0005f};
             float vref{3.3f};
-            float vcm{1.65f};
+            float vcm{1.598f};
             uint16_t adc_resolution{4095};
         };
 
@@ -34,10 +35,12 @@ namespace mrover {
             if (!m_enabled || m_adc == nullptr) return;
 
             // Retrieve the raw value from the ADC wrapper (DMA or Polling)
-            uint32_t const raw_val = 0; //m_adc->get_channel_value(m_channel);
+            uint32_t const raw_val = m_adc->get_channel_value(m_channel);
+            Logger::instance().info("Raw Value: %u\n", raw_val);
 
             // Convert to voltage
             float const v_out = (static_cast<float>(raw_val) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;
+            Logger::instance().info("V_Out: %f\n", v_out);
 
             /**
              * AD8418A Calculation:

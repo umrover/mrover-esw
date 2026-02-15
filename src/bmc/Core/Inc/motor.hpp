@@ -54,10 +54,9 @@ namespace mrover {
         bool m_limit_backward_hit{false};
 
         bool m_stalled{false};
-        //TODO: Add to config file
         bool m_stall_en{false};
-        float m_ambient_current = -164.0;
-        float m_stall_threshold = 0.001;
+        float m_ambient_current;
+        float m_pos_threshold;
 
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
@@ -116,11 +115,18 @@ namespace mrover {
         }
 
         auto detect_stall() -> void {
+            Logger::instance().info("In detect stall\n");
+            Logger::instance().info("m_stall_en: %u\n", m_stall_en);
+            Logger::instance().info("current: %u\n", m_current_sensor);
+            Logger::instance().info("quad: %u\n", m_quad_encoder);
+            Logger::instance().info("ambient: %u\n", m_current_sensor->current() > m_ambient_current);
+            Logger::instance().info("position: %u\n", m_quad_encoder->get_delta_position() < m_pos_threshold);
+            
             if (m_stall_en &&
                 m_current_sensor &&
                 m_quad_encoder &&
                 m_current_sensor->current() > m_ambient_current &&
-                m_quad_encoder->get_delta_position() < m_stall_threshold) {
+                m_quad_encoder->get_delta_position() < m_pos_threshold) {
                     m_stalled = true;
                 }
             else {
@@ -214,6 +220,11 @@ namespace mrover {
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
             m_rotor_output_ratio = m_config_ptr->get<bmc_config_t::rotor_output_ratio>();
+
+            // initialize stall detection values
+            m_ambient_current = m_config_ptr->get<bmc_config_t::ambient_current>();
+            m_stall_en = m_config_ptr->get<bmc_config_t::stall_en>();
+            m_pos_threshold = m_config_ptr->get<bmc_config_t::pos_threshold>();
 
             if (quad) {
                 m_encoder_mode = encoder_mode_t::QUAD;

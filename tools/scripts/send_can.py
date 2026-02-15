@@ -17,7 +17,7 @@ def on_msg_recv(msg):
 if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
-    TARGET = 3.0  # rev
+    TARGET = -0.3  # rev
     INC = 0.1
     CAN_ID = 103
     SRC_ID = 16
@@ -35,8 +35,8 @@ if __name__ == "__main__":
                 bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
                 sleep(LOOP_DELAY)
                 i += 1
-                if (i % 100 ==0):
-                    TARGET *= -1
+                #if (i % 100 ==0):
+                 #   TARGET *= -1
 
         # print("POSITION")
         # sleep(2)

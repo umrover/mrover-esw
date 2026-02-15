@@ -42,7 +42,7 @@ namespace mrover {
         float m_position{};
         RunningMeanFilter<float, VELOCITY_BUFFER_SIZE> m_velocity_filter;
 
-        bool m_delta_position{};
+        float m_delta_position{};
 
     public:
         QuadratureEncoder() = default;
