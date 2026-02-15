@@ -54,4 +54,4 @@ if __name__ == "__main__":
         #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         #         sleep(LOOP_DELAY)
 
-        # sleep(50)
+        sleep(50)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <adc.hpp>
+#include <filtering.hpp>
 
 namespace mrover {
 #ifdef HAL_ADC_MODULE_ENABLED
@@ -26,7 +27,7 @@ namespace mrover {
         auto init(Options const& options, bool const enabled = true) -> void {
             m_enabled = enabled;
             m_options = options;
-            m_current = 0.0f;
+            m_current_filter.add_reading(0.0f);
         }
 
         auto update_sensor() -> void {
@@ -43,11 +44,11 @@ namespace mrover {
              * Current = (Vout - Vref/2) / (Gain * R_shunt)
              * Note: If your VREF pin on the AD8418A is tied to GND, Vcm should be 0.
              */
-            m_current = (v_out - m_options.vcm) / (m_options.gain * m_options.shunt_resistance);
+            m_current_filter.add_reading((v_out - m_options.vcm) / (m_options.gain * m_options.shunt_resistance));
         }
 
         [[nodiscard]] auto current() const -> float {
-            return m_current;
+            return m_current_filter.get_filtered();
         }
 
         auto enable() -> void {
@@ -56,17 +57,19 @@ namespace mrover {
 
         auto disable() -> void {
             m_enabled = false;
-            m_current = 0.0f;
+            m_current_filter.add_reading(0.0f);
         }
 
     private:
+        static constexpr std::size_t CURRENT_BUFFER_SIZE = 10;
         ADCBase* m_adc{nullptr};
         uint8_t m_channel{0};
 
         bool m_enabled{false};
         Options m_options{};
 
-        float m_current{0.0f};
+        // float m_current{0.0f};
+        RunningMeanFilter<float, CURRENT_BUFFER_SIZE> m_current_filter;
     };
 #else  // HAL_ADC_MODULE_ENABLED
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::AD8418A"))) AD8418A {
