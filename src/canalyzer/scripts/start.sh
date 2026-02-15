@@ -27,7 +27,7 @@ echo ">> [Start] Starting Docker Compose (Silent Mode)..."
 
 # 1. Start in detached mode (-d)
 #    This runs the containers in the background and returns immediately.
-docker compose up -d --build --remove-orphans
+docker compose up -d --remove-orphans
 
 echo ">> System is running. Press Ctrl+C to stop."
 
