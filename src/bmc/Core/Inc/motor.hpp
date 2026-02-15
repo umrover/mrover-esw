@@ -1,14 +1,14 @@
 #pragma once
 
 #include <CANBus1.hpp>
+#include <algorithm>
 #include <cinttypes>
 #include <err.hpp>
-#include <functional>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
-#include <logger.hpp>
+#include <hw/limit_switch.hpp>
+#include <hw/quadrature.hpp>
 #include <pidf.hpp>
-#include <units.hpp>
 #include <variant>
 
 #include "config.hpp"
@@ -17,18 +17,41 @@
 namespace mrover {
 
     class Motor {
-        using tx_exec_t = std::function<void(CANBus1Msg_t const& msg)>;
+        typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
 
-        HBridge m_hbridge;
-        AD8418A m_current_sensor;
-        tx_exec_t m_message_tx_f;
+        std::optional<HBridge> m_hbridge;
+        std::optional<AD8418A> m_current_sensor;
+        std::optional<LimitSwitch> m_limit_a;
+        std::optional<LimitSwitch> m_limit_b;
+        std::optional<QuadratureEncoder> m_quad_encoder;
 
-        bmc_config_t* m_config_ptr;
-        mode_t m_mode;
-        bmc_error_t m_error;
-        float m_target;
+        tx_exec_t m_message_tx_f{};
 
-        bool m_enabled = false;
+        std::optional<PIDF> m_pidf{std::nullopt};
+        ITimerChannel* m_pidf_elapsed_timer{};
+
+        std::optional<float> m_calibrated_offset{std::nullopt};     // revolutions
+        std::optional<float> m_uncalibrated_position{std::nullopt}; // revolutions
+        std::optional<float> m_velocity_raw{std::nullopt};          // revolutions/second
+        bmc_config_t* m_config_ptr{};
+        encoder_mode_t m_encoder_mode{encoder_mode_t::NONE};
+        mode_t m_mode{mode_t::STOPPED};
+        bmc_error_t m_error{bmc_error_t::NONE};
+        float m_target{};
+        float m_position{};
+        float m_velocity{};
+        float m_rotor_output_ratio{};
+
+        float m_min_position{};
+        float m_max_position{};
+        float m_min_velocity{};
+        float m_max_velocity{};
+
+        bool m_enabled{false};
+        bool m_limit_a_hit{false};
+        bool m_limit_b_hit{false};
+        bool m_limit_forward_hit{false};
+        bool m_limit_backward_hit{false};
 
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
@@ -36,26 +59,96 @@ namespace mrover {
             m_target = 0.0f;
         }
 
+        auto sample_encoder() -> void {
+            switch (m_encoder_mode) {
+                case encoder_mode_t::NONE:
+                    m_uncalibrated_position.reset();
+                    m_velocity_raw.reset();
+                    break;
+                case encoder_mode_t::QUAD:
+                    m_quad_encoder->update();
+                    if (std::optional<EncoderReading> reading = m_quad_encoder->read()) {
+                        auto const& [position, velocity] = reading.value();
+                        m_uncalibrated_position = position;
+                        m_velocity_raw = velocity;
+                    } else {
+                        m_uncalibrated_position.reset();
+                        m_velocity_raw.reset();
+                    }
+                    break;
+            }
+
+            m_position = [this] -> float {
+                if (m_uncalibrated_position && m_calibrated_offset) return (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio;
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
+
+            m_velocity = [this] -> float {
+                if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
+        }
+
+        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
+            if (limit->enabled()) {
+                limit->update_limit_switch();
+                if (limit->limit_forward()) {
+                    at_limit = true;
+                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
+                        if (m_uncalibrated_position) {
+                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
+                        }
+                    }
+                } else if (limit->limit_backward()) {
+                    at_limit = true;
+                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
+                        if (m_uncalibrated_position) {
+                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
+                        }
+                    }
+                } else {
+                    at_limit = false;
+                }
+            }
+        }
+
         auto write_output_pwm() -> void {
             if (m_enabled) {
                 switch (m_mode) {
                     case mode_t::STOPPED:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
-                        break;
                     case mode_t::FAULT:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
+                        if (m_hbridge->is_on()) m_hbridge->stop();
                         break;
                     case mode_t::THROTTLE:
-                        if (!m_hbridge.is_on()) m_hbridge.start();
-                        m_hbridge.write(m_target);
-                        break;
-                    case mode_t::POSITION:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
-                        // TODO(eric) PID calcs here
+                        if (!m_hbridge->is_on()) m_hbridge->start();
+                        {
+                            auto setpoint_thr = m_target; // input is throttle
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
+                            m_hbridge->write(setpoint_thr);
+                        }
                         break;
                     case mode_t::VELOCITY:
-                        if (m_hbridge.is_on()) m_hbridge.stop();
-                        // TODO(eric) PID calcs here
+                        if (!m_hbridge->is_on()) m_hbridge->start();
+                        {
+                            auto const target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity); // unit of output
+                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio;         // revolutions/sec * output scalar
+                            auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
+                            m_hbridge->write(setpoint_thr);
+                        }
+                        break;
+                    case mode_t::POSITION:
+                        if (!m_hbridge->is_on()) m_hbridge->start();
+                        {
+                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position);                                  // unit of output
+                            auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio; // revolutions * output scalar
+                            auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
+                            if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
+                            if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
+                            m_hbridge->write(setpoint_thr);
+                        }
                         break;
                 }
             }
@@ -67,23 +160,64 @@ namespace mrover {
          * Should be called after configuration is updated.
          */
         auto init() -> void {
-            Logger::instance().info("BMC Initialized with CAN ID 0x%02" PRIX32, m_config_ptr->get<bmc_config_t::can_id>());
+            __disable_irq();
+
+            // configure motor parameters
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
-            m_hbridge.set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
-            m_hbridge.set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
-            // TODO(eric) add limit switches
-            // TODO(eric) add quad encoders
-            // TODO(eric) add absolute encoders
+            m_hbridge->set_inverted(m_config_ptr->get<bmc_config_t::motor_inv>());
+            m_hbridge->set_max_pwm(m_config_ptr->get<bmc_config_t::max_pwm>());
+
+            // configure current sensor
+            m_current_sensor->init(get_current_sensor_options());
+
+            // read pidf gains
+            m_pidf = PIDF{};
+            m_pidf->with_output_bound(-1.0, 1.0);
+
+            // get velocity clamps
+            m_min_position = m_config_ptr->get<bmc_config_t::min_pos>();
+            m_max_position = m_config_ptr->get<bmc_config_t::max_pos>();
+            m_min_velocity = m_config_ptr->get<bmc_config_t::min_vel>();
+            m_max_velocity = m_config_ptr->get<bmc_config_t::max_vel>();
+
+            // init limit switches
+            bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
+            bool active_high = m_config_ptr->get<bmc_config_t::lim_a_active_high>();
+            bool use_readjust = m_config_ptr->get<bmc_config_t::lim_a_use_readjust>();
+            bool is_forward = m_config_ptr->get<bmc_config_t::lim_a_is_forward>();
+            float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
+            m_limit_a->init(en, active_high, use_readjust, is_forward, position);
+
+            en = m_config_ptr->get<bmc_config_t::lim_b_en>();
+            active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
+            use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
+            is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
+            position = m_config_ptr->get<bmc_config_t::limit_b_position>();
+            m_limit_b->init(en, active_high, use_readjust, is_forward, position);
+
+            // initialize encoders (error if multiple enabled)
+            bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
+            m_rotor_output_ratio = m_config_ptr->get<bmc_config_t::rotor_output_ratio>();
+
+            if (quad) {
+                m_encoder_mode = encoder_mode_t::QUAD;
+                float const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? 1.0f : -1.0f;
+                float const gear_ratio = m_config_ptr->get<bmc_config_t::gear_ratio>();
+                float const cpr = m_config_ptr->get<bmc_config_t::quad_cpr>();
+                m_quad_encoder->init(phase / gear_ratio, cpr);
+            } else {
+                m_encoder_mode = encoder_mode_t::NONE;
+            }
+
+            __enable_irq();
         }
 
         template<typename T>
         auto handle(T const& _) const -> void {
-            Logger::instance().debug("Received Unhandled Message Type");
         }
 
         auto handle(BMCProbe const& msg) const -> void {
             // acknowledge probe
-            Logger::instance().info("BMC Probed with data %u", msg.data);
             m_message_tx_f(BMCAck{msg.data});
         }
 
@@ -93,25 +227,41 @@ namespace mrover {
                 m_mode = mode_t::STOPPED;
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
+                if (m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) {
+                    if (std::isnan(m_position)) {
+                        m_mode = mode_t::FAULT;
+                        m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
+                    }
+                }
+                if (m_mode == mode_t::POSITION) {
+                    m_pidf->with_p(m_config_ptr->get<bmc_config_t::pos_k_p>());
+                    m_pidf->with_i(m_config_ptr->get<bmc_config_t::pos_k_i>());
+                    m_pidf->with_d(m_config_ptr->get<bmc_config_t::pos_k_d>());
+                    m_pidf->with_ff(m_config_ptr->get<bmc_config_t::pos_k_f>());
+                }
+                if (m_mode == mode_t::VELOCITY) {
+                    m_pidf->with_p(m_config_ptr->get<bmc_config_t::vel_k_p>());
+                    m_pidf->with_i(m_config_ptr->get<bmc_config_t::vel_k_i>());
+                    m_pidf->with_d(m_config_ptr->get<bmc_config_t::vel_k_d>());
+                    m_pidf->with_ff(m_config_ptr->get<bmc_config_t::vel_k_f>());
+                }
             }
-            Logger::instance().info("Mode set to %u", m_mode);
+            m_pidf_elapsed_timer->forget_reads();
         }
 
         auto handle(BMCTargetCmd const& msg) -> void {
-            Logger::instance().info("Received Target Command");
             if (!msg.target_valid) return;
-            Logger::instance().info("Received Valid Target Command");
             switch (m_mode) {
                 case mode_t::STOPPED:
                 case mode_t::FAULT:
                     m_target = 0.0f;
-                    Logger::instance().info("STOPPED | FAULT: Set Target to %.2f", m_target);
+                    m_mode = mode_t::FAULT;
+                    m_error = bmc_error_t::NO_MODE;
                     break;
                 case mode_t::THROTTLE:
                 case mode_t::POSITION:
                 case mode_t::VELOCITY:
                     m_target = msg.target;
-                    Logger::instance().info("Set Target to %.2f", m_target);
                     break;
             }
         }
@@ -120,25 +270,19 @@ namespace mrover {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
-                    Logger::instance().info("Written 0x%08" PRIX32 " to address 0x%02" PRIX32, msg.value, msg.address);
                     // re-initialize after configuration is modified
                     init();
-                } else {
-                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, write failed", msg.address);
                 }
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
                     m_message_tx_f(BMCAck{val});
-                } else {
-                    Logger::instance().warn("Register 0x%02" PRIX32 " does not exist, read failed", msg.address);
                 }
             }
         }
 
         auto handle(BMCResetCmd const& msg) -> void {
             reset();
-            Logger::instance().info("BMC Reset Received");
         }
 
     public:
@@ -147,49 +291,66 @@ namespace mrover {
         explicit Motor(
                 HBridge const& motor_driver,
                 AD8418A const& current_sensor,
+                LimitSwitch const& limit_a,
+                LimitSwitch const& limit_b,
+                QuadratureEncoder const& quad_encoder,
                 tx_exec_t const& message_tx_f,
-                bmc_config_t* config) : m_hbridge{motor_driver},
-                                        m_current_sensor{current_sensor},
-                                        m_message_tx_f{message_tx_f},
-                                        m_config_ptr{config},
-                                        m_mode{mode_t::STOPPED},
-                                        m_error{bmc_error_t::NONE},
-                                        m_target{0.0f} {
+                ITimerChannel* elapsed_timer,
+                bmc_config_t* config) : m_message_tx_f{message_tx_f},
+                                        m_pidf_elapsed_timer{elapsed_timer},
+                                        m_config_ptr{config} {
+            m_hbridge.emplace(motor_driver);
+            m_current_sensor.emplace(current_sensor);
+            m_limit_a.emplace(limit_a);
+            m_limit_b.emplace(limit_b);
+            m_quad_encoder.emplace(quad_encoder);
             reset();
             init();
         }
 
         auto receive(CANBus1Msg_t const& v) -> void {
-            std::visit([this](auto&& value) {
+            std::visit([this](auto&& value) -> auto {
                 handle(value);
             },
                        v);
         }
 
-        auto send_state() const -> void {
+        auto send_state() -> void {
+            // m_current_sensor.update_sensor();
+
+
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
-                    0.0,                           // position
-                    0.0,                           // velocity
-                    0,                             // timestamp
-                    0,                             // limit_a_set
-                    0,                             // limit_b_set
-                    0,                             // is_stalled
-                    0.0                            // current
+                    m_position,                    // position
+                    m_velocity,                    // velocity
+                    m_current_sensor->current(),   // current
+                    m_limit_a_hit,                 // limit_a_set
+                    m_limit_b_hit,                 // limit_b_set
+                    0                              // is_stalled
             });
         }
 
         auto drive_output() -> void {
-            // TODO(eric) read limit switch state
-            // TODO(eric) read quad encoders
-            // TODO(eric) read abs encoders
+            // update limit switch state
+            apply_limit(m_limit_a, m_limit_a_hit);
+            apply_limit(m_limit_b, m_limit_b_hit);
+            m_limit_forward_hit = m_limit_a->is_forward_limit() ? m_limit_a_hit : (m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
+            m_limit_backward_hit = !m_limit_a->is_forward_limit() ? m_limit_a_hit : (!m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
+            if (m_encoder_mode != encoder_mode_t::NONE) sample_encoder();
             write_output_pwm();
         }
 
         auto tx_watchdog_lapsed() -> void {
             m_mode = mode_t::FAULT;
             m_error = bmc_error_t::WWDG_EXPIRED;
+        }
+
+        auto reset_wwdg() -> void {
+            if (m_mode == mode_t::FAULT && m_error == bmc_error_t::WWDG_EXPIRED) {
+                m_mode = mode_t::STOPPED;
+                m_error = bmc_error_t::NONE;
+            }
         }
     };
 } // namespace mrover

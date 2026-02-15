@@ -1,11 +1,13 @@
 #pragma once
 
-#include <bit>
-#include <cstdint>
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
 #include <tuple>
 
+#include <CANBus1.hpp>
+#include <adc.hpp>
+#include <hw/ad8418a.hpp>
+#include <hw/flash.hpp>
 
 namespace mrover {
 
@@ -17,103 +19,46 @@ namespace mrover {
         VELOCITY = 7,
     };
 
-    template<typename T>
-    static auto from_raw(uint32_t raw) -> T {
-        static_assert(std::is_trivially_copyable_v<T>);
-        if constexpr (sizeof(T) == sizeof(uint32_t)) {
-            return std::bit_cast<T>(raw);
-        } else {
-            return static_cast<T>(raw);
-        }
-    }
-
-    template<typename T>
-    static auto to_raw(T value) -> uint32_t {
-        static_assert(std::is_trivially_copyable_v<T>);
-        if constexpr (sizeof(T) == sizeof(uint32_t)) {
-            return std::bit_cast<uint32_t>(value);
-        } else {
-            return static_cast<uint32_t>(value);
-        }
-    }
-
-    template<typename T>
-    struct reg_t {
-        using value_t = T;
-        std::string_view name;
-        uint8_t addr{};
-        value_t value;
-        static consteval size_t size() { return sizeof(T); }
-        [[nodiscard]] constexpr uint8_t reg() const { return addr; }
-    };
-
-    template<auto cfg_ptr_t, size_t bit = 0, size_t width = 1>
-    struct field_t {
-        template<typename C>
-        using underlying_t = std::remove_reference_t<decltype(std::declval<C>().*cfg_ptr_t)>::value_t;
-
-        static auto get(auto const& config) {
-            using T = underlying_t<std::decay_t<decltype(config)>>;
-            auto const& reg_item = (config.*cfg_ptr_t);
-
-            if constexpr (std::is_floating_point_v<T>) {
-                return reg_item.value;
-            } else {
-                if constexpr (width == 1) {
-                    return static_cast<bool>((reg_item.value >> bit) & 1);
-                } else {
-                    constexpr T mask = (static_cast<T>(1) << width) - 1;
-                    return static_cast<T>((reg_item.value >> bit) & mask);
-                }
-            }
-        }
-
-        static void set(auto& config, auto value) {
-            using T = underlying_t<std::decay_t<decltype(config)>>;
-            auto& reg_val = (config.*cfg_ptr_t).value;
-
-            if constexpr (std::is_floating_point_v<T>) {
-                reg_val = static_cast<T>(value);
-            } else {
-                constexpr T mask = ((static_cast<T>(1) << width) - 1) << bit;
-                reg_val = (reg_val & ~mask) | ((static_cast<T>(value) << bit) & mask);
-            }
-        }
+    enum struct encoder_mode_t : uint8_t {
+        NONE = 0,
+        QUAD,
     };
 
     struct bmc_config_t {
-        reg_t<uint8_t> CAN_ID{"can_id", 0x00, 0x00};
-        reg_t<uint8_t> SYS_CFG{"system_configuration", 0x01, 0x00};
-        reg_t<uint8_t> LIMIT_CFG{"limit_configuration", 0x02, 0x00};
-        reg_t<uint8_t> USER_REG{"user_reg", 0x03, 0x00};
-        reg_t<float> QUAD_RATIO{"quad_ratio", 0x04, 0.0f};
-        reg_t<float> ABS_I2C_RATIO{"abs_i2c_ratio", 0x08, 0.0f};
-        reg_t<float> ABC_I2C_OFFSET{"abs_i2c_offset", 0x0C, 0.0f};
-        reg_t<float> ABS_SPI_RATIO{"abs_spi_ratio", 0x10, 0.0f};
-        reg_t<float> ABS_SPI_OFFSET{"abs_spi_offset", 0x14, 0.0f};
-        reg_t<float> GEAR_RATIO{"gear_ratio", 0x18, 0.0f};
-        reg_t<float> LIMIT_FORWARD_POSITION{"limit_forward_readjust_pos", 0x1C, 0.0f};
-        reg_t<float> LIMIT_BACKWARD_POSITION{"limit_backward_readjust_pos", 0x20, 0.0f};
-        reg_t<float> MAX_PWM{"max_pwm", 0x24, 0.0f};
-        reg_t<float> MIN_POS{"min_pos", 0x28, 0.0f};
-        reg_t<float> MAX_POS{"max_pos", 0x2C, 0.0f};
-        reg_t<float> MIN_VEL{"min_vel", 0x30, 0.0f};
-        reg_t<float> MAX_VEL{"max_vel", 0x34, 0.0f};
-        reg_t<float> K_P{"kp", 0x38, 0.0f};
-        reg_t<float> K_I{"ki", 0x3C, 0.0f};
-        reg_t<float> K_D{"kd", 0x40, 0.0f};
-        reg_t<float> K_F{"kf", 0x44, 0.0f};
+        static inline void* flash_ptr = nullptr;
+
+        FDCAN::Filter can_node_filter{};
+
+        reg_t<uint8_t> CAN_ID{0x00};
+        reg_t<uint8_t> HOST_CAN_ID{0x01};
+        reg_t<uint8_t> SYS_CFG{0x02};
+        reg_t<uint8_t> LIMIT_CFG{0x03};
+        reg_t<float> QUAD_CPR{0x04};
+        reg_t<float> GEAR_RATIO{0x08};
+        reg_t<float> ROTOR_OUTPUT_RATIO{0x0C};
+        reg_t<float> LIMIT_A_POSITION{0x10};
+        reg_t<float> LIMIT_B_POSITION{0x14};
+        reg_t<float> MAX_PWM{0x18};
+        reg_t<float> MIN_POS{0x1C};
+        reg_t<float> MAX_POS{0x20};
+        reg_t<float> MIN_VEL{0x24};
+        reg_t<float> MAX_VEL{0x28};
+        reg_t<float> POS_K_P{0x2C};
+        reg_t<float> POS_K_I{0x30};
+        reg_t<float> POS_K_D{0x34};
+        reg_t<float> POS_K_F{0x38};
+        reg_t<float> VEL_K_P{0x3C};
+        reg_t<float> VEL_K_I{0x40};
+        reg_t<float> VEL_K_D{0x44};
+        reg_t<float> VEL_K_F{0x48};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
+        using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
         using motor_en = field_t<&bmc_config_t::SYS_CFG, 0>;
         using motor_inv = field_t<&bmc_config_t::SYS_CFG, 1>;
         using quad_en = field_t<&bmc_config_t::SYS_CFG, 2>;
         using quad_phase = field_t<&bmc_config_t::SYS_CFG, 3>;
-        using abs_i2c_en = field_t<&bmc_config_t::SYS_CFG, 4>;
-        using abs_i2c_phase = field_t<&bmc_config_t::SYS_CFG, 5>;
-        using abs_spi_en = field_t<&bmc_config_t::SYS_CFG, 6>;
-        using abs_spi_phase = field_t<&bmc_config_t::SYS_CFG, 7>;
 
         using lim_a_en = field_t<&bmc_config_t::LIMIT_CFG, 0>;
         using lim_a_active_high = field_t<&bmc_config_t::LIMIT_CFG, 1>;
@@ -124,23 +69,25 @@ namespace mrover {
         using lim_b_is_forward = field_t<&bmc_config_t::LIMIT_CFG, 6>;
         using lim_b_use_readjust = field_t<&bmc_config_t::LIMIT_CFG, 7>;
 
-        using quad_ratio = field_t<&bmc_config_t::QUAD_RATIO>;
-        using abs_i2c_ratio = field_t<&bmc_config_t::ABS_I2C_RATIO>;
-        using abs_i2c_offset = field_t<&bmc_config_t::ABC_I2C_OFFSET>;
-        using abs_spi_ratio = field_t<&bmc_config_t::ABS_SPI_RATIO>;
-        using abs_spi_offset = field_t<&bmc_config_t::ABS_SPI_OFFSET>;
+        using quad_cpr = field_t<&bmc_config_t::QUAD_CPR>;
         using gear_ratio = field_t<&bmc_config_t::GEAR_RATIO>;
-        using limit_forward_position = field_t<&bmc_config_t::LIMIT_FORWARD_POSITION>;
-        using limit_backward_position = field_t<&bmc_config_t::LIMIT_BACKWARD_POSITION>;
+        using rotor_output_ratio = field_t<&bmc_config_t::ROTOR_OUTPUT_RATIO>;
+        using limit_a_position = field_t<&bmc_config_t::LIMIT_A_POSITION>;
+        using limit_b_position = field_t<&bmc_config_t::LIMIT_B_POSITION>;
         using max_pwm = field_t<&bmc_config_t::MAX_PWM>;
         using min_pos = field_t<&bmc_config_t::MIN_POS>;
         using max_pos = field_t<&bmc_config_t::MAX_POS>;
         using min_vel = field_t<&bmc_config_t::MIN_VEL>;
         using max_vel = field_t<&bmc_config_t::MAX_VEL>;
-        using k_p = field_t<&bmc_config_t::K_P>;
-        using k_i = field_t<&bmc_config_t::K_I>;
-        using k_d = field_t<&bmc_config_t::K_D>;
-        using kfd = field_t<&bmc_config_t::K_F>;
+        using pos_k_p = field_t<&bmc_config_t::POS_K_P>;
+        using pos_k_i = field_t<&bmc_config_t::POS_K_I>;
+        using pos_k_d = field_t<&bmc_config_t::POS_K_D>;
+        using pos_k_f = field_t<&bmc_config_t::POS_K_F>;
+        using vel_k_p = field_t<&bmc_config_t::VEL_K_P>;
+        using vel_k_i = field_t<&bmc_config_t::VEL_K_I>;
+        using vel_k_d = field_t<&bmc_config_t::VEL_K_D>;
+        using vel_k_f = field_t<&bmc_config_t::VEL_K_F>;
+
 
         template<typename F>
         auto get() const { return F::get(*this); }
@@ -148,38 +95,59 @@ namespace mrover {
         template<typename F>
         void set(auto value) { F::set(*this, value); }
 
-        auto all() {
+        constexpr auto all() {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
-                    LIMIT_FORWARD_POSITION, LIMIT_BACKWARD_POSITION, MAX_PWM,
-                    MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
+                    CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
         }
 
-        auto all() const {
+        constexpr auto all() const {
             return std::forward_as_tuple(
-                    CAN_ID, SYS_CFG, LIMIT_CFG, USER_REG, QUAD_RATIO, ABS_I2C_RATIO,
-                    ABC_I2C_OFFSET, ABS_SPI_RATIO, ABS_SPI_OFFSET, GEAR_RATIO,
-                    LIMIT_FORWARD_POSITION, LIMIT_BACKWARD_POSITION, MAX_PWM,
-                    MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, K_P, K_I, K_D, K_F);
+                    CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
+                    LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
         }
 
         auto set_raw(uint8_t address, uint32_t const raw) -> bool {
-            bool updated = false;
-            std::apply([&](auto&... reg) {
-                ((reg.addr == address ? (reg.value = from_raw<typename std::decay_t<decltype(reg)>::value_t>(raw), updated = true) : false), ...);
-            },
-                       all());
-            return updated;
+            bool found = false;
+
+            std::apply(
+                    [&](auto const&... reg) -> void {
+                        (
+                                [&] -> void {
+                                    if (reg.addr == address) {
+                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
+                                        reg.write(*this, from_raw<T>(raw));
+                                        found = true;
+                                    }
+                                }(),
+                                ...);
+                    },
+                    all());
+
+            return found;
         }
 
         auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
             bool found = false;
-            std::apply([&](auto const&... reg) {
-                ((reg.addr == address ? (raw = to_raw(reg.value), found = true) : false), ...);
+            std::apply([&](auto const&... reg) -> void {
+                ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
             },
                        all());
             return found;
+        }
+
+        // stm32 g431cbt6
+        struct mem_layout {
+            static constexpr uint32_t FLASH_BEGIN_ADDR = 0x08000000;
+            static constexpr uint32_t FLASH_END_ADDR = 0x0801FFFF;
+            static constexpr int PAGE_SIZE = 2048;
+            static constexpr int NUM_PAGES = 64;
+        };
+
+        static consteval auto size_bytes() -> uint16_t {
+            return validated_config_t<bmc_config_t>::size_bytes();
         }
     };
 
@@ -190,11 +158,24 @@ namespace mrover {
      *
      * @return CAN options for BMC
      */
-    inline auto get_can_options() -> FDCAN::Options {
+    inline auto get_can_options(bmc_config_t* config) -> FDCAN::Options {
+        config->can_node_filter.id1 = config->get<bmc_config_t::can_id>();
+        config->can_node_filter.id2 = CAN_DEST_ID_MASK;
+        config->can_node_filter.id_type = FDCAN::FilterIdType::Extended;
+        config->can_node_filter.action = FDCAN::FilterAction::Accept;
+        config->can_node_filter.mode = FDCAN::FilterMode::Mask;
+
+        FDCAN::FilterConfig filter;
+        filter.begin = &config->can_node_filter;
+        filter.end = &config->can_node_filter + 1;
+        filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;
+        filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;
+
         auto can_opts = FDCAN::Options{};
         can_opts.delay_compensation = true;
         can_opts.tdc_offset = 13;
         can_opts.tdc_filter = 1;
+        can_opts.filter_config = filter;
         return can_opts;
     }
 
@@ -208,6 +189,29 @@ namespace mrover {
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
         options.use_dma = true;
+        return options;
+    }
+
+    /**
+     * Get the BMC ADC settings.
+     *
+     * DMA must be enabled to allow non-blocking ADC functionality.
+     *
+     * @return ADC options for BMC
+     */
+    inline auto get_adc_options() -> ADCBase::Options {
+        ADCBase::Options options;
+        options.use_dma = false; // TODO(eric) use dma for this
+        return options;
+    }
+
+    inline auto get_current_sensor_options() -> AD8418A::Options {
+        AD8418A::Options options;
+        options.gain = 20.0f;
+        options.shunt_resistance = 0.0005f;
+        options.vref = 3.3f;
+        options.vcm = options.vref / 2.0f;
+        options.adc_resolution = 4095;
         return options;
     }
 
