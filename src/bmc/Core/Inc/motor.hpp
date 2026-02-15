@@ -83,7 +83,11 @@ namespace mrover {
                 return std::numeric_limits<float>::quiet_NaN();
             }();
 
-            m_velocity = m_velocity_raw.value_or(std::numeric_limits<float>::quiet_NaN());
+            m_velocity = [this] -> float {
+                if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
+
         }
 
         auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {

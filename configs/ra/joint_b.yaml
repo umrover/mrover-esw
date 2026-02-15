@@ -37,7 +37,7 @@ pos_k_p: 300.0
 pos_k_i: 10.0
 pos_k_d: 0.0
 pos_k_f: 5.0
-vel_k_p: 1.0
+vel_k_p: 5.0
 vel_k_i: 0.0
 vel_k_d: 0.0
 vel_k_f: 0.0
