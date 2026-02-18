@@ -27,8 +27,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "dbc_runtime.hpp"
 #include "Yaml.hpp"
+#include "dbc_runtime.hpp"
 #include "influxdb.hpp"
 
 namespace logger {
