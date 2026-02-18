@@ -60,3 +60,9 @@ lib/**/.gitignore
 # cache dirs
 tools/fdcanusb
 
+# Canalyzer
+*.out
+log
+*.log
+grafana_data
+influxdb_data

@@ -13,17 +13,18 @@ get_filename_component(DBC_RUNTIME_ROOT
     ABSOLUTE
 )
 
-add_subdirectory("../../../lib/dbc/runtime"
-                dbc_runtime_build)
+add_subdirectory($(DBC_RUNTIME_ROOT) dbc_runtime_build)
 
 add_executable(canalyzer
     src/driver.cpp
     src/logger.cpp
-    src/Yaml.cpp
+    deps/yaml.cpp
 )
 
 target_link_libraries(canalyzer PUBLIC dbc_runtime)
 
 target_include_directories(canalyzer PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/deps>
+
 )
