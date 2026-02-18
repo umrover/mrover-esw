@@ -458,9 +458,6 @@ namespace logger {
             threads.emplace_back(&Logger::start, &loggers[i]);
         }
 
-        while (running.load()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
 
         for (auto& thread: threads) {
             if (thread.joinable()) thread.join();
