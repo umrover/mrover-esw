@@ -101,7 +101,7 @@ namespace mrover {
             m_data_ready = true;
         }
 
-        auto handle() const -> ADC_HandleTypeDef* override {
+        [[nodiscard]] auto handle() const -> ADC_HandleTypeDef* override {
             return m_hadc;
         }
 
