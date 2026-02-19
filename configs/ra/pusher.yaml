@@ -7,13 +7,14 @@ motor_en: true
 motor_inv: true
 quad_en: false
 quad_phase: false
+stall_en: true
 
 # limit configuration
-lim_a_en: false
+lim_a_en: true
 lim_a_active_high: false
-lim_a_is_forward: false
+lim_a_is_forward: true
 lim_a_use_readjust: true
-lim_b_en: false
+lim_b_en: true
 lim_b_active_high: false
 lim_b_is_forward: false
 lim_b_use_readjust: false
@@ -41,3 +42,7 @@ vel_k_p: 0.0
 vel_k_i: 0.0
 vel_k_d: 0.0
 vel_k_f: 0.0
+
+# stall detection
+stall_current: 0.06
+delta_position: 1.0  # post-multiplier (already in units)

@@ -17,7 +17,7 @@ def on_msg_recv(msg):
 if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
-    TARGET = -0.6  # 0.01  # m/s
+    TARGET = -0.8 # -0.008  # 0.01  # m/s
     INC = 0.1
     CAN_ID = 54
     SRC_ID = 16
@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 sleep(LOOP_DELAY)
                 i += 1
                 #if (i % 100 ==0):
-                 #   TARGET *= -1
+                #   TARGET *= -1
 
         # print("POSITION")
         # sleep(2)
@@ -51,7 +51,8 @@ if __name__ == "__main__":
         # sleep(2)
         # # set mode to velocity
         # i = 0
-        # bus.send("BMCModeCmd", {"mode": 7, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+        # for _ in range(5):
+        #     bus.send("BMCModeCmd", {"mode": 7, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         # while True:
         #     for _ in range(NUM_LOOPS):
         #         bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)

@@ -41,22 +41,19 @@ namespace mrover {
         float m_position{};
         float m_velocity{};
         float m_rotor_output_ratio{};
-
         float m_min_position{};
         float m_max_position{};
         float m_min_velocity{};
         float m_max_velocity{};
-
+        float m_stall_current{};
+        float m_delta_position{};
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
         bool m_limit_forward_hit{false};
         bool m_limit_backward_hit{false};
-
         bool m_stalled{false};
         bool m_stall_en{false};
-        float m_ambient_current;
-        float m_pos_threshold;
 
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
@@ -92,6 +89,7 @@ namespace mrover {
                 if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
                 return std::numeric_limits<float>::quiet_NaN();
             }();
+            // Logger::instance().info("velocity: %f", m_velocity);
         }
 
         auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
@@ -118,19 +116,19 @@ namespace mrover {
         }
 
         auto detect_stall() -> void {
-            Logger::instance().info("In detect stall\n");
-            Logger::instance().info("m_stall_en: %u\n", m_stall_en);
-            Logger::instance().info("current: %u\n", m_current_sensor);
-            Logger::instance().info("quad: %u\n", m_quad_encoder);
-            Logger::instance().info("ambient: %u\n", m_current_sensor->current() > m_ambient_current);
-            Logger::instance().info("position: %u\n", m_quad_encoder->get_delta_position() < m_pos_threshold);
+            // Logger::instance().info("m_stall_en: %u", m_stall_en);
+            // Logger::instance().info("current: %u", m_current_sensor);
+            // Logger::instance().info("quad: %u", m_quad_encoder);
+            // Logger::instance().info("current surge: %s", (m_current_sensor->get_delta_current() > m_delta_current) ? "true" : "false");
+            // Logger::instance().info("position change: %s", (m_quad_encoder->get_delta_position() < m_delta_position) ? "true" : "false");
             
-            if (m_stall_en &&
-                m_current_sensor &&
-                m_quad_encoder &&
-                m_current_sensor->current() > m_ambient_current &&
-                m_quad_encoder->get_delta_position() < m_pos_threshold) {
-                    m_stalled = true;
+            if (m_stall_en && m_current_sensor && m_current_sensor->current() > m_stall_current) {
+                    if (m_quad_encoder) {
+                        m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
+                    } else {
+                        m_stalled = true;
+                    }
+                    // TODO(eric) what can we do here to protect the motor?
                 }
             else {
                 m_stalled = false;
@@ -157,7 +155,7 @@ namespace mrover {
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
                             auto const target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity); // unit of output
-                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio;         // revolutions/sec * output scalar
+                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio; // revolutions/sec * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -167,7 +165,7 @@ namespace mrover {
                     case mode_t::POSITION:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position);                                  // unit of output
+                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position); // unit of output
                             auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio; // revolutions * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
@@ -225,9 +223,9 @@ namespace mrover {
             m_rotor_output_ratio = m_config_ptr->get<bmc_config_t::rotor_output_ratio>();
 
             // initialize stall detection values
-            m_ambient_current = m_config_ptr->get<bmc_config_t::ambient_current>();
             m_stall_en = m_config_ptr->get<bmc_config_t::stall_en>();
-            m_pos_threshold = m_config_ptr->get<bmc_config_t::pos_threshold>();
+            m_stall_current = m_config_ptr->get<bmc_config_t::stall_current>();
+            m_delta_position = m_config_ptr->get<bmc_config_t::delta_position>();
 
             if (quad) {
                 m_encoder_mode = encoder_mode_t::QUAD;
@@ -257,7 +255,11 @@ namespace mrover {
                 m_mode = mode_t::STOPPED;
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
-                if (m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) {
+                if ((m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) && m_encoder_mode == encoder_mode_t::NONE) {
+                    m_mode = mode_t::FAULT;
+                    m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
+                }
+                if (m_mode == mode_t::POSITION) {
                     if (std::isnan(m_position)) {
                         m_mode = mode_t::FAULT;
                         m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
@@ -346,16 +348,21 @@ namespace mrover {
         }
 
         auto send_state() -> void {
-            if (m_current_sensor) m_current_sensor->update_sensor();
-            
-            if (m_encoder_mode != encoder_mode_t::NONE) detect_stall();
+            auto const current = [this]() -> float {
+                if (m_current_sensor) {
+                    m_current_sensor->update_sensor();
+                    detect_stall();
+                    return m_current_sensor->current();
+                }
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
                     m_position,                    // position
                     m_velocity,                    // velocity
-                    m_current_sensor->current(),   // current
+                    current,                       // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
                     m_stalled                      // is_stalled

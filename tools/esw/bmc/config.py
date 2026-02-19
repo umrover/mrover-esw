@@ -9,6 +9,7 @@ CONFIG_MAP = {
     "motor_inv": ("SYS_CFG", 0x02, bool, 1, 1),
     "quad_en": ("SYS_CFG", 0x02, bool, 2, 1),
     "quad_phase": ("SYS_CFG", 0x02, bool, 3, 1),
+    "stall_en": ("SYS_CFG", 0x02, bool, 4, 1),
     # limit config bits
     "lim_a_en": ("LIMIT_CFG", 0x03, bool, 0, 1),
     "lim_a_active_high": ("LIMIT_CFG", 0x03, bool, 1, 1),
@@ -37,10 +38,8 @@ CONFIG_MAP = {
     "vel_k_i": ("VEL_K_I", 0x40, float, 0, 32),
     "vel_k_d": ("VEL_K_D", 0x44, float, 0, 32),
     "vel_k_f": ("VEL_K_F", 0x48, float, 0, 32),
-    "stall_en": ("STALL_EN", 0x52, bool, 0, 1),
-    "ambient_current": ("AMBIENT_CURRENT", 0x53, float, 0, 32),
-    "pos_threshold": ("POS_THRESHOLD", 0x57, float, 0, 32),
-    "ambient_voltage": ("AMBIENT_VOLTAGE", 0x61, float, 0, 32),
+    "stall_current": ("STALL_CURRENT", 0x4C, float, 0, 32),
+    "delta_position": ("DELTA_POSITION", 0x50, float, 0, 32),
 }
 
 

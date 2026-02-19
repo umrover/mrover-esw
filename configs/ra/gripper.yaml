@@ -7,6 +7,7 @@ motor_en: true
 motor_inv: true
 quad_en: true
 quad_phase: false
+stall_en: false
 
 # limit configuration
 lim_a_en: true
@@ -29,15 +30,19 @@ limit_b_position: 0.09
 max_pwm: 1.0
 min_pos: 0.0
 max_pos: 0.09
-min_vel: -1.6
-max_vel: 1.6
+min_vel: -0.01
+max_vel: 0.01
 
 # control gains
 pos_k_p: 300.0
 pos_k_i: 10.0
 pos_k_d: 0.0
 pos_k_f: 0.0
-vel_k_p: 30.0
-vel_k_i: 0.0
+vel_k_p: 400.0
+vel_k_i: 10.0
 vel_k_d: 0.0
-vel_k_f: 2.0
+vel_k_f: 100.0
+
+# stall detection
+delta_current: 0.0
+delta_position: 0.0  # post-multiplier (already in units)

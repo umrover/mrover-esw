@@ -7,6 +7,7 @@ motor_en: true
 motor_inv: false
 quad_en: true
 quad_phase: false
+stall_en: true
 
 # limit configuration
 lim_a_en: true
@@ -43,8 +44,6 @@ vel_k_d: 0.1
 vel_k_f: 0.2
 
 # stall detection
-stall_en: 1
 ambient_current: 0.01
-pos_threshold: 1.0  #post-multiplier (already in units)
-ambient_voltage: 1.598
+pos_threshold: 1.0  # post-multiplier (already in units)
 
