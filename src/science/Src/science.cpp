@@ -32,12 +32,15 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* CO2_TX_TIM = &htim2; // 400ms
     static constexpr TIM_HandleTypeDef* CO2_RX_TIM = &htim3; // 100ms
     static constexpr TIM_HandleTypeDef* CAN_TIM = &htim6; // 500ms
-    static constexpr UART_HandleTypeDef* LPUART = &hlpuart1;
-    static constexpr I2C_HandleTypeDef* I2C = &hi2c3;
+    static constexpr UART_HandleTypeDef* HLPUART = &hlpuart1;
+    static constexpr I2C_HandleTypeDef* HI2C = &hi2c3;
+    static constexpr FDCAN_HandleTypeDef* HFDCAN = &hfdcan1;
     static constexpr ADC_HandleTypeDef* HADC = &hadc1;
-    static constexpr FDCAN_HandleTypeDef* CAN = &hfdcan1;
+    static constexpr size_t NUM_ADC_CHANNELS = 1;
 
     UART lpuart;
+    ADC<NUM_ADC_CHANNELS> adc;
+    FDCAN fdcan;
     THP thp_sensor;
     CO2Sensor co2_sensor;
     THP_data thp_data;
@@ -62,7 +65,7 @@ namespace mrover {
         if (!initialized)
             return;
 
-        static auto const& logger = Logger::instance();
+        static auto& logger = Logger::instance();
 
         logger.info("uv index: %f", uv_index);
         logger.info("temp: %f", thp_data.temp);
@@ -77,29 +80,33 @@ namespace mrover {
         if (!initialized)
             return;
 
+
         can_tx.set();
-        const CANBus1Msg_t msg = ScienceSensorData(uv_index, thp_data.temp, thp_data.humidity, thp_data.pressure, oxygen, ozone, co2);
-        can_handler.send(msg, config.get<sb_config_t::can_id>());
+        const CANBus1Msg_t msg = SCISensorData(uv_index, thp_data.temp, thp_data.humidity, thp_data.pressure, oxygen, ozone, co2);
+        can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
         can_tx.reset();
     }
 
     void init() {
-        lpuart = UART{LPUART, get_uart_options()};
+        lpuart = UART{HLPUART, get_uart_options()};
         Logger::init(&lpuart);
-        auto const& logger = Logger::instance();
+        auto& logger = Logger::instance();
+
+        adc = ADC<NUM_ADC_CHANNELS>{HADC, get_adc_options()};
 
         // initialize all sensors
-        thp_sensor = THP{I2C};
+        thp_sensor = THP{HI2C};
 	    thp_sensor.init();
-        co2_sensor = CO2Sensor{I2C};
+        co2_sensor = CO2Sensor{HI2C};
         co2_sensor.init();
-        ozone_sensor = OzoneSensor(I2C);
+        ozone_sensor = OzoneSensor(HI2C);
 	    ozone_sensor.init();
-        oxygen_sensor = OxygenSensor(I2C);
+        oxygen_sensor = OxygenSensor(HI2C);
 	    oxygen_sensor.init();
-        uv_sensor = UVSensor(HADC);
+        uv_sensor = UVSensor(&adc, ADC_CHANNEL_0);
 
-        can_handler = CANBus1Handler{FDCAN{CAN, get_can_options()}};
+        fdcan = FDCAN{HFDCAN, get_can_options()};
+        can_handler = CANBus1Handler{&fdcan};
         can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
         can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
@@ -130,7 +137,7 @@ namespace mrover {
 
         while (true) {
             // check if there is an i2c message in the queue and the bus is free
-            if (!i2c_queue.empty() && !__HAL_I2C_GET_FLAG(I2C, I2C_FLAG_BUSY)) {
+            if (!i2c_queue.empty() && !__HAL_I2C_GET_FLAG(HI2C, I2C_FLAG_BUSY)) {
                 I2CSensor current_sensor = i2c_queue.front();
                 // handle current sensor based on sensor
                 if (current_sensor == sensor_co2_tx)
@@ -155,7 +162,7 @@ namespace mrover {
 }
 
 extern "C" {
-    void HAL_PostInit() {
+    void PostInit() {
         mrover::init();
     }
 
@@ -207,7 +214,9 @@ extern "C" {
 	}
 
     void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-        mrover::uv_index = mrover::uv_sensor.update_uv();
+        if (mrover::initialized)
+            mrover::uv_index = mrover::uv_sensor.update_uv();
+        
         mrover::adc_free = true;
     }
 }
