@@ -80,10 +80,11 @@ namespace mrover {
         if (!initialized)
             return;
 
-
+        size_t size = i2c_queue.size();
         can_tx.set();
         const CANBus1Msg_t msg = SCISensorData(uv_index, thp_data.temp, thp_data.humidity, thp_data.pressure, oxygen, ozone, co2);
-        can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
+        // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
+        can_handler.send(msg, 0x70, 0x10);
         can_tx.reset();
     }
 
@@ -182,14 +183,14 @@ extern "C" {
     }
 
     void HAL_I2C_MasterTxCpltCallback (I2C_HandleTypeDef* hi2c) {
-        // reset and start rx timer
+        // reset and start co2 rx timer
         mrover::i2c_queue.pop();
         __HAL_TIM_SET_COUNTER(mrover::CO2_RX_TIM, 0);
         HAL_TIM_Base_Start_IT(mrover::CO2_RX_TIM);
     }
 
     void HAL_I2C_MasterRxCpltCallback (I2C_HandleTypeDef* hi2c) {
-        // update co2
+        // update co2 and reset tx timer
         mrover::i2c_queue.pop();
         mrover::co2 = mrover::co2_sensor.update_co2();
         __HAL_TIM_SET_COUNTER(mrover::CO2_TX_TIM, 0);
