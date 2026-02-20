@@ -29,6 +29,8 @@ namespace logger {
 
         bool is_first_field = true;
 
+        // put timestamp here
+
         for (auto const& [name, value]: data) {
             char delim = is_first_field ? ' ' : ',';
             is_first_field = false;
@@ -189,7 +191,7 @@ namespace logger {
                    Auth& server_info,
                    std::unordered_set<int>&& log_ids,
                    std::unordered_set<std::string>&& dbc_file_paths,
-                   bool log_all,
+                   log_mode mode,
                    bool debug)
 
         : can_bus_name(bus_name),
@@ -198,7 +200,7 @@ namespace logger {
           si(server_info.db_name, server_info.port, server_info.host, server_info.user, server_info.password),
           log_ids(log_ids),
           dbc_file_paths(std::move(dbc_file_paths)),
-          log_all(log_all),
+          mode(mode),
           debug(debug) {}
 
     Logger::Logger(logger::Logger&& other) noexcept
@@ -208,7 +210,7 @@ namespace logger {
           si(other.si),
           log_ids(std::move(other.log_ids)),
           dbc_file_paths(std::move(other.dbc_file_paths)),
-          log_all(other.log_all),
+          mode(other.mode),
           debug(other.debug) {}
 
 
@@ -310,7 +312,7 @@ namespace logger {
                       << "Info:\n"
                       << "\t - Name: " << can_bus_name << "\n"
                       << "\t - Id: " << id << "\n"
-                      << "\t - log_all: " << log_all << "\n"
+                      << "\t - log_mode: " << mode << "\n"
                       << "\t - yaml_file_path: " << yaml_file_path << "\n"
                       << "\t - log_specify: ";
             auto it = log_ids.begin();
@@ -377,7 +379,17 @@ namespace logger {
                 std::cout << "in logger factory, iteration:" << i << "\n";
             }
             std::string name = loggers_node[i]["name"].As<std::string>();
-            bool log_all = loggers_node[i]["log_all"].As<bool>();
+            std::string log_mode_str = loggers_node[i]["log_mode"].As<std::string>();
+
+            log_mode mode;
+            if (log_mode_str == "whitelist") {
+                mode = log_mode::WHITELIST;
+            } else if (log_mode_str == "blacklist") {
+                mode = log_mode::BLACKLIST;
+            } else {
+                throw std::runtime_error("expected 'whitelist' or 'blacklist'");        // maybe change to std::format
+            }
+
             std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
             std::unordered_set<int> log_ids;
             std::string num = "";
@@ -433,10 +445,10 @@ namespace logger {
 
             std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
 
-            loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), log_all, debug);
+            loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, debug);
             if (debug) {
                 std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "name: " << name << ", log_all: " << log_all << ", file_path: " << dbc_file_path << std::endl;
+                std::cout << "name: " << name << ", log_mode: " << mode << ", file_path: " << dbc_file_path << std::endl;
             }
         } //endfor
 
