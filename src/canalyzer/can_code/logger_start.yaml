@@ -7,20 +7,21 @@ auth:
     password: password
 loggers:
   - name: vcan0
-    log_all: false 
+    log_mode: whitelist 
     log_asc: false
     log_specify: 100,101
     file_path: ./log/can0.log
     dbc_path: ./dbc/can0.dbc
 
   - name: vcan1
-    log_all: false
+    log_mode: blacklist
     log_asc: false
     log_specify: 1,2,3
     file_path: ./log/can1.log
     dbc_path: ./dbc/can1.dbc
 
   - name: vcan2
+<<<<<<< HEAD
     log_all: false 
     log_specify: 98,123
     file_path: ./log/can2.log

@@ -66,6 +66,11 @@ namespace logger {
                       long long const timestamp);
         };
 
+        enum class log_mode {
+            WHITELIST_IDS,
+            BLACKLIST_IDS,
+        };
+
         int id;
         int bus_socket;
         std::string can_bus_name;
@@ -88,7 +93,7 @@ namespace logger {
 
         DynamicBuilder builder;
 
-        bool log_all = false;
+        log_mode mode;
         bool debug = false;
         bool done = false;
 
@@ -115,7 +120,7 @@ namespace logger {
                 Auth& server_info,
                 std::unordered_set<int>&& log_ids,
                 std::unordered_set<std::string>&& dbc_file_paths,
-                bool log_all,
+                log_mode mode,
                 bool debug);
 
         Logger(Logger&& other) noexcept;
