@@ -84,7 +84,7 @@ namespace mrover {
         can_tx.set();
         const CANBus1Msg_t msg = SCISensorData(uv_index, thp_data.temp, thp_data.humidity, thp_data.pressure, oxygen, ozone, co2);
         // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
-        can_handler.send(msg, 0x70, 0x10);
+        can_handler.send(msg, 0x40, 0x10);
         can_tx.reset();
     }
 
