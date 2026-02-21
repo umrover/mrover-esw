@@ -6,6 +6,16 @@ repo_url: https://github.com/umrover/mrover-esw
 
 theme:
   name: readthedocs
+  custom_dir: docs/overrides
+
+plugins:
+  - search
+  - git-revision-date-localized # shows the last git revision date of each page (implemented in the `docs/overrides/main.html` footer block)
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 nav:
   - Home: index.md
@@ -35,9 +45,3 @@ nav:
 # ignoring README.md satisfies mkdocs build --strict error
 exclude_docs: |
   README.md
-
-markdown_extensions:
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-
