@@ -16,7 +16,7 @@ get_filename_component(DBC_RUNTIME_ROOT
 add_subdirectory($(DBC_RUNTIME_ROOT) dbc_runtime_build)
 
 add_executable(canalyzer
-    src/driver.cpp
+    src/canalyzer.cpp
     src/logger.cpp
     deps/yaml.cpp
 )
