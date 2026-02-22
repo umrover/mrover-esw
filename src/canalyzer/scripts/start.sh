@@ -25,6 +25,10 @@ trap cleanup SIGINT EXIT
 
 echo ">> [Start] Starting Docker Compose (Silent Mode)..."
 
+# remove ports
+
+
+
 # 1. Start in detached mode (-d)
 #    This runs the containers in the background and returns immediately.
 docker compose up -d --remove-orphans
