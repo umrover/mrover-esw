@@ -281,6 +281,18 @@ namespace logger {
             }
 
             uint32_t id = cfd.can_id & CAN_EFF_MASK;
+
+            switch (mode) {
+                case log_mode::WHITELIST_IDS: {
+                    if (log_ids.find(id) == log_ids.end()) continue;;
+                    break;
+                }
+                case log_mode::BLACKLIST_IDS: {
+                    if (log_ids.find(id) != log_ids.end()) continue;
+                    break;
+                }
+            }
+
             logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
             DecodedFrame decoded_message = {.id = id, .time = now_ns(), .data = _decode(id, cfd)};
@@ -312,7 +324,7 @@ namespace logger {
                       << "Info:\n"
                       << "\t - Name: " << can_bus_name << "\n"
                       << "\t - Id: " << id << "\n"
-                      << "\t - log_mode: " << mode << "\n"
+                      << "\t - log_mode: " << static_cast<int>(mode) << "\n"
                       << "\t - yaml_file_path: " << yaml_file_path << "\n"
                       << "\t - log_specify: ";
             auto it = log_ids.begin();
@@ -383,9 +395,9 @@ namespace logger {
 
             log_mode mode;
             if (log_mode_str == "whitelist") {
-                mode = log_mode::WHITELIST;
+                mode = log_mode::WHITELIST_IDS;
             } else if (log_mode_str == "blacklist") {
-                mode = log_mode::BLACKLIST;
+                mode = log_mode::BLACKLIST_IDS;
             } else {
                 throw std::runtime_error("expected 'whitelist' or 'blacklist'");        // maybe change to std::format
             }
@@ -448,7 +460,7 @@ namespace logger {
             loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, debug);
             if (debug) {
                 std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "name: " << name << ", log_mode: " << mode << ", file_path: " << dbc_file_path << std::endl;
+                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_file_path << std::endl;
             }
         } //endfor
 

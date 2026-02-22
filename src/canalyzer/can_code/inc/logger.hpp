@@ -51,6 +51,11 @@ namespace logger {
     extern std::atomic<bool> running;
     extern std::mutex cout_mutex;
 
+    enum class log_mode {
+        WHITELIST_IDS,
+        BLACKLIST_IDS,
+    };
+
     class Logger {
     private:
         struct DecodedFrame {
@@ -64,11 +69,6 @@ namespace logger {
                       std::string const& bus_name,
                       std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
                       long long const timestamp);
-        };
-
-        enum class log_mode {
-            WHITELIST_IDS,
-            BLACKLIST_IDS,
         };
 
         int id;
