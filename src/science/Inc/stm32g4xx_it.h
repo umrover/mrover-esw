@@ -64,6 +64,7 @@ void TIM6_DAC_IRQHandler(void);
 void DMA2_Channel1_IRQHandler(void);
 void LPUART1_IRQHandler(void);
 void I2C3_EV_IRQHandler(void);
+void I2C3_ER_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

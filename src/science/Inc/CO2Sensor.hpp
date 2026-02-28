@@ -1,4 +1,6 @@
 #include "main.h"
+#include "stm32g4xx_hal.h"
+#include "stm32g4xx_hal_def.h"
 
 #define CO2_ADDR 0x29
 
@@ -36,10 +38,17 @@ namespace mrover {
 
 		// receives raw ozone data over i2c
 		void receive_buf() {
+			// on the first read sensor needs 100ms to update register
+			static bool first_read = true;
+			if (first_read) {
+				HAL_Delay(100);
+				first_read = false;
+			}
+
 			HAL_I2C_Master_Receive_IT(i2c, (CO2_ADDR << 1) | 1, rx_buf, 2);
 		}
 
-		// initializes the sensor to be in AUTO mode (sensor constantly sends data)
+		// initializes sensor parameters
 		void init() {
             // Disable CRC (0x3768)
 			uint8_t tx_buf1[2] = {0x37, 0x68};
