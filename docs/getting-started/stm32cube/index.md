@@ -9,9 +9,10 @@ a very powerful interface for automatic code generation, allowing the user to in
 a few clicks of a button, and have that code show up automatically in the main file.
 
 !!! note
-    If you've taken EECS 373, you have used STM32CubeIDE, which is an IDE that packages both of these tools
-    together. However, STM32CubeIDE is a very heavy program, so we choose to use the lighter weight STM32CubeMX
-    and STM32CubeCLT tools in combination with CMake and your favorite text editor or IDE.
+    If you've taken EECS 373, you have likely used STM32CubeIDE, which is an IDE that packages both of these tools
+    together with Eclipse. However, STM32CubeIDE is a very heavy program, and newer versions no longer integrate with CubeMX,
+    so we choose to use the lighter weight STM32CubeMX and STM32CubeCLT tools in combination with CMake and your favorite
+    text editor or IDE.
 
 ## Downloading and Installing CubeMX
 

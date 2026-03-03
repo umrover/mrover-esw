@@ -1,4 +1,6 @@
-### Ever wondered what that BOOT0 pin does in the STM32Cube IDE .ioc file or stm32 chip? Want to set the BOOT0 pin to an alternate function such as an I2C CLK? Here is what you need to know before doing so.
+# STM32 Boot Information
+
+Ever wondered what that BOOT0 pin does in the STM32Cube IDE .ioc file or stm32 chip? Want to set the BOOT0 pin to an alternate function such as an I2C CLK? Here is what you need to know before doing so.
 
 ## The BOOT0 pin
 The BOOT0 pin only really matters for the first 4 clock cycles of the boot sequence after reset has been released. However, it decides where the chip will boot from: Main Flash, System Memory, or Embedded SRAM. (Maybe more or less options depending on the chip). By default, holding BOOT0 LOW will make the chip boot from the main flash - this is most likely where your code is. (When using CubeIDE, this is where it is typically flashed)
