@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <algorithm>
 #include <cinttypes>
 #include <err.hpp>
@@ -17,7 +17,7 @@
 namespace mrover {
 
     class Motor {
-        typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
+        typedef void (*tx_exec_t)(MRoverCANMsg_t const& msg);
 
         std::optional<HBridge> m_hbridge;
         std::optional<AD8418A> m_current_sensor;
@@ -340,7 +340,7 @@ namespace mrover {
             init();
         }
 
-        auto receive(CANBus1Msg_t const& v) -> void {
+        auto receive(MRoverCANMsg_t const& v) -> void {
             std::visit([this](auto&& value) -> auto {
                 handle(value);
             },

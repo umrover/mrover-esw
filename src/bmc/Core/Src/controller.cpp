@@ -1,4 +1,4 @@
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
@@ -64,14 +64,14 @@ namespace mrover {
     // Hardware Units
     std::optional<Pin> can_tx;
     std::optional<Pin> can_rx;
-    std::optional<CANBus1Handler> can_receiver;
+    std::optional<MRoverCANHandler> can_receiver;
     std::optional<Motor> motor;
 
     /**
      * Send a CAN message defined in CANBus1.dbc on the bus.
      * @param msg CAN message to send
      */
-    auto send_can_message(CANBus1Msg_t const& msg) -> void {
+    auto send_can_message(MRoverCANMsg_t const& msg) -> void {
         if (!initialized) return;
         static std::optional<uint8_t> can_id = std::nullopt;
         static std::optional<uint8_t> host_can_id = std::nullopt;
@@ -134,7 +134,7 @@ namespace mrover {
         can_rx.emplace(CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin);
 
         // initialize fdcan
-        can_receiver = CANBus1Handler{&fdcan};
+        can_receiver = MRoverCANHandler{&fdcan};
 
         // setup motor instance
         motor.emplace(

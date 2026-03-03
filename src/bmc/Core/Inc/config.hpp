@@ -4,7 +4,7 @@
 #include <serial/uart.hpp>
 #include <tuple>
 
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <adc.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/flash.hpp>
