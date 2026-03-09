@@ -1,4 +1,7 @@
 #include "main.h"
+#include "stm32g4xx_hal.h"
+#include "stm32g4xx_hal_def.h"
+#include <cstdint>
 
 #define OZONE_ADDR	0x73 // i2c addr
 #define MEASURE_MODE_AUTOMATIC	0x00 // auto mode
@@ -21,7 +24,7 @@ namespace mrover {
 
 		// converts raw ozone data into ppm
 		float update_ozone() {
-			int16_t ozone_raw = ((int16_t)rx_buf[0] << 8) | rx_buf[1];
+			uint16_t ozone_raw = ((int16_t)rx_buf[0] << 8) | rx_buf[1];
 			ozone = ozone_raw / 1000.0;
 			
 			return ozone;
@@ -39,7 +42,8 @@ namespace mrover {
 
 		// initializes the sensor to be in AUTO mode (sensor constantly sends data)
 		void init() {
-			HAL_I2C_Mem_Write(i2c, OZONE_ADDR << 1, MODE_REGISTER, 1, MEASURE_MODE_AUTOMATIC, 1, HAL_MAX_DELAY);
+			uint8_t mode = MEASURE_MODE_AUTOMATIC;
+			HAL_I2C_Mem_Write(i2c, OZONE_ADDR << 1, MODE_REGISTER, 1, &mode, 1, HAL_MAX_DELAY);
 		}
 	};
 }

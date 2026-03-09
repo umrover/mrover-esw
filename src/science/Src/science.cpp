@@ -40,11 +40,8 @@ namespace mrover {
     std::queue<Sensor> i2c_queue;
 
     void event_loop() {
-        auto& logger = Logger::instance();
-
         while (true) {
             // check if there is an i2c message in the queue and the bus is free
-            logger.info("size: %d", i2c_queue.size());
             if (!i2c_queue.empty() && HAL_I2C_GetState(HI2C) == HAL_I2C_STATE_READY)
                 science_board.poll_sensor(i2c_queue.front());
 
@@ -83,10 +80,9 @@ namespace mrover {
         auto dbg_led2 = Pin{Debug_LED2_GPIO_Port, Debug_LED2_Pin};
         auto dbg_led3 = Pin{Debug_LED3_GPIO_Port, Debug_LED3_Pin};
 
-
-        logger.info("Initializing science board...");
-
         // create science board object
+        logger.info("Initializing science board...");
+        
         science_board = ScienceBoard{thp_sensor, 
                                         co2_sensor, 
                                         ozone_sensor,
@@ -99,7 +95,7 @@ namespace mrover {
                                         dbg_led3,
                                         can_handler};
 
-        logger.info("Initializing sensors...");
+        logger.info("Polling sensors...");
 
         // begin polling sensors
         i2c_queue.push(sensor_thp);
