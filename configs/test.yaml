@@ -1,0 +1,27 @@
+name: test_config_t
+regs:
+- name: INT_REG
+  type: uint16_t
+  size: 16
+  fields:
+  - name: field1
+    pos: 0
+    size: 1
+  - name: field2
+    pos: 1
+    size: 1
+  - name: field3
+    pos: 2
+    size: 1
+  - name: field4
+    size: 1
+    pos: 3
+  - name: field5
+    size: 4
+    pos: 4
+  - name: field6
+    size: 8
+    pos: 8
+- name: FLOAT_REG
+  type: float
+  size: 32
