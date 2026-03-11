@@ -13,7 +13,7 @@ get_filename_component(DBC_RUNTIME_ROOT
     ABSOLUTE
 )
 
-add_subdirectory($(DBC_RUNTIME_ROOT) dbc_runtime_build)
+add_subdirectory(${DBC_RUNTIME_ROOT} dbc_runtime_build)
 
 add_executable(canalyzer
     src/canalyzer.cpp
