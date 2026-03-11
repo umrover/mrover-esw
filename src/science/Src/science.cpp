@@ -14,6 +14,7 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
+extern TIM_HandleTypeDef htim15;
 extern UART_HandleTypeDef hlpuart1;
 extern I2C_HandleTypeDef hi2c3;
 extern ADC_HandleTypeDef hadc1;
@@ -24,6 +25,7 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* CO2_RX_TIM = &htim3; // 100ms
     static constexpr TIM_HandleTypeDef* CAN_TIM = &htim6; // 500ms
     static constexpr TIM_HandleTypeDef* I2C_WD_TIM = &htim7; // 20ms
+    static constexpr TIM_HandleTypeDef* SENSOR_STATE_TIM = &htim15; // 100ms
     static constexpr UART_HandleTypeDef* HLPUART = &hlpuart1;
     static constexpr I2C_HandleTypeDef* HI2C = &hi2c3;
     static constexpr FDCAN_HandleTypeDef* HFDCAN = &hfdcan1;
@@ -108,6 +110,7 @@ namespace mrover {
 
         HAL_TIM_Base_Start_IT(CAN_TIM);
         HAL_TIM_Base_Start_IT(I2C_WD_TIM);
+        HAL_TIM_Base_Start_IT(SENSOR_STATE_TIM);
         
         initialized = true;
 
@@ -153,11 +156,15 @@ extern "C" {
         } else if (htim == mrover::CAN_TIM) {
             // broadcast CAN data
             if (mrover::initialized)
-                mrover::science_board.send_can();
+                mrover::science_board.send_sensor_data();
         } else if (htim == mrover::I2C_WD_TIM) {
             // handle watchdog timer
-            // if (mrover::initialized)
-            //     mrover::handle_i2c_error();
+            if (mrover::initialized)
+                mrover::handle_i2c_error();
+        } else if (htim == mrover::SENSOR_STATE_TIM) {
+            // broadcast sensor state over CAN
+            if (mrover::initialized)
+                mrover::science_board.send_sensor_state();
         }
     }
 
