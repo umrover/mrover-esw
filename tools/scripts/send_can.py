@@ -22,7 +22,7 @@ if __name__ == "__main__":
     CAN_ID = 54
     SRC_ID = 16
 
-    with CANBus(get_dbc(dbc_name="CANBus1"), "can2", on_recv=on_msg_recv) as bus:
+    with CANBus(get_dbc(dbc_name="MRoverCAN"), "can2", on_recv=on_msg_recv) as bus:
         # sleep(1000000)
 
         # if abs(TARGET) == 1.0:

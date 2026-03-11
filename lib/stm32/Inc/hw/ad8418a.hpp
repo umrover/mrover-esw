@@ -30,6 +30,7 @@ namespace mrover {
             m_enabled = enabled;
             m_options = options;
             m_current_filter.add_reading(0.0f);
+            m_base = (static_cast<float>(m_adc->get_channel_value(m_channel)) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;
         }
 
         auto update_sensor() -> void {
@@ -41,14 +42,15 @@ namespace mrover {
 
             // Convert to voltage
             float const v_out = (static_cast<float>(raw_val) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;
-            // Logger::instance().info("V_Out: %f", v_out);
+            //Logger::instance().info("m_base: %f", m_base);
+            //Logger::instance().info("V_Out: %f", v_out);
 
             /**
              * AD8418A Calculation:
              * Current = (Vout - Vref/2) / (Gain * R_shunt)
              * Note: If your VREF pin on the AD8418A is tied to GND, Vcm should be 0.
              */
-            m_current_filter.add_reading((v_out - m_options.vcm) / (m_options.gain * m_options.shunt_resistance));
+            m_current_filter.add_reading((v_out - m_base) / (m_options.gain * m_options.shunt_resistance));
             m_previous = m_current;
             m_current = m_current_filter.get_filtered();
         }
@@ -75,6 +77,7 @@ namespace mrover {
         ADCBase* m_adc{nullptr};
         float m_current{};
         float m_previous{};
+        float m_base{};
         uint8_t m_channel{0};
 
         bool m_enabled{false};
