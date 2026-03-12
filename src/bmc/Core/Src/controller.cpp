@@ -68,7 +68,7 @@ namespace mrover {
     std::optional<Motor> motor;
 
     /**
-     * Send a CAN message defined in CANBus1.dbc on the bus.
+     * Send a CAN message defined in MRoverCAN.dbc on the bus.
      * @param msg CAN message to send
      */
     auto send_can_message(MRoverCANMsg_t const& msg) -> void {

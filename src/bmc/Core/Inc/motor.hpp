@@ -244,9 +244,9 @@ namespace mrover {
         auto handle(T const& _) const -> void {
         }
 
-        auto handle(BMCProbe const& msg) const -> void {
+        auto handle(ESWProbe const& msg) const -> void {
             // acknowledge probe
-            m_message_tx_f(BMCAck{msg.data});
+            m_message_tx_f(ESWAck{msg.data});
         }
 
         auto handle(BMCModeCmd const& msg) -> void {
@@ -298,7 +298,7 @@ namespace mrover {
             }
         }
 
-        auto handle(BMCConfigCmd const& msg) -> void {
+        auto handle(ESWConfigCmd const& msg) -> void {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
@@ -308,7 +308,7 @@ namespace mrover {
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
-                    m_message_tx_f(BMCAck{val});
+                    m_message_tx_f(ESWAck{val});
                 }
             }
         }
