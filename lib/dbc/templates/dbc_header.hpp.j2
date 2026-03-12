@@ -24,7 +24,7 @@ namespace mrover {
     {% for msg_id, msg in message_dict.items() %}
     class {{ msg.name }} {
     public:
-        static constexpr uint32_t CAN_ID = {{ msg_id }};
+        static constexpr uint32_t CAN_ID = {{ "0x%X"|format(msg_id) }};
         static constexpr uint32_t BASE_ID = CAN_ID & ~CAN_NODE_MASK;
         {%- set signals = msg.signal_dict %}
         {%- for sig_name, sig_data in signals.items() %}
