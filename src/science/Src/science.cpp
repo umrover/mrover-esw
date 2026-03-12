@@ -8,7 +8,6 @@
 #include <hw/pin.hpp>
 #include <logger.hpp>
 #include <config.hpp>
-#include <queue>
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -44,7 +43,7 @@ namespace mrover {
     void event_loop() {
         while (true) {
             // check if there is an i2c message in the queue and the bus is free
-            if (!i2c_queue.empty() && HAL_I2C_GetState(HI2C) == HAL_I2C_STATE_READY)
+            if (HAL_I2C_GetState(HI2C) == HAL_I2C_STATE_READY && !i2c_queue.empty())
                 science_board.poll_sensor(i2c_queue.front());
 
             // check if the adc is free to be sampled again
@@ -186,6 +185,15 @@ extern "C" {
         // based on the last sensor to make an i2c read request handle response
         mrover::update_i2c_queue();
 	}
+
+    void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
+        if (!mrover::initialized)
+            return;
+
+        while (mrover::fdcan.messages_to_process() > 0) {
+            mrover::science_board.handle_request(mrover::i2c_queue);
+        }
+    }
 
     void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
         mrover::handle_i2c_error();

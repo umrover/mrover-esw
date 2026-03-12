@@ -8,6 +8,7 @@
 #include <CANBus1.hpp>
 #include <hw/pin.hpp>
 #include <config.hpp>
+#include <queue>
 
 namespace mrover {
     enum Sensor {
@@ -44,24 +45,47 @@ namespace mrover {
         Pin dbg_led3{};
         CANBus1Handler can_handler{};
         sb_config_t config;
-        SensorStates sensor_states{0,0,0,0,0};
+        SensorStates sensor_states{1,1,1,1,1};
 
+         // initialize i2c sensors
         void init() {
-            // initialize i2c sensors
             thp_sensor.init();
             ozone_sensor.init();
             oxygen_sensor.init();
             co2_sensor.init();
         }
 
-        void clear_faults() {
-            sensor_states = {0,0,0,0,0};
+        // clears all sensor faults by resetting all bits to 1
+        void clear_faults(std::queue<Sensor>& i2c_queue) {
+            if (!sensor_states.co2_state)
+                i2c_queue.push(Sensor::sensor_co2_rx);
+            if (!sensor_states.thp_state)
+                i2c_queue.push(Sensor::sensor_thp);
+            if (!sensor_states.oxygen_state)
+                i2c_queue.push(Sensor::sensor_oxygen);
+            if (!sensor_states.ozone_state)
+                i2c_queue.push(Sensor::sensor_ozone);
+
+            sensor_states = {1,1,1,1,1};
         }
 
-        void reset() {
-            // deinitialize peripherals and reset mcu
+        // deinitialize peripherals and reset mcu
+        static void reset() {
             HAL_DeInit();
             NVIC_SystemReset();
+        }
+
+        // need empty function for any unrelated messages
+        template<typename T>
+        void handle(T const& _, std::queue<Sensor>& i2c_queue) {
+        }
+
+        // handles a reset command
+        void handle(const SCIResetCommand& cmd, std::queue<Sensor>& i2c_queue) {
+            if (cmd.clear_faults)
+                clear_faults(i2c_queue);
+            else if (cmd.reset)
+                reset();
         }
 
     public:
@@ -119,16 +143,16 @@ namespace mrover {
         }
 
         void flag_sensor (Sensor sensor) {
-            if (sensor == sensor_co2_tx || sensor_co2_rx)
-                sensor_states.co2_state = 1;
+            if (sensor == sensor_co2_tx || sensor == sensor_co2_rx)
+                sensor_states.co2_state = 0;
             else if (sensor == sensor_thp)
-                sensor_states.thp_state = 1;
+                sensor_states.thp_state = 0;
             else if (sensor == sensor_oxygen)
-                sensor_states.oxygen_state = 1;
+                sensor_states.oxygen_state = 0;
             else if (sensor == sensor_ozone)
-                sensor_states.ozone_state = 1;
+                sensor_states.ozone_state = 0;
             else if (sensor == sensor_uv)
-                sensor_states.uv_state = 1;
+                sensor_states.uv_state = 0;
         }
 
         void send_sensor_data() {
@@ -156,6 +180,15 @@ namespace mrover {
             // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
             can_handler.send(msg, 0x40, 0x10);
             can_tx.reset();
+        }
+
+        void handle_request(std::queue<Sensor>& i2c_queue) {
+            auto const recv = can_handler.receive();
+            if (recv) {
+                can_rx.set();
+                std::visit([this, &i2c_queue](auto&& value) { handle(value, i2c_queue); }, *recv);
+                can_rx.reset();
+            }
         }
     };
 }
