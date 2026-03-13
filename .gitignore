@@ -37,7 +37,7 @@ Testing
 Makefile
 cmake_install.cmake
 install_manifest.txt
-compile_commands.jsong
+compile_commands.json
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
