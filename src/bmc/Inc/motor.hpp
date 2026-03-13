@@ -121,16 +121,15 @@ namespace mrover {
             // Logger::instance().info("quad: %u", m_quad_encoder);
             // Logger::instance().info("current surge: %s", (m_current_sensor->get_delta_current() > m_delta_current) ? "true" : "false");
             // Logger::instance().info("position change: %s", (m_quad_encoder->get_delta_position() < m_delta_position) ? "true" : "false");
-            
+
             if (m_stall_en && m_current_sensor && m_current_sensor->current() > m_stall_current) {
-                    if (m_quad_encoder) {
-                        m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
-                    } else {
-                        m_stalled = true;
-                    }
-                    // TODO(eric) what can we do here to protect the motor?
+                if (m_quad_encoder) {
+                    m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
+                } else {
+                    m_stalled = true;
                 }
-            else {
+                // TODO(eric) what can we do here to protect the motor?
+            } else {
                 m_stalled = false;
             }
         }
@@ -155,7 +154,7 @@ namespace mrover {
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
                             auto const target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity); // unit of output
-                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio; // revolutions/sec * output scalar
+                            auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio;         // revolutions/sec * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -165,7 +164,7 @@ namespace mrover {
                     case mode_t::POSITION:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position); // unit of output
+                            auto const target_pos = std::clamp(m_target, m_min_position, m_max_position);                                  // unit of output
                             auto const input_pos = (m_uncalibrated_position.value() - m_calibrated_offset.value()) * m_rotor_output_ratio; // revolutions * output scalar
                             auto setpoint_thr = m_pidf->calculate(input_pos, target_pos, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
