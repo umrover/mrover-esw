@@ -82,6 +82,7 @@ namespace mrover {
 
         auto get_channel_value(size_t index) -> uint32_t override {
             __disable_irq();
+            HAL_ADC_Start(m_hadc);
             uint32_t value = 0;
             index--;
             if (index >= NumChannels) {
@@ -91,6 +92,7 @@ namespace mrover {
             } else if (HAL_ADC_PollForConversion(m_hadc, m_options.timeout_ms) == HAL_OK) {
                 value = HAL_ADC_GetValue(m_hadc);
             }
+            HAL_ADC_Stop(m_hadc);
             __enable_irq();
             return value;
         }
@@ -99,7 +101,7 @@ namespace mrover {
             m_data_ready = true;
         }
 
-        auto handle() const -> ADC_HandleTypeDef* override {
+        [[nodiscard]] auto handle() const -> ADC_HandleTypeDef* override {
             return m_hadc;
         }
 
