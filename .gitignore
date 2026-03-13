@@ -37,7 +37,7 @@ Testing
 Makefile
 cmake_install.cmake
 install_manifest.txt
-compile_commands.json
+compile_commands.jsong
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
@@ -66,3 +66,4 @@ log
 *.log
 grafana_data
 influxdb_data
+.cache
