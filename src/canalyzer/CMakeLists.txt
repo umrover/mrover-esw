@@ -22,6 +22,10 @@ add_executable(canalyzer
     Core/Src/logger.cpp
 )
 
+target_include_directories(canalyzer PRIVATE
+    Core/Inc
+)
+
 # Add lib dependency
 add_subdirectory(../../lib fwlib)
 

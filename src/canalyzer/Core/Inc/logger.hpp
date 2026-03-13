@@ -1,22 +1,14 @@
 #pragma once
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
-#include <csignal>
-#include <cstring>
 #include <deque>
-#include <filesystem>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <memory>
 #include <mutex>
-#include <queue>
-#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include <fcntl.h>
@@ -27,7 +19,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "Yaml.hpp"
 #include "dbc_runtime.hpp"
 #include "influxdb.hpp"
 
