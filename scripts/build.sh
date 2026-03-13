@@ -32,7 +32,7 @@ options:
   -p, --preset <name>   cmake preset (default: Debug)
   -t, --target <name>   cmake target name (default: folder name)
   -f, --flash           flash the device after build
-  -c, --clean           clean build directory before building
+  -c, --clean           clean build directory
   -h, --help            show this help message
 EOF
     exit 1

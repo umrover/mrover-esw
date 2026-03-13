@@ -63,7 +63,3 @@ above the value of CCR, the PWM signal will be set low.
 
 If you are still confused, here's a helpful [slide deck](https://docs.google.com/presentation/d/1eK4ROr9wMi3IOqEUcBABVkFSWsVM56jEgm_zoR2-wio/edit?usp=drive_link)
 that goes more in depth. 
-
-
-
-

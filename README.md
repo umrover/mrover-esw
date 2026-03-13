@@ -8,7 +8,7 @@ Documentation can be found in `docs/` and can be viewed [here](https://umrover.g
 Instructions for developing and building the documentation locally can be found in the `docs/README.md` file.
 
 The `src/` directory contains the source code for the ESW subteam. As of now, only firmware should be placed here.
-All ROS2 code should go in the [mrover-ros2 repository](https://github.com/umrover/mrover-ros2).
+All ROS2 code and device clients should go in the [mrover-ros2 repository](https://github.com/umrover/mrover-ros2).
 
 The `lib/` directory contains library code including hardware drivers and utility code.
 
