@@ -125,6 +125,8 @@ namespace mrover {
                 oxygen_sensor.update_oxygen();
             else if (sensor == sensor_ozone)
                 ozone_sensor.update_ozone();
+            else if (sensor == sensor_uv)
+                uv_sensor.update_uv();
         }
 
         void poll_sensor (Sensor sensor) {
