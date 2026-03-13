@@ -1,0 +1,356 @@
+<!--
+We override the footer block in order to insert the
+last updated info on the bottom of each page.
+See https://www.mkdocs.org/user-guide/customizing-your-theme/#overriding-template-blocks
+for more info about overriding template blocks
+-->
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Build Tools - MRover ESW</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Build Tools";
+        var mkdocs_page_input_path = "info/build.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> MRover ESW
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Getting Started</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/intro/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../getting-started/stm32cube/">STM32Cube</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" >Starter Projects</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/led/">LED</a>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" >Servo</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part1-pwm/">Part 1 - PWM</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../getting-started/starter/servo/part2-can/">Part 2 - CAN</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="../../getting-started/starter/temp-humidity/">Temp-Humidity</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Projects</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../projects/overview26/">ESW 2025-2026 Projects</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Useful Information</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Build Tools</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#scripts">Scripts</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#newsh">new.sh</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#buildsh">build.sh</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#stylesh">style.sh</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#fdcanusbsh">fdcanusb.sh</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#python-tools">Python Tools</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../timers/">Timers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../communication-protocols/">Communication Protocols</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushed/">Brushed Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../brushless/">Brushless Motors</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../science/">Science</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nucleos/">Nucleo Information</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../stm32-boot/">STM32 Boot</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Extra Information</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../extra/cmake-cubemx/">CMake with CubeMX</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../extra/archive/">Archived Docs</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">MRover ESW</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Useful Information</li>
+      <li class="breadcrumb-item active">Build Tools</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/umrover/mrover-esw/edit/main/docs/info/build.md" class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="build-tools">Build Tools</h1>
+<p>This document covers the build tooling and other utilities developed to aid the
+development process.</p>
+<h2 id="scripts">Scripts</h2>
+<p>All of the scripts found in <code>scripts/</code> serve as wrappers of either python tools
+or vendor utilities (e.g. MJBots, STMicroelectronics), and should be used as
+simple interfaces to these tools.</p>
+<h3 id="newsh"><code>new.sh</code></h3>
+<p>The <code>scripts/new.sh</code> script is designed to aid the creation of new STM32 projects
+that leverage the HAL libraries provided by STM. The script can be run as follows.</p>
+<pre class="highlight"><code class="language-bash">./scripts/new.sh --mcu &lt;mcu&gt; --src &lt;path-to-new-project&gt; [--lib &lt;library&gt;]
+# OR
+./scripts/new.sh --board &lt;board&gt; --src &lt;path-to-new-project&gt; [--lib &lt;library&gt;]
+# OR
+./scripts/new.sh --help  # to display the options menu</code></pre>
+<p>In the invocation above, the script accepts either an MCU (e.g. <code>STMG431CBTx</code>)
+or a development board (e.g. <code>NUCLEO-G431RB</code>). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that under the hood, this script emplaces this parameter directly into 
+a headless STM32CubeMX script, which will fail if the MCU or board provided
+is invalid. Use the STM32CubeMX project creation wizard to see possible MCU
+options available, and to verify the correct part information.</p>
+</div>
+<p>Under the hood, this script will run CubeMX and create an STM32 project for
+the specified MCU. It does this by running a script of STM32CubeMX commands
+that create the project in the correct CMake/GCC configuration, and then
+manually patches the IOC to ensure some settings that aren't linked to
+STM32CubeMX commands are correctly set.</p>
+<p>The directory provided by the <code>--src</code> flag will be used for the creation of the
+new project, and once the script finishes execution the project should be able
+to be built.</p>
+<p>Libraries can be provided with the <code>--lib</code> flag; if, for example, the new project
+should link with ESW's library for commonly used stm32 header files (defined by
+<code>lib/stm32/CMakeLists.txt</code>) and the CAN messages defined by the auto-generated
+DBC headers (defined by <code>lib/dbc/CMakeLists.txt</code>), the script should be run with
+<code>... --lib stm32 --lib dbc</code> options. This will result in the created
+<code>&lt;src&gt;/CMakeLists.txt</code> linking against these libraries. This is not necessary to
+get all the libraries correct at this point, as the file can be modified later.</p>
+<p>The created <code>&lt;src&gt;/CMakeLists.txt</code> will then contain the following section.
+<pre class="highlight"><code class="language-cmake"># Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    stm32cubemx
+
+    # Add user defined libraries
+    stm32
+    dbc
+)</code></pre></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Future calls to the automated python tools that manage the auto-generated CMake
+files will overwrite this section, so these parameters will need to be provided
+to these scripts as well.</p>
+</div>
+<h3 id="buildsh"><code>build.sh</code></h3>
+<p>The build script is a wrapper around the CMake and the GCC distribution bundled with
+the STM32CubeCLT, as well as the STMCubeProgrammer CLI. The build script can be run
+in the following configurations.</p>
+<p>1. Clean Project</p>
+<p>The script's <code>--clean</code> flag will remove all build artifacts from the project source.
+This may be necessary to run after some updates to build files, as CMake is only
+configured once and the cached build artifacts are used after.</p>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;src&gt; --clean</code></pre>
+<p>2. Build Project</p>
+<p>The default behavior of the script is to build the specified project using CMake.
+The script consumes the <code>--src &lt;path-to-project&gt;</code> flag to denote the directory
+containing the project. If the project target is different from the directory name
+(which is not the case for projects generated with the <code>./scripts/new.sh</code> script)
+the <code>--target &lt;target&gt;</code> is provided. Additionally, the build preset can be altered
+with the <code>--preset &lt;preset&gt;</code> flag. The default preset provided with the CMake
+configuration is <code>Debug</code>, but <code>Release</code> is also valid. If no preset is specified,
+the script will default to <code>Debug</code>. To build a project, the script can be run as
+follows.</p>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;path-to-project&gt; [--preset &lt;preset&gt;] [--target &lt;target&gt;]</code></pre>
+<p>3. Flash Project</p>
+<p>To flash the executable file for a project to an MCU, use the <code>--flash</code> flag. When
+set, the script will attempt a build as above, and if successful invoke the
+STM32CubeProgrammer CLI to connect to an ST-LINK and flash the executable via SWD.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Presently the script will only support flashing STM32 MCUs with SWD, and not JTAG.</p>
+</div>
+<pre class="highlight"><code class="language-bash">./scripts/build.sh --src &lt;path-to-project&gt; [--preset &lt;preset&gt;] --flash</code></pre>
+<p>Finally, the build script will ensure the existance of a <code>&lt;src&gt;/.clangd</code> file for
+development environment compatability. This needs to be generated per-project as
+it contains some project-specific and system-specific parameters.</p>
+<h3 id="stylesh"><code>style.sh</code></h3>
+<p>The style script enforces code style across all ESW code. It runs in CI, and must
+be passing for PRs to be accepted. The script can be run with the following arguments.</p>
+<pre class="highlight"><code class="language-bash">./scripts/style.sh [--format] [--lint] [--fix] [--verbose]</code></pre>
+<p>If no options are provided, the <code>--format</code> run configuration will be used by default.
+The functionality of the options is enumerated below.</p>
+<ul>
+<li><code>--format</code></li>
+</ul>
+<p>This configuration will run <code>clang-format</code> and <code>ruff</code> to format <code>C/C++</code> and <code>Python</code>
+code, respectively.</p>
+<ul>
+<li><code>--lint</code></li>
+</ul>
+<p>This configuration will run linters <code>ruff</code> and <code>shellcheck</code> for <code>Python</code> and <code>shell</code>
+scripts, respectively. This configuration will also run <code>ty</code> for static type analysis
+of <code>Python</code> scripts.</p>
+<ul>
+<li><code>--fix</code></li>
+</ul>
+<p>This configuration will fix all possible formatting and linting issues found with the
+associated flags the script is run with. If the script finishes unsuccessfully with
+this flag, there are issues with the codebase that the tools cannot automatically
+resolve.</p>
+<ul>
+<li><code>--verbose</code></li>
+</ul>
+<p>This flag runs the script with verbose output.</p>
+<h3 id="fdcanusbsh"><code>fdcanusb.sh</code></h3>
+<p>This script is a wrapper over MJBot's <code>fdcanusb_daemon</code>. It is designed to run with
+the MJBots FDCANUSB to allow connectivity to CAN networks over USB. The script is run
+as follows.</p>
+<pre class="highlight"><code class="language-bash">sudo ./scripts/fdcanusb.sh --net &lt;vcan-network&gt;</code></pre>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This script must be run as <code>sudo</code> on linux systems to allow the virtual CAN
+network interface to be created and started.</p>
+</div>
+<p>The <code>--net</code> flag specifies the virtual CAN network the fdcanusb should use. To work
+with the ROS2 stack, this should be something like <code>can[0-3]</code>. The script runs the
+underlying <code>fdcanusb_daemon</code> in verbose mode, so the full CAN frame of all messages
+on the bus will be directed to standard output.</p>
+<div class="admonition todo">
+<p class="admonition-title">Todo</p>
+<p>MJBots no longer supports the <code>fdcanusb_daemon</code> (this script currently pulls the source
+for this from an archive). This script should be updated to not depend on this binary.</p>
+</div>
+<h2 id="python-tools">Python Tools</h2>
+<p>The ESW python tools (located in <code>tools/</code>) are designed to enable rapid development, testing, 
+and validation of the embedded hardware and software stack. Currently, the following submodules of 
+the main <code>esw</code> python module are stable. Other submodules (e.g. <code>esw.bmc</code>) are product-specific,
+and not documented here.</p>
+<p>1. <code>esw.stlink</code></p>
+<p>This module contains scripts to handle serial data from the VCP-TX and VCP-RX pins on the ST-LINKv3.
+This enables serial data to be sent and received from the MCU via UART. The <code>tools/scripts/monitor.py</code>
+script (aliased with the <code>monitor</code> just recipe) will use this stack to display data sent from the MCU
+with the logger, provided to the firmware via the <code>util</code> CMake package.</p>
+<p>2. <code>esw.cubemx</code></p>
+<p>This module contains scripts to handle the creation and management of STM32 CMake projects.
+The <code>tools/scripts/generate_project.py</code> script is uesd by the <code>scripts/new.sh</code> script, as is
+the <code>tools/scripts/update_cmake_cfg.py</code> script, which re-creates all CMake files for a project.</p>
+<p>3. <code>esw.can</code></p>
+<p>This module contains the functionality to use both the DBC files as well as the FDCANUSB to send
+and receive can messages. Many scripts in <code>tools/scripts</code> rely on this functionality to send and
+receive CAN messages to the MCUs. The <code>tools/scripts/can_header_gen.py</code> script is used by the
+<code>lib/dbc/CMakeLists.txt</code> file to generate DBC header files for the <code>dbc</code> library.</p>
+              
+            </div>
+          </div>
+<footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../projects/overview26/" class="btn btn-neutral float-left" title="ESW 2025-2026 Projects"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../timers/" class="btn btn-neutral float-right" title="Timers">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  <div>
+    <!-- Last updated info provided by git-revision-date-localized plugin -->
+    
+      <small>Last updated: <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 13, 2026 23:39:13 UTC">March 13, 2026</span></small>
+    
+    <div>
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/umrover/mrover-esw" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../../projects/overview26/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../timers/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
