@@ -1,6 +1,6 @@
 #pragma once
 
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <algorithm>
 #include <cinttypes>
 #include <err.hpp>
@@ -17,7 +17,7 @@
 namespace mrover {
 
     class Motor {
-        typedef void (*tx_exec_t)(CANBus1Msg_t const& msg);
+        typedef void (*tx_exec_t)(MRoverCANMsg_t const& msg);
 
         std::optional<HBridge> m_hbridge;
         std::optional<AD8418A> m_current_sensor;
@@ -41,17 +41,19 @@ namespace mrover {
         float m_position{};
         float m_velocity{};
         float m_rotor_output_ratio{};
-
         float m_min_position{};
         float m_max_position{};
         float m_min_velocity{};
         float m_max_velocity{};
-
+        float m_stall_current{};
+        float m_delta_position{};
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
         bool m_limit_forward_hit{false};
         bool m_limit_backward_hit{false};
+        bool m_stalled{false};
+        bool m_stall_en{false};
 
         auto reset() -> void {
             m_mode = mode_t::STOPPED;
@@ -87,6 +89,7 @@ namespace mrover {
                 if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
                 return std::numeric_limits<float>::quiet_NaN();
             }();
+            // Logger::instance().info("velocity: %f", m_velocity);
         }
 
         auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
@@ -109,6 +112,25 @@ namespace mrover {
                 } else {
                     at_limit = false;
                 }
+            }
+        }
+
+        auto detect_stall() -> void {
+            // Logger::instance().info("m_stall_en: %u", m_stall_en);
+            // Logger::instance().info("current: %u", m_current_sensor);
+            // Logger::instance().info("quad: %u", m_quad_encoder);
+            // Logger::instance().info("current surge: %s", (m_current_sensor->get_delta_current() > m_delta_current) ? "true" : "false");
+            // Logger::instance().info("position change: %s", (m_quad_encoder->get_delta_position() < m_delta_position) ? "true" : "false");
+
+            if (m_stall_en && m_current_sensor && m_current_sensor->current() > m_stall_current) {
+                if (m_quad_encoder) {
+                    m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
+                } else {
+                    m_stalled = true;
+                }
+                // TODO(eric) what can we do here to protect the motor?
+            } else {
+                m_stalled = false;
             }
         }
 
@@ -199,6 +221,11 @@ namespace mrover {
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
             m_rotor_output_ratio = m_config_ptr->get<bmc_config_t::rotor_output_ratio>();
 
+            // initialize stall detection values
+            m_stall_en = m_config_ptr->get<bmc_config_t::stall_en>();
+            m_stall_current = m_config_ptr->get<bmc_config_t::stall_current>();
+            m_delta_position = m_config_ptr->get<bmc_config_t::delta_position>();
+
             if (quad) {
                 m_encoder_mode = encoder_mode_t::QUAD;
                 float const phase = m_config_ptr->get<bmc_config_t::quad_phase>() ? 1.0f : -1.0f;
@@ -216,9 +243,9 @@ namespace mrover {
         auto handle(T const& _) const -> void {
         }
 
-        auto handle(BMCProbe const& msg) const -> void {
+        auto handle(ESWProbe const& msg) const -> void {
             // acknowledge probe
-            m_message_tx_f(BMCAck{msg.data});
+            m_message_tx_f(ESWAck{msg.data});
         }
 
         auto handle(BMCModeCmd const& msg) -> void {
@@ -227,7 +254,11 @@ namespace mrover {
                 m_mode = mode_t::STOPPED;
             else {
                 m_mode = static_cast<mode_t>(msg.mode);
-                if (m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) {
+                if ((m_mode == mode_t::POSITION || m_mode == mode_t::VELOCITY) && m_encoder_mode == encoder_mode_t::NONE) {
+                    m_mode = mode_t::FAULT;
+                    m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
+                }
+                if (m_mode == mode_t::POSITION) {
                     if (std::isnan(m_position)) {
                         m_mode = mode_t::FAULT;
                         m_error = bmc_error_t::INVALID_CONFIGURATION_FOR_MODE;
@@ -266,7 +297,7 @@ namespace mrover {
             }
         }
 
-        auto handle(BMCConfigCmd const& msg) -> void {
+        auto handle(ESWConfigCmd const& msg) -> void {
             // input can either be a request to set a value (apply is set) or read a value (apply not set)
             if (msg.apply) {
                 if (m_config_ptr->set_raw(msg.address, msg.value)) {
@@ -276,7 +307,7 @@ namespace mrover {
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
-                    m_message_tx_f(BMCAck{val});
+                    m_message_tx_f(ESWAck{val});
                 }
             }
         }
@@ -308,7 +339,7 @@ namespace mrover {
             init();
         }
 
-        auto receive(CANBus1Msg_t const& v) -> void {
+        auto receive(MRoverCANMsg_t const& v) -> void {
             std::visit([this](auto&& value) -> auto {
                 handle(value);
             },
@@ -316,18 +347,24 @@ namespace mrover {
         }
 
         auto send_state() -> void {
-            // m_current_sensor.update_sensor();
-
+            auto const current = [this]() -> float {
+                if (m_current_sensor) {
+                    m_current_sensor->update_sensor();
+                    detect_stall();
+                    return m_current_sensor->current();
+                }
+                return std::numeric_limits<float>::quiet_NaN();
+            }();
 
             m_message_tx_f(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
                     m_position,                    // position
                     m_velocity,                    // velocity
-                    m_current_sensor->current(),   // current
+                    current,                       // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
-                    0                              // is_stalled
+                    m_stalled                      // is_stalled
             });
         }
 

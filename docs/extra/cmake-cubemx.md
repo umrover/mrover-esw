@@ -3,7 +3,7 @@
 In [Getting Started/STM32Cube](../getting-started/stm32cube/index.md), we went over how to set up the
 STM32Cube toolchain utilizing our own scripts and CMakeLists.txt templates to setup and build the projects.
 
-In this document, we will go over the manual approach of using CubeMX and CubeCLT directly.
+This document covers the manual approach of invoking CubeMX and CubeCLT directly.
 
 ## Prerequisites
 

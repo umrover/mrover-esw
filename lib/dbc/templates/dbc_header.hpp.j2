@@ -15,6 +15,8 @@
 
 
 namespace mrover {
+    static constexpr uint32_t MOTEUS_PREFIX = 0x0000;
+    static constexpr uint32_t MOTEUS_REPLY_MASK = 0x8000;
     static constexpr uint32_t CAN_NODE_MASK = 0xFFFF;
     static constexpr uint32_t CAN_DEST_ID_MASK = 0x00FF;
     static constexpr uint32_t CAN_SRC_ID_MASK = 0xFF00;
@@ -24,7 +26,7 @@ namespace mrover {
     {% for msg_id, msg in message_dict.items() %}
     class {{ msg.name }} {
     public:
-        static constexpr uint32_t CAN_ID = {{ msg_id }};
+        static constexpr uint32_t CAN_ID = {{ "0x%X"|format(msg_id) }};
         static constexpr uint32_t BASE_ID = CAN_ID & ~CAN_NODE_MASK;
         {%- set signals = msg.signal_dict %}
         {%- for sig_name, sig_data in signals.items() %}
@@ -197,7 +199,7 @@ namespace mrover {
     class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::{{ dbc_name }}Handler"))) {{ dbc_name }}Handler {
     public:
         template<typename... Args>
-        explicit {{ dbc_name }}Handler(Args&&... args) {}
+        explicit {{ dbc_name }}Handler(Args&&...) {}
     };
 #endif // HAL_FDCAN_MODULE_ENABLED
 

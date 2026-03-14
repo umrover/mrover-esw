@@ -4,7 +4,7 @@
 #include <serial/uart.hpp>
 #include <tuple>
 
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <adc.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/flash.hpp>
@@ -51,6 +51,8 @@ namespace mrover {
         reg_t<float> VEL_K_I{0x40};
         reg_t<float> VEL_K_D{0x44};
         reg_t<float> VEL_K_F{0x48};
+        reg_t<float> STALL_CURRENT{0x4C};
+        reg_t<float> DELTA_POSITION{0x50};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
         using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
@@ -59,6 +61,7 @@ namespace mrover {
         using motor_inv = field_t<&bmc_config_t::SYS_CFG, 1>;
         using quad_en = field_t<&bmc_config_t::SYS_CFG, 2>;
         using quad_phase = field_t<&bmc_config_t::SYS_CFG, 3>;
+        using stall_en = field_t<&bmc_config_t::SYS_CFG, 4>;
 
         using lim_a_en = field_t<&bmc_config_t::LIMIT_CFG, 0>;
         using lim_a_active_high = field_t<&bmc_config_t::LIMIT_CFG, 1>;
@@ -87,6 +90,8 @@ namespace mrover {
         using vel_k_i = field_t<&bmc_config_t::VEL_K_I>;
         using vel_k_d = field_t<&bmc_config_t::VEL_K_D>;
         using vel_k_f = field_t<&bmc_config_t::VEL_K_F>;
+        using stall_current = field_t<&bmc_config_t::STALL_CURRENT>;
+        using delta_position = field_t<&bmc_config_t::DELTA_POSITION>;
 
 
         template<typename F>
@@ -99,14 +104,16 @@ namespace mrover {
             return std::forward_as_tuple(
                     CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
-                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F,
+                    STALL_CURRENT, DELTA_POSITION);
         }
 
         constexpr auto all() const {
             return std::forward_as_tuple(
                     CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
-                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F);
+                    POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F,
+                    STALL_CURRENT, DELTA_POSITION);
         }
 
         auto set_raw(uint8_t address, uint32_t const raw) -> bool {
@@ -208,9 +215,9 @@ namespace mrover {
     inline auto get_current_sensor_options() -> AD8418A::Options {
         AD8418A::Options options;
         options.gain = 20.0f;
-        options.shunt_resistance = 0.0005f;
+        options.shunt_resistance = 0.0125f;
         options.vref = 3.3f;
-        options.vcm = options.vref / 2.0f;
+        options.vcm = 1.598f;
         options.adc_resolution = 4095;
         return options;
     }
