@@ -49,6 +49,9 @@ BO_ 3221225472 VECTOR__INDEPENDENT_SIG_MSG: 0 Vector__XXX
  SG_ timestamp : 80|16@1+ (1,0) [0|0] "" Vector__XXX
  SG_ NewSignal_0017 : 40|8@1+ (1,0) [0|0] "" Vector__XXX
  SG_ NewSignal_0018 : 48|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ address : 0|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ value : 8|32@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ apply : 40|1@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 2148532224 BMCModeCmd: 2 Vector__XXX
  SG_ mode : 0|8@1+ (1,0) [0|0] "" Vector__XXX
@@ -92,11 +95,6 @@ BO_ 2153775104 SCISensorData: 32 Vector__XXX
  SG_ ozone : 160|32@1- (1,0) [0|0] "" Vector__XXX
  SG_ co2 : 192|32@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 2152726528 SCIConfigCmd: 6 Vector__XXX
- SG_ address : 0|8@1+ (1,0) [0|0] "" Vector__XXX
- SG_ value : 8|32@1+ (1,0) [0|0] "" Vector__XXX
- SG_ apply : 40|1@1+ (1,0) [0|0] "" Vector__XXX
-
 BO_ 2153840640 SCISensorState: 1 Vector__XXX
  SG_ uv_state : 0|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ thp_state : 1|1@1+ (1,0) [0|0] "" Vector__XXX
@@ -133,18 +131,27 @@ BA_ "VFrameFormat" BO_ 2163277824 15;
 BA_ "CANFD_BRS" BO_ 2163277824 1;
 BA_ "VFrameFormat" BO_ 2163343360 15;
 BA_ "CANFD_BRS" BO_ 2163343360 1;
-VAL_ 3221225472 velocity_valid 1 "Valid" 0 "Invalid" ;
-VAL_ 3221225472 position_valid 1 "Valid" 0 "Invalid" ;
+BA_ "VFrameFormat" BO_ 2153775104 15;
+BA_ "CANFD_BRS" BO_ 2153775104 1;
+BA_ "VFrameFormat" BO_ 2153840640 15;
+BA_ "CANFD_BRS" BO_ 2153840640 1;
+BA_ "VFrameFormat" BO_ 2152792064 15;
+BA_ "CANFD_BRS" BO_ 2152792064 1;
 VAL_ 2148532224 mode 0 "Stopped" 1 "Fault" 5 "Throttle" 6 "Position" 7 "Velocity" ;
 VAL_ 2148532224 enable 1 "Enabled" 0 "Disabled" ;
 VAL_ 2148597760 target_valid 1 "Valid" 0 "Invalid" ;
 VAL_ 2148663296 reset 1 "Enable" 0 "Disable" ;
 VAL_ 2148663296 clear_faults 1 "Enable" 0 "Disable" ;
 VAL_ 2148728832 mode 0 "Stopped" 1 "Fault" 5 "Throttle" 6 "Position" 7 "Velocity" ;
-SIG_VALTYPE_ 3221225472 throttle : 1;
-SIG_VALTYPE_ 3221225472 velocity : 1;
 SIG_VALTYPE_ 2148597760 target : 1;
 SIG_VALTYPE_ 2148728832 position : 1;
 SIG_VALTYPE_ 2148728832 velocity : 1;
 SIG_VALTYPE_ 2148728832 current : 1;
+SIG_VALTYPE_ 2153775104 uv_index : 1;
+SIG_VALTYPE_ 2153775104 temperature : 1;
+SIG_VALTYPE_ 2153775104 humidity : 1;
+SIG_VALTYPE_ 2153775104 pressure : 1;
+SIG_VALTYPE_ 2153775104 oxygen : 1;
+SIG_VALTYPE_ 2153775104 ozone : 1;
+SIG_VALTYPE_ 2153775104 co2 : 1;
 
