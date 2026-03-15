@@ -1,5 +1,14 @@
 import yaml
 
+types = {
+    "int" : (int, 4),
+    "uint32_t" : ("uint32_t", 4),
+    "uint16_t": ("uint16_t", 2),
+    "uint8_t" : ("uint8_t", 1),
+    "float": ("float", 4),
+    "bool": ("bool", 1)
+}
+
 def generate_config_struct(yaml_path: str) -> str:
     with open(yaml_path) as file:
         config = yaml.safe_load(file)
@@ -15,9 +24,12 @@ def generate_config_struct(yaml_path: str) -> str:
 
     for reg in regs:
         name = reg["name"].upper()
-        typ = reg["type"]
-        size = reg["size"]
+        typ = types.get(reg["type"], 0)
+        if (typ == 0):
+            print("Unsupported reg type")
+            exit()
         fields = reg.get("fields")
+        
 
         if fields is not None:
             for field in fields:
@@ -28,9 +40,9 @@ def generate_config_struct(yaml_path: str) -> str:
         else:
             output_fields.append(f"    using {name.lower()} = field_t<&{struct_name}::{name}>;")
 
-        output_regs.append(f"    reg_t<{typ}> {name}{{{current_pos:#x}}};")
+        output_regs.append(f"    reg_t<{typ[0]}> {name}{{{current_pos:#x}}};")
 
-        current_pos += size
+        current_pos += typ[1]
 
     output_lines += output_regs + output_fields
 
