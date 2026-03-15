@@ -53,6 +53,7 @@ namespace mrover {
         reg_t<float> VEL_K_F{0x48};
         reg_t<float> STALL_CURRENT{0x4C};
         reg_t<float> DELTA_POSITION{0x50};
+        reg_t<float> VEL_RATE_LIMIT{0x54};
 
         using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
         using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
@@ -92,6 +93,7 @@ namespace mrover {
         using vel_k_f = field_t<&bmc_config_t::VEL_K_F>;
         using stall_current = field_t<&bmc_config_t::STALL_CURRENT>;
         using delta_position = field_t<&bmc_config_t::DELTA_POSITION>;
+        using vel_rate_limit = field_t<&bmc_config_t::VEL_RATE_LIMIT>;
 
 
         template<typename F>
@@ -105,7 +107,7 @@ namespace mrover {
                     CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
                     POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F,
-                    STALL_CURRENT, DELTA_POSITION);
+                    STALL_CURRENT, DELTA_POSITION, VEL_RATE_LIMIT);
         }
 
         constexpr auto all() const {
@@ -113,7 +115,7 @@ namespace mrover {
                     CAN_ID, HOST_CAN_ID, SYS_CFG, LIMIT_CFG, QUAD_CPR, GEAR_RATIO, ROTOR_OUTPUT_RATIO,
                     LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM, MIN_POS, MAX_POS, MIN_VEL, MAX_VEL,
                     POS_K_P, POS_K_I, POS_K_D, POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F,
-                    STALL_CURRENT, DELTA_POSITION);
+                    STALL_CURRENT, DELTA_POSITION, VEL_RATE_LIMIT);
         }
 
         auto set_raw(uint8_t address, uint32_t const raw) -> bool {

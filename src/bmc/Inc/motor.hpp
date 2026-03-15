@@ -40,6 +40,7 @@ namespace mrover {
         float m_target{};
         float m_position{};
         float m_velocity{};
+        float m_vel_rate_limit{};
         float m_rotor_output_ratio{};
         float m_min_position{};
         float m_max_position{};
@@ -153,8 +154,17 @@ namespace mrover {
                     case mode_t::VELOCITY:
                         if (!m_hbridge->is_on()) m_hbridge->start();
                         {
-                            auto const target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity); // unit of output
                             auto const input_vel = m_velocity_raw.value() * m_rotor_output_ratio;         // revolutions/sec * output scalar
+                            auto const unlimited_target_vel = std::clamp(m_target, m_min_velocity, m_max_velocity);
+                            auto const target_vel;  // unit of output
+                            if (input_vel != 0.0f) {    // might need an epsilon comparsion (if it passes low input_vel that result in too slow of growth)
+                                auto const lower_lim = std::signbit(m_target) * input_vel * (1 - m_vel_rate_limit);
+                                auto const upper_lim = std::signbit(m_target) * input_vel * (1 + m_vel_rate_limit);
+                                target_vel = std::clamp(unlimited_target_vel, lower_lim, upper_lim);
+                            }
+                            else {
+                                target_vel = unlimited_target_vel * m_vel_rate_limit;
+                            }
                             auto setpoint_thr = m_pidf->calculate(input_vel, target_vel, m_pidf_elapsed_timer->get_dt());
                             if (setpoint_thr > 0.0f && m_limit_forward_hit) setpoint_thr = 0.0f;
                             if (setpoint_thr < 0.0f && m_limit_backward_hit) setpoint_thr = 0.0f;
@@ -201,6 +211,7 @@ namespace mrover {
             m_max_position = m_config_ptr->get<bmc_config_t::max_pos>();
             m_min_velocity = m_config_ptr->get<bmc_config_t::min_vel>();
             m_max_velocity = m_config_ptr->get<bmc_config_t::max_vel>();
+            m_vel_rate_limit = m_config_ptr->get<bmc_config_t::vel_rate_limit>();
 
             // init limit switches
             bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
