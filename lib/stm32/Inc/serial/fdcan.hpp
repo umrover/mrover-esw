@@ -2,9 +2,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <serial/fdcan.hpp>
 #include <span>
 #include <string_view>
-#include <serial/fdcan.hpp>
 #include <util.hpp>
 
 #ifdef STM32
