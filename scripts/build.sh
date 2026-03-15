@@ -61,6 +61,15 @@ check_deps() {
     done
 }
 
+clean() {
+    local build_dir="$1"
+    local venv_dir="$2"
+    local dbc_dir="$3"
+    rm -rf "$build_dir"
+    rm -rf "$venv_dir"
+    rm -rf "$dbc_dir"
+}
+
 # parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -98,7 +107,7 @@ BUILD_DIR="build/$PRESET"
 
 # clean the project if that paramter was set
 if [[ "$DO_CLEAN" == "true" ]]; then
-    run_step "cleaning build dir" rm -rf "$BUILD_DIR"
+    run_step "cleaning build dir" clean "$BUILD_DIR" "$VENV_PATH" "$ESW_ROOT/lib/dbc/build"
     exit 0
 fi
 
