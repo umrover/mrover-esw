@@ -1,6 +1,7 @@
 import queue
 import signal
 from multiprocessing import Queue, Event, Process
+from multiprocessing.synchronize import Event as EventType
 from time import sleep, time
 
 import matplotlib.pyplot as plt
@@ -10,7 +11,7 @@ from esw import esw_logger
 
 class AsyncPlotter:
     _data_queue: Queue
-    _stop_event: Event
+    _stop_event: EventType
     _start_time: float
 
     _process: Process | None
@@ -32,7 +33,14 @@ class AsyncPlotter:
         self._y_label = y_label
 
     def __enter__(self):
-        def plotting_process(data_queue: Queue, stop_event: Event, max_size: int = 200, loop_delay: float = 0.05, x_label: str = "", y_label: str = ""):
+        def plotting_process(
+            data_queue: Queue,
+            stop_event: EventType,
+            max_size: int = 200,
+            loop_delay: float = 0.05,
+            x_label: str = "",
+            y_label: str = "",
+        ):
             # ignore ctrl+c - main process to stop first
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
@@ -40,9 +48,9 @@ class AsyncPlotter:
             fig, ax = plt.subplots()
             times, targets, actual_vals = [], [], []
 
-            line_target, = ax.plot([], [], 'r--', label='Target')
-            line_actual, = ax.plot([], [], 'b-', label='Actual')
-            ax.legend(loc='upper right')
+            (line_target,) = ax.plot([], [], "r--", label="Target")
+            (line_actual,) = ax.plot([], [], "b-", label="Actual")
+            ax.legend(loc="upper right")
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
 
@@ -75,7 +83,17 @@ class AsyncPlotter:
 
         if self._process is None:
             esw_logger.info("Starting Plotting Process")
-            self._process = Process(target=plotting_process, args=(self._data_queue, self._stop_event, self._max_size, self._loop_delay, self._x_label, self._y_label))
+            self._process = Process(
+                target=plotting_process,
+                args=(
+                    self._data_queue,
+                    self._stop_event,
+                    self._max_size,
+                    self._loop_delay,
+                    self._x_label,
+                    self._y_label,
+                ),
+            )
             self._start_time = time()
             self._process.start()
         return self
