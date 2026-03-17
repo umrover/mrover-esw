@@ -2,10 +2,10 @@
 #include "Yaml.hpp"
 
 
-#include <iostream>
-#include <iomanip>
 #include <csignal>
 #include <filesystem>
+#include <iomanip>
+#include <iostream>
 
 namespace logger {
 
@@ -291,7 +291,7 @@ namespace logger {
 
             switch (mode) {
                 case log_mode::WHITELIST_IDS: {
-                    if (log_ids.find(id) == log_ids.end()) continue;;
+                    if (log_ids.find(id) == log_ids.end()) continue;
                     break;
                 }
                 case log_mode::BLACKLIST_IDS: {
@@ -406,7 +406,7 @@ namespace logger {
             } else if (log_mode_str == "blacklist") {
                 mode = log_mode::BLACKLIST_IDS;
             } else {
-                throw std::runtime_error("expected 'whitelist' or 'blacklist'");        // maybe change to std::format
+                throw std::runtime_error("expected 'whitelist' or 'blacklist'"); // maybe change to std::format
             }
 
             std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
