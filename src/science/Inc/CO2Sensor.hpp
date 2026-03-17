@@ -49,14 +49,18 @@ namespace mrover {
 		}
 
 		// initializes sensor parameters
-		void init() {
+		bool init() {
             // Disable CRC (0x3768)
 			uint8_t tx_buf1[2] = {0x37, 0x68};
-            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf1, 2, HAL_MAX_DELAY);
+            if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf1, 2, HAL_MAX_DELAY) != HAL_OK)
+				return false;
 
             // Set measurement mode -> standard measurement mode with 0-25% concentration in air
 			uint8_t tx_buf2[4] = {0x36, 0x15, 0x00, 0x11};
-            HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf2, 4, HAL_MAX_DELAY);
+            if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf2, 4, HAL_MAX_DELAY) != HAL_OK)
+				return false;
+
+			return true;
 		}
 	};
 }

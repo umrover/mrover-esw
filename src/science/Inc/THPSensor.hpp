@@ -1,10 +1,15 @@
 #include "main.h"
+#include "stm32g4xx_hal_def.h"
 
 #define BME280_ADDR 0x77
 #define BME280_REG_CTRL_HUM 0xF2
 #define BME280_REG_CTRL_MEAS 0xF4
 #define BME280_REG_CONFIG 0xF5
 #define BME280_REG_DATA 0xF7
+#define BME280_REG_NVM 0xF3
+#define BME280_REG_TPCAL 0x88
+#define BME280_REG_HCAL1 0xA1
+#define BME280_REG_HCAL2 0xE1
 
 namespace mrover {
 struct THP_data {
@@ -37,13 +42,30 @@ public:
 	THP (I2C_HandleTypeDef* i2c_in)
 		: i2c(i2c_in) {}
 
+	// checks nvm bit
+	bool check_nvm(uint32_t timeout_ms = 100) {
+		uint8_t status;
+		uint32_t start = HAL_GetTick();
+
+		while ((HAL_GetTick() - start) < timeout_ms) {
+			if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_NVM,I2C_MEMADD_SIZE_8BIT, &status, 1, HAL_MAX_DELAY) != HAL_OK)
+				return false;
+
+			if (!(status & 0x01))
+				return true;
+		}
+
+		return false;
+	}
+
 	// reads and sets calibration constants
-	void read_calibration() {
+	bool read_calibration() {
 	    uint8_t buf1[26];
 	    uint8_t buf2[7];
 
 	    // read temp and pressure calibration
-	    HAL_I2C_Mem_Read(i2c, BME280_ADDR << 1, 0x88, I2C_MEMADD_SIZE_8BIT, buf1, 26, HAL_MAX_DELAY);
+	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_TPCAL, I2C_MEMADD_SIZE_8BIT, buf1, 26, HAL_MAX_DELAY) != HAL_OK)
+			return false;
 
 	    dig_t1 = (uint16_t)(buf1[1] << 8) | buf1[0];
 	    dig_t2 = (int16_t)(buf1[3] << 8) | buf1[2];
@@ -60,32 +82,49 @@ public:
 	    dig_p9 = (int16_t)(buf1[23] << 8) | buf1[22];
 
 	    // read humidity calibration
-	    HAL_I2C_Mem_Read(i2c, BME280_ADDR << 1, 0xA1, I2C_MEMADD_SIZE_8BIT, &dig_h1, 1, HAL_MAX_DELAY);
-	    HAL_I2C_Mem_Read(i2c, BME280_ADDR << 1, 0xE1, I2C_MEMADD_SIZE_8BIT, buf2, 7, HAL_MAX_DELAY);
+	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_HCAL1, I2C_MEMADD_SIZE_8BIT, &dig_h1, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
+
+	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_HCAL2, I2C_MEMADD_SIZE_8BIT, buf2, 7, HAL_MAX_DELAY) != HAL_OK)
+			return false;
 
 	    dig_h2 = (int16_t)(buf2[1] << 8) | buf2[0];
 	    dig_h3 = buf2[2];
 	    dig_h4 = (int16_t)((buf2[3] << 4) | (buf2[4] & 0x0F));
 	    dig_h5 = (int16_t)((buf2[5] << 4) | (buf2[4] >> 4));
 	    dig_h6 = (int8_t)buf2[6];
+
+		return true;
 	}
 
+	// TODO: issue with initializing calibration constants
+
 	// initializes the thp sensor
-	void init() {
+	bool init() {
+		// check sensor state
+		if (!check_nvm())
+			return false;
+
 		// set calibration constants
-		read_calibration();
+		if (!read_calibration())
+			return false;
 
 		// set humidity oversampling x1
 		uint8_t ctrl_hum = 0x01;
-		HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &ctrl_hum, 1, HAL_MAX_DELAY);
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &ctrl_hum, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
 
 		// set temp oversampling to x1, pressure x1, and normal mode
 		uint8_t ctrl_meas = 0x27;
-		HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas, 1, HAL_MAX_DELAY);
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
 
 		// Standby 62.5 ms (close to 10 Hz), filter off
 		uint8_t config = 0x20;
-		HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, &config, 1, HAL_MAX_DELAY);
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, &config, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
+
+		return true;
 	}
 
 	// non-blocking read of the data register on the thp sensor

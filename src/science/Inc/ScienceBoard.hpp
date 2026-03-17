@@ -9,6 +9,7 @@
 #include <hw/pin.hpp>
 #include <config.hpp>
 #include <queue>
+#include <logger.hpp>
 
 namespace mrover {
     enum Sensor {
@@ -20,7 +21,6 @@ namespace mrover {
         sensor_uv = 5,
     };
 
-    // force into single byte
     #pragma pack(push,1)
     struct SensorStates {
         uint8_t uv_state : 1;
@@ -49,10 +49,14 @@ namespace mrover {
 
          // initialize i2c sensors
         void init() {
-            thp_sensor.init();
-            ozone_sensor.init();
-            oxygen_sensor.init();
-            co2_sensor.init();
+            if (!ozone_sensor.init())
+                flag_sensor(sensor_ozone);
+            if (!oxygen_sensor.init())
+                flag_sensor(sensor_oxygen);
+            if (!thp_sensor.init())
+                flag_sensor(sensor_thp);
+            if (!co2_sensor.init())
+                flag_sensor(sensor_co2_tx);
         }
 
         // clears all sensor faults by resetting all bits to 1
@@ -114,6 +118,66 @@ namespace mrover {
                                                     dbg_led3(dbg_led3_in),
                                                     can_handler(can_handler_in) {
             init();
+        }
+
+        // tries to reinitialize any sensors with an error state
+        void reinit_sensors(std::queue<Sensor>& i2c_queue) {
+            auto& logger = Logger::instance();
+            if (!sensor_states.co2_state) {
+                logger.info("Attempting CO2 reinit...");
+                if (co2_sensor.init()) {
+                    i2c_queue.push(sensor_co2_tx);
+                    sensor_states.co2_state = 1;
+                    logger.info("CO2 reinit successful");
+                } else {
+                    logger.info("CO2 reinit failed");
+                }
+            }
+            if (!sensor_states.thp_state) {
+                logger.info("Attempting THP reinit...");
+                if (thp_sensor.init()) {
+                    sensor_states.thp_state = 1;
+                    i2c_queue.push(sensor_thp);
+                    logger.info("THP reinit successful");
+                } else {
+                    logger.info("THP reinit failed");
+                }
+            }
+            if (!sensor_states.oxygen_state) {
+                logger.info("Attempting oxygen reinit...");
+                if (oxygen_sensor.init()) {
+                    sensor_states.oxygen_state = 1;
+                    i2c_queue.push(sensor_oxygen);
+                    logger.info("Oxygen reinit successful");
+                } else {
+                    logger.info("Oxygen reinit failed");
+                }
+            }
+            if (!sensor_states.ozone_state) {
+                logger.info("Attempting ozone reinit...");
+                if (ozone_sensor.init()) {
+                    sensor_states.ozone_state = 1;
+                    i2c_queue.push(sensor_ozone);
+                    logger.info("Ozone reinit successful");
+                } else {
+                    logger.info("Ozone reinit failed");
+                }
+            }
+        }
+
+        bool check_sensor(Sensor sensor) const {
+            if (sensor == sensor_co2_tx || sensor == sensor_co2_rx)
+                return sensor_states.co2_state;
+            else if (sensor == sensor_thp)
+                return sensor_states.thp_state;
+            else if (sensor == sensor_oxygen)
+                return sensor_states.oxygen_state;
+            else if (sensor == sensor_ozone)
+                return sensor_states.ozone_state;
+            else if (sensor == sensor_uv)
+                return sensor_states.uv_state;
+            else
+                return false;
         }
 
         void update_sensor (Sensor sensor) {

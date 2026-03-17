@@ -41,9 +41,12 @@ namespace mrover {
 		}
 
 		// initializes the sensor to be in AUTO mode (sensor constantly sends data)
-		void init() {
+		bool init() {
 			uint8_t mode = MEASURE_MODE_AUTOMATIC;
-			HAL_I2C_Mem_Write(i2c, OZONE_ADDR << 1, MODE_REGISTER, 1, &mode, 1, HAL_MAX_DELAY);
+			if (HAL_I2C_Mem_Write(i2c, OZONE_ADDR << 1, MODE_REGISTER, 1, &mode, 1, HAL_MAX_DELAY) != HAL_OK)
+				return false;
+
+			return true;
 		}
 	};
 }
