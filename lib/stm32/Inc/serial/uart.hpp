@@ -28,7 +28,7 @@ namespace mrover {
         struct Options {
             Options() {}
             uint32_t timeout_ms{100};
-            bool use_dma{true};
+            bool use_dma{false};
         };
 
         UART() = default;
