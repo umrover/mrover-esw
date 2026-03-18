@@ -366,7 +366,7 @@ namespace logger {
         try {
             Yaml::Parse(root, yaml_path.c_str());
         } catch (Yaml::Exception const& e) {
-            throw std::runtime_error("yaml parse broke");
+            throw std::runtime_error(std::string("yaml parse broke: ") + e.what());
         }
         if (debug) std::cout << "parsing 1" << std::endl;
         size = root["logger_bus_size"].As<int>();
