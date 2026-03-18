@@ -21,14 +21,15 @@ loggers:
     dbc_path: ./dbc/can1.dbc
 
   - name: vcan2
-<<<<<<< HEAD
-    log_all: false 
-    log_specify: 98,123
+    log_mode: blacklist
+    log_asc: false
+    log_specify: 
     file_path: ./log/can2.log
     dbc_path: ./dbc/can2.dbc
 
   - name: vcan3
-    log_all: false
+    log_mode: blacklist
+    log_asc: false
     log_specify: 21,2010339
     file_path: ./log/can3.log
     dbc_path: ./dbc/can3.dbc
