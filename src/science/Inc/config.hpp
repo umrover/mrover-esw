@@ -32,7 +32,7 @@ namespace mrover {
     // retrieves science board uart options
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
-        options.use_dma = false;
+        options.use_dma = true;
         return options;
     }
 
