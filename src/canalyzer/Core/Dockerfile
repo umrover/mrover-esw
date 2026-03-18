@@ -29,8 +29,4 @@ RUN rm -rf build && \
 
 
 # Run the application
-<<<<<<< HEAD
 ENTRYPOINT ["./build/canalyzer", "../canalyzer_config.yaml"]
-=======
-ENTRYPOINT [".build/canalyzer", "../canalyzer_config.yaml"]
->>>>>>> c1be7bc16ac8d4629c96ec165c413dd7d47d0416
