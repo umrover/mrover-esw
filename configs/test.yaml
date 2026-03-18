@@ -1,4 +1,5 @@
 name: test_config_t
+chip: g431cbt6
 regs:
 - name: INT_REG
   type: uint16_t
@@ -23,5 +24,3 @@ regs:
     pos: 8
 - name: FLOAT_REG
   type: float
-- name: UNSUPPORTED
-  type: size_t
