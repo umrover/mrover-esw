@@ -1,8 +1,9 @@
+#include "ScienceSensor.hpp"
 #include <adc.hpp>
 #include <cstdint>
 
 namespace mrover {
-    class UVSensor {
+    class UVSensor : public ScienceSensor {
     private:
         ADCBase* adc;
         uint8_t channel;
@@ -17,20 +18,24 @@ namespace mrover {
         UVSensor(ADCBase* adc_in, uint8_t const channel_in)
             : adc(adc_in), channel(channel_in) {}
 
-        // sample the sensor by starting a dma transaction
-        void sample_sensor() {
+        // returns the current value of uv_index
+        [[nodiscard]]  float get_uv() const {
+            return uv_index;
+        }
+
+        // updates the value of the sensor
+        void update() override {
+            uv_index = 33.0 * ((float)adc->get_channel_value(channel) / (float)adc_res);
+        }
+
+        // polls the sensor for data
+        void poll() override {
             adc->start();
         }
 
-        // update value of uv_index
-        float update_uv() {
-            uv_index = 33.0 * ((float)adc->get_channel_value(channel) / (float)adc_res);
-            return uv_index;
-        }
-
-        // returns the current value of uv_index
-        float get_current_uv() {
-            return uv_index;
+        // attempts to initialize sensor, returns true on success and false on failure
+        bool init() override {
+            return true;
         }
     }; // class UVSensor
 } // namespace mrover

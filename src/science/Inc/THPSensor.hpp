@@ -1,4 +1,4 @@
-#include "main.h"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal_def.h"
 
 #define BME280_ADDR 0x77
@@ -18,7 +18,7 @@ struct THP_data {
 	float pressure = 0; // pressure in Pa
 };
 
-class THP {
+class THPSensor : public ScienceSensor {
 private:
 	I2C_HandleTypeDef* i2c; // i2c handle pointer
 	uint8_t rx_buffer[8]; // I2C receive buffer
@@ -37,9 +37,9 @@ private:
 	// t_comp is for compensating humidity and pressure values
 	int32_t t_comp;
 public:
-	THP() = default;
+	THPSensor() = default;
 
-	THP (I2C_HandleTypeDef* i2c_in)
+	THPSensor (I2C_HandleTypeDef* i2c_in)
 		: i2c(i2c_in) {}
 
 	// checks nvm bit
@@ -97,41 +97,6 @@ public:
 		return true;
 	}
 
-	// TODO: issue with initializing calibration constants
-
-	// initializes the thp sensor
-	bool init() {
-		// check sensor state
-		if (!check_nvm())
-			return false;
-
-		// set calibration constants
-		if (!read_calibration())
-			return false;
-
-		// set humidity oversampling x1
-		uint8_t ctrl_hum = 0x01;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &ctrl_hum, 1, HAL_MAX_DELAY) != HAL_OK)
-			return false;
-
-		// set temp oversampling to x1, pressure x1, and normal mode
-		uint8_t ctrl_meas = 0x27;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas, 1, HAL_MAX_DELAY) != HAL_OK)
-			return false;
-
-		// Standby 62.5 ms (close to 10 Hz), filter off
-		uint8_t config = 0x20;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, &config, 1, HAL_MAX_DELAY) != HAL_OK)
-			return false;
-
-		return true;
-	}
-
-	// non-blocking read of the data register on the thp sensor
-	void read_thp() {
-		HAL_I2C_Mem_Read_IT(i2c, (BME280_ADDR << 1) | 1, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, rx_buffer, 8);
-	}
-
 	// converts the raw temp data from the sensor to the actual temp data
 	void compensate_temperature() {
 	    int32_t adc_t = ((int32_t)rx_buffer[3] << 12) | ((int32_t)rx_buffer[4] << 4)  | ((int32_t)rx_buffer[5] >> 4);
@@ -186,18 +151,49 @@ public:
 	    thp_data.pressure = p / 256.0f;
 	}
 
-
-	// update the temp, humidity, and pressure values
-	THP_data update_thp() {
-		compensate_temperature();
-		compensate_pressure();
-		compensate_humidity();
-
+	// returns current thp data
+	[[nodiscard]] THP_data get_thp() const {
 		return thp_data;
 	}
 
-	[[nodiscard]] THP_data get_thp() {
-		return thp_data;
+	// updates the value of the sensor
+	void update() override {
+		compensate_temperature();
+		compensate_pressure();
+		compensate_humidity();
+	}
+
+	// polls the sensor for data
+	void poll() override {
+		HAL_I2C_Mem_Read_IT(i2c, (BME280_ADDR << 1) | 1, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, rx_buffer, 8);
+	}
+
+	// attempts to initialize sensor, returns true on success and false on failure
+	bool init() override {
+		// check sensor state
+		if (!check_nvm())
+			return false;
+
+		// set calibration constants
+		if (!read_calibration())
+			return false;
+
+		// set humidity oversampling x1
+		uint8_t ctrl_hum = 0x01;
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &ctrl_hum, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
+
+		// set temp oversampling to x1, pressure x1, and normal mode
+		uint8_t ctrl_meas = 0x27;
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
+
+		// Standby 62.5 ms (close to 10 Hz), filter off
+		uint8_t config = 0x20;
+		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, &config, 1, HAL_MAX_DELAY) != HAL_OK)
+			return false;
+
+		return true;
 	}
 };
 }

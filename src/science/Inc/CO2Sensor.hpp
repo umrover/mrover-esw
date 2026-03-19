@@ -1,37 +1,24 @@
-#include "main.h"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal.h"
 #include "stm32g4xx_hal_def.h"
 
 #define CO2_ADDR 0x29
 
 namespace mrover {
-	class CO2Sensor {
+	enum Mode {
+		TX = 0,
+		RX = 1,
+	};
+
+	class CO2Sensor : public ScienceSensor{
 	private:
 		I2C_HandleTypeDef* i2c; // i2c handle pointer
 		uint8_t req_buf[2];
         uint8_t rx_buf[2];
 		float percent; // ozone value in ppm
+		Mode mode;
 
-	public:
-		CO2Sensor() = default;
-
-		explicit CO2Sensor (I2C_HandleTypeDef* i2c_in)
-			: i2c(i2c_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0) {}
-
-		// returns the current ozone data in ppm
-		[[nodiscard]] float get_co2() const {
-			return percent;
-		}
-
-        // updates ppm using rx_buf data -> conversion formula: ppm = ((rx_buf - 2^14) / 2^15) * 100
-        float update_co2() {
-            uint16_t raw = (rx_buf[0] << 8) | rx_buf[1];
-            percent = (float(raw - (1 << 14)) / (1 << 15)) * 100.0f;
-			
-			return percent;
-        }
-
-        // requests raw co2 data over i2c, when sensor responds with data callback will be hit and will call receive_buf
+		// requests raw co2 data over i2c, when sensor responds with data callback will be hit and will call receive_buf
 		void request_co2() {
 			HAL_I2C_Master_Transmit_IT(i2c, CO2_ADDR << 1, req_buf, 2);
 		}
@@ -48,9 +35,37 @@ namespace mrover {
 			HAL_I2C_Master_Receive_IT(i2c, (CO2_ADDR << 1) | 1, rx_buf, 2);
 		}
 
-		// initializes sensor parameters
-		bool init() {
-            // Disable CRC (0x3768)
+	public:
+		CO2Sensor() = default;
+
+		explicit CO2Sensor (I2C_HandleTypeDef* i2c_in)
+			: i2c(i2c_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0), mode(Mode::TX) {}
+
+		// returns the current ozone data in ppm
+		[[nodiscard]] float get_co2() const {
+			return percent;
+		}
+
+		// updates the value of the sensor
+        void update() override {
+			uint16_t raw = (rx_buf[0] << 8) | rx_buf[1];
+            percent = (float(raw - (1 << 14)) / (1 << 15)) * 100.0f;
+		}
+
+        // polls the sensor for data
+        void poll() override {
+			if (mode == Mode::TX) {
+				request_co2();
+				mode = Mode::RX;
+			} else if (mode == Mode::RX) {
+				receive_buf();
+				mode = Mode::TX;
+			}
+		}
+
+        // attempts to initialize sensor, returns true on success and false on failure
+        bool init() override {
+			// Disable CRC (0x3768)
 			uint8_t tx_buf1[2] = {0x37, 0x68};
             if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf1, 2, HAL_MAX_DELAY) != HAL_OK)
 				return false;
@@ -59,6 +74,8 @@ namespace mrover {
 			uint8_t tx_buf2[4] = {0x36, 0x15, 0x00, 0x11};
             if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf2, 4, HAL_MAX_DELAY) != HAL_OK)
 				return false;
+
+			mode = Mode::TX;
 
 			return true;
 		}
