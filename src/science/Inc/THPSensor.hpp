@@ -1,4 +1,4 @@
-#include "Sensor.hpp"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal_def.h"
 
 #define BME280_ADDR 0x77
@@ -18,7 +18,7 @@ struct THP_data {
 	float pressure = 0; // pressure in Pa
 };
 
-class THP : public Sensor {
+class THPSensor : public ScienceSensor {
 private:
 	I2C_HandleTypeDef* i2c; // i2c handle pointer
 	uint8_t rx_buffer[8]; // I2C receive buffer
@@ -37,9 +37,9 @@ private:
 	// t_comp is for compensating humidity and pressure values
 	int32_t t_comp;
 public:
-	THP() = default;
+	THPSensor() = default;
 
-	THP (I2C_HandleTypeDef* i2c_in)
+	THPSensor (I2C_HandleTypeDef* i2c_in)
 		: i2c(i2c_in) {}
 
 	// checks nvm bit

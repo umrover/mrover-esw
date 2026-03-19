@@ -1,14 +1,14 @@
-#include "main.h"
+#ifndef SCIENCE_SENSOR_HPP
+#define SCIENCE_SENSOR_HPP
 
 namespace mrover {
-    class Sensor {
+    class ScienceSensor {
     private:
         bool state;
 
     public:
-        Sensor() {
-            state = false;
-        }
+        ScienceSensor()
+            : state(true) {}
 
         // flags sensor fault
         void flag() {
@@ -38,12 +38,14 @@ namespace mrover {
         }
 
         // updates the value of the sensor
-        virtual void update();
+        virtual void update() = 0;
 
         // polls the sensor for data
-        virtual void poll();
+        virtual void poll() = 0;
 
         // attempts to initialize sensor, returns true on success and false on failure
-        virtual bool init();
+        virtual bool init() = 0;
     };
 }
+
+#endif

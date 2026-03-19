@@ -8,7 +8,6 @@
 #include <hw/pin.hpp>
 #include <logger.hpp>
 #include <config.hpp>
-#include <string>
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -25,7 +24,7 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* CO2_RX_TIM = &htim3; // 100ms
     static constexpr TIM_HandleTypeDef* CAN_TIM = &htim6; // 500ms
     static constexpr TIM_HandleTypeDef* SENSOR_STATE_TIM = &htim15; // 100ms
-    static constexpr TIM_HandleTypeDef* SENSOR_REINIT_TIM = &htim16; // 1000ms
+    static constexpr TIM_HandleTypeDef* SENSOR_RESTART_TIM = &htim16; // 1000ms
     static constexpr UART_HandleTypeDef* HLPUART = &hlpuart1;
     static constexpr I2C_HandleTypeDef* HI2C = &hi2c3;
     static constexpr FDCAN_HandleTypeDef* HFDCAN = &hfdcan1;
@@ -38,16 +37,16 @@ namespace mrover {
     ScienceBoard science_board;
 
     bool adc_free = true;
-    bool reinit_sensors = false;
+    bool restart_sensors = false;
     bool initialized = false;
     std::queue<sensor_t> i2c_queue;
 
     void event_loop() {
         while (true) {
             // check if reinit sensors timer has expired
-            if (HAL_I2C_GetState(HI2C) == HAL_I2C_STATE_READY && reinit_sensors) {
-                mrover::science_board.reinit_sensors();
-                reinit_sensors = false;
+            if (HAL_I2C_GetState(HI2C) == HAL_I2C_STATE_READY && restart_sensors) {
+                mrover::science_board.restart_sensors();
+                restart_sensors = false;
             }
 
             // check if there is an i2c message in the queue and the bus is free
@@ -57,7 +56,7 @@ namespace mrover {
             // check if the adc is free to be sampled again
             if (adc_free) {
                 adc_free = false;
-                science_board.poll_sensor(sensor_uv);
+                science_board.poll_sensor(sensor_t::sensor_uv);
             }
         }
     }
@@ -73,7 +72,7 @@ namespace mrover {
         auto& logger = Logger::instance();
 
         // initialize all sensors
-        auto thp_sensor = THP{HI2C};
+        auto thp_sensor = THPSensor{HI2C};
         auto co2_sensor = CO2Sensor{HI2C};
         auto ozone_sensor = OzoneSensor{HI2C};
         auto oxygen_sensor = OxygenSensor{HI2C};
@@ -91,8 +90,6 @@ namespace mrover {
 
         // create science board object
         logger.info("Initializing science board...");
-
-        HAL_Delay(500); // Delay for sensor startup
         
         science_board = ScienceBoard{thp_sensor, 
                                         co2_sensor, 
@@ -104,12 +101,15 @@ namespace mrover {
                                         dbg_led1,
                                         dbg_led2,
                                         dbg_led3,
-                                        can_handler};
+                                        can_handler,
+                                        &i2c_queue};
+        
+        science_board.init();
 
         logger.info("Starting timers...");
 
         HAL_TIM_Base_Start_IT(CAN_TIM);
-        HAL_TIM_Base_Start_IT(SENSOR_REINIT_TIM);
+        HAL_TIM_Base_Start_IT(SENSOR_RESTART_TIM);
         HAL_TIM_Base_Start_IT(SENSOR_STATE_TIM);
         
         adc_free = true;
@@ -125,7 +125,7 @@ namespace mrover {
         i2c_queue.pop();
         science_board.update_sensor(current_sensor);
 
-        if (current_sensor != sensor_co2)
+        if (current_sensor != sensor_t::sensor_co2)
             i2c_queue.push(current_sensor);
     }
 
@@ -146,19 +146,19 @@ extern "C" {
         if (htim == mrover::CO2_TX_TIM) {
             // stop tx timer and request co2 data
             HAL_TIM_Base_Stop_IT(mrover::CO2_TX_TIM);
-            mrover::i2c_queue.push(mrover::sensor_co2);
+            mrover::i2c_queue.push(mrover::sensor_t::sensor_co2);
         } else if (htim == mrover::CO2_RX_TIM) {
             // handle co2 sensor
             HAL_TIM_Base_Stop_IT(mrover::CO2_RX_TIM);
-            mrover::i2c_queue.push(mrover::sensor_co2);
+            mrover::i2c_queue.push(mrover::sensor_t::sensor_co2);
         } else if (htim == mrover::CAN_TIM) {
             // broadcast CAN data
             if (mrover::initialized)
                 mrover::science_board.send_sensor_data();
-        } else if (htim == mrover::SENSOR_REINIT_TIM) {
+        } else if (htim == mrover::SENSOR_RESTART_TIM) {
             // attempt to reinitialize any faulty sensors
             if (mrover::initialized)
-                mrover::reinit_sensors = true;
+                mrover::restart_sensors = true;
         } else if (htim == mrover::SENSOR_STATE_TIM) {
             // broadcast sensor state over CAN
             if (mrover::initialized)
@@ -201,7 +201,7 @@ extern "C" {
     void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
         // update uv_index if the UVSensor has been initialized
         if (mrover::initialized)
-            mrover::science_board.update_sensor(mrover::sensor_uv);
+            mrover::science_board.update_sensor(mrover::sensor_t::sensor_uv);
         
         mrover::adc_free = true;
     }

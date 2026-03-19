@@ -1,9 +1,9 @@
-#include "Sensor.hpp"
+#include "ScienceSensor.hpp"
 #include <adc.hpp>
 #include <cstdint>
 
 namespace mrover {
-    class UVSensor : public Sensor {
+    class UVSensor : public ScienceSensor {
     private:
         ADCBase* adc;
         uint8_t channel;

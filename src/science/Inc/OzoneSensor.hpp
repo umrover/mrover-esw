@@ -1,4 +1,4 @@
-#include "Sensor.hpp"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal_def.h"
 #include <cstdint>
 
@@ -9,7 +9,7 @@
 #define MODE_REGISTER	0x03 // mode register
 
 namespace mrover {
-	class OzoneSensor : public Sensor{
+	class OzoneSensor : public ScienceSensor{
 	private:
 		I2C_HandleTypeDef* i2c; // i2c handle pointer
 		float ozone; // ozone value in ppm

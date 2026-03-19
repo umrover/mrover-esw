@@ -14,7 +14,7 @@
 #include <logger.hpp>
 
 namespace mrover {
-    using sensor_t = enum {
+    enum class sensor_t {
         sensor_co2 = 0,
         sensor_thp = 2,
         sensor_ozone = 3,
@@ -24,7 +24,7 @@ namespace mrover {
 
     class ScienceBoard {
     private:
-        THP thp_sensor{};
+        THPSensor thp_sensor{};
         CO2Sensor co2_sensor{};
         OzoneSensor ozone_sensor{};
         OxygenSensor oxygen_sensor{};
@@ -36,22 +36,12 @@ namespace mrover {
         Pin dbg_led3{};
         CANBus1Handler can_handler{};
         sb_config_t config;
-        std::unordered_map<sensor_t, Sensor*> i2c_sensor_map;
         std::queue<sensor_t>* i2c_queue;
-
-         // initialize i2c sensors
-        void init() {
-            for (auto [st, sensor] : i2c_sensor_map) {
-                if (!sensor->init())
-                    sensor->flag();
-                else
-                    i2c_queue->push(st);
-            }
-        }
+        std::unordered_map<sensor_t, ScienceSensor*> i2c_sensor_map;
 
         // clears all sensor faults by resetting all bits to 1
         void clear_faults() {
-            for (auto [st, sensor] : i2c_sensor_map) {
+            for (auto& [st, sensor] : i2c_sensor_map) {
                 if (!sensor->get_state()) {
                     i2c_queue->push(st);
                     sensor->clear();
@@ -82,7 +72,7 @@ namespace mrover {
         ScienceBoard() = default;
 
         ScienceBoard(
-                THP& thp_in, 
+                THPSensor& thp_in, 
                 CO2Sensor& co2_in, 
                 OzoneSensor& ozone_in,
                 OxygenSensor& oxygen_in,
@@ -92,7 +82,8 @@ namespace mrover {
                 Pin& dbg_led1_in,
                 Pin& dbg_led2_in,
                 Pin& dbg_led3_in,
-                CANBus1Handler& can_handler_in) : thp_sensor(thp_in),
+                CANBus1Handler& can_handler_in,
+                std::queue<sensor_t>* i2c_queue_in) : thp_sensor(thp_in),
                                                     co2_sensor(co2_in),
                                                     ozone_sensor(ozone_in), 
                                                     oxygen_sensor(oxygen_in),
@@ -102,31 +93,39 @@ namespace mrover {
                                                     dbg_led1(dbg_led1_in),
                                                     dbg_led2(dbg_led2_in),
                                                     dbg_led3(dbg_led3_in),
-                                                    can_handler(can_handler_in) {
-            i2c_sensor_map[sensor_co2] = &co2_sensor;
-            i2c_sensor_map[sensor_thp] = &thp_sensor;
-            i2c_sensor_map[sensor_oxygen] = &oxygen_sensor;
-            i2c_sensor_map[sensor_ozone] = &ozone_sensor;
-            
-            init();
+                                                    can_handler(can_handler_in),
+                                                    i2c_queue(i2c_queue_in) {}
+
+        // initialize i2c sensors
+        void init() {
+            i2c_sensor_map[sensor_t::sensor_co2] = &co2_sensor;
+            i2c_sensor_map[sensor_t::sensor_thp] = &thp_sensor;
+            i2c_sensor_map[sensor_t::sensor_oxygen] = &oxygen_sensor;
+            i2c_sensor_map[sensor_t::sensor_ozone] = &ozone_sensor;
+
+            for (auto& [st, sensor] : i2c_sensor_map) {
+                if (!sensor->init())
+                    sensor->flag();
+                else
+                    i2c_queue->push(st);
+            }
         }
 
         // tries to reinitialize any sensors with an error state
-        void reinit_sensors() {
+        void restart_sensors() {
             auto& logger = Logger::instance();
-            for (auto [st, sensor] : i2c_sensor_map) {
-                std::string sensor_name;
-
-                if (st == sensor_co2)
-                    sensor_name = "CO2";
-                else if (st == sensor_thp)
-                    sensor_name = "THP";
-                else if (st == sensor_oxygen)
-                    sensor_name = "Oxygen";
-                else if (st == sensor_ozone)
-                    sensor_name = "Ozone";
-
+            for (auto& [st, sensor] : i2c_sensor_map) {
                 if (!sensor->get_state()) {
+                    std::string sensor_name;
+                    if (st == sensor_t::sensor_co2)
+                        sensor_name = "CO2";
+                    else if (st == sensor_t::sensor_thp)
+                        sensor_name = "THP";
+                    else if (st == sensor_t::sensor_oxygen)
+                        sensor_name = "Oxygen";
+                    else if (st == sensor_t::sensor_ozone)
+                        sensor_name = "Ozone";
+
                     logger.info("Attempting to restart %s...", sensor_name.c_str());
                     if (sensor->init()) {
                         i2c_queue->push(st);
@@ -140,28 +139,28 @@ namespace mrover {
         }
 
         bool check_sensor (sensor_t st) {
-            if (st == sensor_uv)
+            if (st == sensor_t::sensor_uv)
                 return uv_sensor.get_state();
             else
                 return i2c_sensor_map[st]->get_state();
         }
 
         void update_sensor (sensor_t st) {
-            if (st == sensor_uv)
+            if (st == sensor_t::sensor_uv)
                 uv_sensor.update();
             else
                 i2c_sensor_map[st]->update();
         }
 
         void poll_sensor (sensor_t st) {
-            if (st == sensor_uv)
+            if (st == sensor_t::sensor_uv)
                 uv_sensor.poll();
             else
                 i2c_sensor_map[st]->poll();
         }
 
         void flag_sensor (sensor_t st) {
-            if (st == sensor_uv)
+            if (st == sensor_t::sensor_uv)
                 uv_sensor.flag();
             else
                 i2c_sensor_map[st]->flag();
@@ -177,7 +176,6 @@ namespace mrover {
                                                 oxygen_sensor.get_oxygen(), 
                                                 ozone_sensor.get_ozone(),
                                                 co2_sensor.get_co2());
-            // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
             can_handler.send(msg, 0x40, 0x10);
             can_tx.reset();
         }
@@ -189,7 +187,6 @@ namespace mrover {
                                                     oxygen_sensor.get_state(), 
                                                     ozone_sensor.get_state(), 
                                                     co2_sensor.get_state());
-            // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
             can_handler.send(msg, 0x40, 0x10);
             can_tx.reset();
         }

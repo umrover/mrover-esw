@@ -1,4 +1,4 @@
-#include "Sensor.hpp"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal_def.h"
 #include "stm32g4xx_hal_i2c.h"
 
@@ -7,7 +7,7 @@
 #define OXYGEN_KEY_REGISTER 0x0A
 
 namespace mrover {
-    class OxygenSensor : public Sensor{
+    class OxygenSensor : public ScienceSensor{
     private:
         I2C_HandleTypeDef* i2c;
         float calibration_multiplier;

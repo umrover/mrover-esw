@@ -1,4 +1,4 @@
-#include "Sensor.hpp"
+#include "ScienceSensor.hpp"
 #include "stm32g4xx_hal.h"
 #include "stm32g4xx_hal_def.h"
 
@@ -7,10 +7,10 @@
 namespace mrover {
 	enum Mode {
 		TX = 0,
-		RX = 0,
+		RX = 1,
 	};
 
-	class CO2Sensor : public Sensor{
+	class CO2Sensor : public ScienceSensor{
 	private:
 		I2C_HandleTypeDef* i2c; // i2c handle pointer
 		uint8_t req_buf[2];
