@@ -12,7 +12,10 @@ RUN apt-get update && \
 
 # 2. Accept the argument from the shell script
 ARG PROJECT_REL_PATH
+ARG DBC_PATH
 WORKDIR /usr/src/repo
+
+ENV DBC_ROOT=/usr/src/repo/${DBC_PATH}
 
 # 3. Copy the entire repository
 COPY . .
@@ -29,4 +32,4 @@ RUN rm -rf build && \
 
 
 # Run the application
-ENTRYPOINT ["./build/canalyzer", "canalyzer_config.yaml"]
+ENTRYPOINT ["./build/canalyzer", "./canalyzer_config.yaml"]

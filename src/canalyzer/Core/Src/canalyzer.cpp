@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
         std::cout << "usage: ./canalyzer <path_to_yaml>";
         return 1;
     }
-    std::string path(argv[1]);
-    std::vector<logger::Logger> loggers = logger::logger_factory(path, true);
+    std::string yaml_path(argv[1]);
+    std::vector<logger::Logger> loggers = logger::logger_factory(yaml_path, true);
     run_bus(loggers);
 }

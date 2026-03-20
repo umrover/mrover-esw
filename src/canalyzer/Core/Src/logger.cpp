@@ -1,11 +1,17 @@
 #include "logger.hpp"
 #include "Yaml.hpp"
+#include "file_parser.hpp"
 
 
 #include <csignal>
+#include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 
 namespace logger {
 
@@ -116,7 +122,7 @@ namespace logger {
 
         for (auto it = begin(dbc_file_paths); it != end(dbc_file_paths); ++it) {
             if (!parser.parse(*it)) {
-                throw std::runtime_error("failed to parse file" + std::string(*it));
+                throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", *it, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
             }
         }
 
@@ -124,7 +130,7 @@ namespace logger {
 
         for (auto it = begin(log_ids); it != end(log_ids); ++it) {
             mrover::dbc_runtime::CanMessageDescription const* message = parser.message(*it);
-            if (!message) throw std::runtime_error("parser failed to fetch message with id " + std::to_string(*it));
+            if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(*it), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
             processor.add_message_description(*message);
         }
 
@@ -357,6 +363,13 @@ namespace logger {
         //will init a vector of configured Loggers from a yaml found at path
         std::vector<Logger> loggers;
 
+        const char* dbc_root_env = std::getenv("DBC_ROOT");
+        if (!dbc_root_env) {
+            throw std::runtime_error("DBC_ROOT environment variable is not set");
+        }
+        std::string dbc_root_path = dbc_root_env;
+                
+
         int size = 0;
         if (debug) {
             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -411,55 +424,43 @@ namespace logger {
 
             std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
             std::unordered_set<int> log_ids;
-            std::string num = "";
-            for (size_t j = 0; j < log_spec_str.size(); ++j) {
-                if (log_spec_str[j] == ',') {
-                    log_ids.insert(std::stoi(num, nullptr, 0));
-                    num.clear();
-                } else {
-                    num.push_back(log_spec_str[j]);
+
+            std::stringstream log_specify_stream(log_spec_str);
+            std::string token;
+            while (std::getline(log_specify_stream, token, ',')) {
+                try {
+                    auto clean = trim(token);
+                    if (clean.empty()) continue;
+                    log_ids.insert(std::stoi(clean, nullptr, 0));
+                } catch (std::invalid_argument const& e) {
+                    throw std::runtime_error(std::format("non-intger arg to stoi in log_specify: {}", e.what()));
+                } catch (...) {
+                    throw std::runtime_error("log_specify stoi broke");
                 }
             }
-            if (num.size()) {
-                log_ids.insert(std::stoi(num, nullptr, 0));
-            }
 
-            std::string dbc_file_paths_str = loggers_node[i]["dbc_file_paths"].As<std::string>();
+            std::string dbc_file_paths_str = loggers_node[i]["dbc_paths"].As<std::string>();
             std::unordered_set<std::string> dbc_file_paths;
-            std::string dbc_file_path = "";
-            size_t j = 0;
-            while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j; //leading whitespace
-            for (; j < dbc_file_paths_str.size();) {
-                if (dbc_file_paths_str[j] == ',') {
-                    auto it = dbc_file_paths.find(dbc_file_path);
-                    if (it != dbc_file_paths.end()) {
-                        std::lock_guard<std::mutex> lock(cout_mutex);
-                        std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
-                    } else {
-                        dbc_file_paths.insert(dbc_file_path);
-                    }
-                    dbc_file_path.clear();
 
-                    ++j;
-                    while (j < dbc_file_paths_str.size() && dbc_file_paths_str[j] == ' ') ++j;
-                } else {
-                    dbc_file_path.push_back(dbc_file_paths_str[j]);
-                    ++j;
+            std::stringstream dbc_stream(dbc_file_paths_str);
+
+            while (std::getline(dbc_stream, token, ',')) {
+                token = trim(token);
+                std::string full_path = dbc_root_path + token;
+                if (!std::filesystem::exists(full_path)) {
+                    throw std::runtime_error(std::format("couldn't find path: {} in filesystem", full_path));
                 }
-            }
-            if (dbc_file_path.size()) {
-                auto it = dbc_file_paths.find(dbc_file_path);
-                if (it != dbc_file_paths.end()) {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cerr << "found duplicate file path in yaml in logger: " << i << ", duplicate path: " << dbc_file_path << "\n";
-                } else {
-                    dbc_file_paths.insert(dbc_file_path);
+
+                if (full_path.empty()) continue;
+                //insert returns a pair <it, bool>
+                if (!dbc_file_paths.insert(full_path).second) {
+                    throw std::runtime_error(std::format("found duplicate file path in {} with value {}", i, full_path));
                 }
             }
 
             if (dbc_file_paths.empty()) {
                 std::string error = "CAN Bus: " + std::to_string(i) + " parsed 0 file paths";
-                throw std::runtime_error(error);
+                throw std::runtime_error(std::format("found no dbc file paths"));
             }
 
             std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
@@ -467,7 +468,7 @@ namespace logger {
             loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, debug);
             if (debug) {
                 std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_file_path << std::endl;
+                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_root_path << std::endl;
             }
         } //endfor
 
@@ -497,6 +498,19 @@ namespace logger {
         for (auto& logger: loggers) {
             logger.print_error();
         }
+    }
+
+    static std::string trim(std::string const& s) {
+        auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char c) {
+            return std::isspace(c);
+        });
+
+        auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char c) {
+                       return std::isspace(c);
+                   }).base();
+
+        if (start >= end) return "";
+        return std::string(start, end);
     }
 
 } // namespace logger

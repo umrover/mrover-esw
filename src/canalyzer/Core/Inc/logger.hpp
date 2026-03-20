@@ -66,6 +66,7 @@ namespace logger {
         int bus_socket;
         std::string can_bus_name;
         std::string yaml_file_path;
+        std::string dbc_root_path;
         std::string ascii_log_file_path;
         influxdb_cpp::server_info si;
 
@@ -125,6 +126,7 @@ namespace logger {
     };
 
     std::vector<Logger> logger_factory(std::string& yaml_path, bool debug = false);
+    static std::string trim(const std::string& s);
 
     void handle_SIGINT(int);
     void run_bus(std::vector<Logger>& loggers);
