@@ -8,7 +8,6 @@ types = {
     "uint16_t": ("uint16_t", 2),
     "uint8_t" : ("uint8_t", 1),
     "float": ("float", 4),
-    "bool": ("bool", 1)
 }
 
 # flash begin, flash end, flash size (bytes), number flash pages
@@ -67,14 +66,16 @@ def generate_config_struct(yaml_path: str) -> str:
             if last_had_fields == True:
                 output_fields.append("") # this block is just to make things look nice
                 last_had_fields = False
-
-            output_fields.append(f"    using {name.lower()} = field_t<&{struct_name}::{name}>;")
+            if typ[0] == "float":
+                output_fields.append(f"    using {name.lower()} = field_t<&{struct_name}::{name}>;")
+            else:
+                output_fields.append(f"    using {name.lower()} = field_t<&{struct_name}::{name}, 0, {typ[1]*8}>;")
 
         output_regs.append(f"    reg_t<{typ[0]}> {name}{{{current_pos:#x}}};")
 
         current_pos += typ[1]
         # check that config will fit into last page
-        if current_pos >= 2048:
+        if current_pos >= mem[2]:
             print("Config does not fit in one page")
             exit(1)
 
@@ -112,10 +113,47 @@ def generate_config_struct(yaml_path: str) -> str:
     output_lines.append(f"        static constexpr int NUM_PAGES = {mem[3]};")
     output_lines.append("    };\n")
 
+    # set_raw function
+    set_raw_fn = """\
+    auto set_raw(uint8_t address, uint32_t const raw) -> bool {
+        bool found = false;
+
+        std::apply(
+                [&](auto const&... reg) -> void {
+                    (
+                            [&] -> void {
+                                if (reg.addr == address) {
+                                    using T = std::remove_reference_t<decltype(reg)>::value_t;
+                                    reg.write(*this, from_raw<T>(raw));
+                                    found = true;
+                                }
+                            }(),
+                            ...);
+                },
+                all());
+
+        return found;
+    }\n"""
+    output_lines.append(set_raw_fn)
+
+    # get_raw function
+    get_raw_fn = """
+    auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
+        bool found = false;
+        std::apply([&](auto const&... reg) -> void {
+            ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
+        },
+                    all());
+        return found;
+    }\n"""
+    output_lines.append(get_raw_fn)
+
     # size_bytes function
-    output_lines.append("    static consteval auto size_bytes() -> uint16_t {")
-    output_lines.append(f"        return validated_config_t<{struct_name}>::size_bytes();")
-    output_lines.append("    }\n")
+    size_bytes_fn = """\
+    static consteval auto size_bytes() -> uint16_t {
+        return validated_config_t<bmc_config_t>::size_bytes();
+    }\n"""
+    output_lines.append(size_bytes_fn)
 
     output_lines.append("};")
 

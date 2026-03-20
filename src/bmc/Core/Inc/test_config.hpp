@@ -27,8 +27,8 @@ struct bmc_config_t {
     reg_t<float> VEL_K_D{0x44};
     reg_t<float> VEL_K_F{0x48};
 
-    using can_id = field_t<&bmc_config_t::CAN_ID>;
-    using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID>;
+    using can_id = field_t<&bmc_config_t::CAN_ID, 0, 8>;
+    using host_can_id = field_t<&bmc_config_t::HOST_CAN_ID, 0, 8>;
 
     using motor_en = field_t<&bmc_config_t::SYS_CFG, 0>;
     using motor_inv = field_t<&bmc_config_t::SYS_CFG, 1>;
@@ -87,6 +87,36 @@ struct bmc_config_t {
         static constexpr int PAGE_SIZE = 2048;
         static constexpr int NUM_PAGES = 64;
     };
+
+    auto set_raw(uint8_t address, uint32_t const raw) -> bool {
+        bool found = false;
+
+        std::apply(
+                [&](auto const&... reg) -> void {
+                    (
+                            [&] -> void {
+                                if (reg.addr == address) {
+                                    using T = std::remove_reference_t<decltype(reg)>::value_t;
+                                    reg.write(*this, from_raw<T>(raw));
+                                    found = true;
+                                }
+                            }(),
+                            ...);
+                },
+                all());
+
+        return found;
+    }
+
+
+    auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
+        bool found = false;
+        std::apply([&](auto const&... reg) -> void {
+            ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
+        },
+                    all());
+        return found;
+    }
 
     static consteval auto size_bytes() -> uint16_t {
         return validated_config_t<bmc_config_t>::size_bytes();
