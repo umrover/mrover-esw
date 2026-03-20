@@ -3,7 +3,7 @@
 #include "stm32g4xx_hal_adc.h"
 #include "stm32g4xx_hal_tim.h"
 #include "ScienceBoard.hpp"
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <cstddef>
 #include <hw/pin.hpp>
 #include <logger.hpp>
@@ -79,7 +79,7 @@ namespace mrover {
         auto uv_sensor = UVSensor{&adc, ADC_CHANNEL_0};
 
         // initialize CAN handler and LEDs
-        auto can_handler = CANBus1Handler{&fdcan};
+        auto can_handler = MRoverCANHandler{&fdcan};
         auto can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
         auto can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 

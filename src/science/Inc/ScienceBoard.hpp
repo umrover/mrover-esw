@@ -5,22 +5,23 @@
 #include "OzoneSensor.hpp"
 #include "UVSensor.hpp"
 #include "THPSensor.hpp"
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <hw/pin.hpp>
 #include <config.hpp>
+#include <logger.hpp>
 #include <queue>
 #include <string>
-#include <unordered_map>
-#include <logger.hpp>
 
 namespace mrover {
     enum class sensor_t {
         sensor_co2 = 0,
-        sensor_thp = 2,
-        sensor_ozone = 3,
-        sensor_oxygen = 4,
-        sensor_uv = 5,
+        sensor_thp = 1,
+        sensor_ozone = 2,
+        sensor_oxygen = 3,
+        sensor_uv = 4,
     };
+
+    const size_t NUM_I2C_SENSORS = 4;
 
     class ScienceBoard {
     private:
@@ -34,17 +35,17 @@ namespace mrover {
         Pin dbg_led1{};
         Pin dbg_led2{};
         Pin dbg_led3{};
-        CANBus1Handler can_handler{};
+        MRoverCANHandler can_handler{};
         sb_config_t config;
         std::queue<sensor_t>* i2c_queue;
-        std::unordered_map<sensor_t, ScienceSensor*> i2c_sensor_map;
+        ScienceSensor* i2c_sensors[NUM_I2C_SENSORS];
 
         // clears all sensor faults by resetting all bits to 1
         void clear_faults() {
-            for (auto& [st, sensor] : i2c_sensor_map) {
-                if (!sensor->get_state()) {
-                    i2c_queue->push(st);
-                    sensor->clear();
+            for (uint8_t i = 0; i < NUM_I2C_SENSORS; i++) {
+                if (!i2c_sensors[i]->get_state()) {
+                    i2c_queue->push(static_cast<sensor_t>(i));
+                    i2c_sensors[i]->clear();
                 }
             }
         }
@@ -82,7 +83,7 @@ namespace mrover {
                 Pin& dbg_led1_in,
                 Pin& dbg_led2_in,
                 Pin& dbg_led3_in,
-                CANBus1Handler& can_handler_in,
+                MRoverCANHandler& can_handler_in,
                 std::queue<sensor_t>* i2c_queue_in) : thp_sensor(thp_in),
                                                     co2_sensor(co2_in),
                                                     ozone_sensor(ozone_in), 
@@ -98,25 +99,27 @@ namespace mrover {
 
         // initialize i2c sensors
         void init() {
-            i2c_sensor_map[sensor_t::sensor_co2] = &co2_sensor;
-            i2c_sensor_map[sensor_t::sensor_thp] = &thp_sensor;
-            i2c_sensor_map[sensor_t::sensor_oxygen] = &oxygen_sensor;
-            i2c_sensor_map[sensor_t::sensor_ozone] = &ozone_sensor;
+            i2c_sensors[static_cast<uint8_t>(sensor_t::sensor_co2)] = &co2_sensor;
+            i2c_sensors[static_cast<uint8_t>(sensor_t::sensor_thp)] = &thp_sensor;
+            i2c_sensors[static_cast<uint8_t>(sensor_t::sensor_oxygen)] = &oxygen_sensor;
+            i2c_sensors[static_cast<uint8_t>(sensor_t::sensor_ozone)] = &ozone_sensor;
 
-            for (auto& [st, sensor] : i2c_sensor_map) {
-                if (!sensor->init())
-                    sensor->flag();
+            for (uint8_t i = 0; i < NUM_I2C_SENSORS; i++) {
+                if (!i2c_sensors[i]->init())
+                    i2c_sensors[i]->flag();
                 else
-                    i2c_queue->push(st);
+                    i2c_queue->push(static_cast<sensor_t>(i));
             }
         }
 
         // tries to reinitialize any sensors with an error state
         void restart_sensors() {
             auto& logger = Logger::instance();
-            for (auto& [st, sensor] : i2c_sensor_map) {
-                if (!sensor->get_state()) {
+            for (uint8_t i = 0; i < NUM_I2C_SENSORS; i++) {
+                if (!i2c_sensors[i]->get_state()) {
                     std::string sensor_name;
+                    sensor_t st = static_cast<sensor_t>(i);
+
                     if (st == sensor_t::sensor_co2)
                         sensor_name = "CO2";
                     else if (st == sensor_t::sensor_thp)
@@ -127,9 +130,9 @@ namespace mrover {
                         sensor_name = "Ozone";
 
                     logger.info("Attempting to restart %s...", sensor_name.c_str());
-                    if (sensor->init()) {
+                    if (i2c_sensors[i]->init()) {
                         i2c_queue->push(st);
-                        sensor->clear();
+                        i2c_sensors[i]->clear();
                         logger.info("%s restart successful", sensor_name.c_str());
                     } else {
                         logger.info("%s restart failed", sensor_name.c_str());
@@ -142,33 +145,33 @@ namespace mrover {
             if (st == sensor_t::sensor_uv)
                 return uv_sensor.get_state();
             else
-                return i2c_sensor_map[st]->get_state();
+                return i2c_sensors[static_cast<uint8_t>(st)]->get_state();
         }
 
         void update_sensor (sensor_t st) {
             if (st == sensor_t::sensor_uv)
                 uv_sensor.update();
             else
-                i2c_sensor_map[st]->update();
+                i2c_sensors[static_cast<uint8_t>(st)]->update();
         }
 
         void poll_sensor (sensor_t st) {
             if (st == sensor_t::sensor_uv)
                 uv_sensor.poll();
             else
-                i2c_sensor_map[st]->poll();
+                i2c_sensors[static_cast<uint8_t>(st)]->poll();
         }
 
         void flag_sensor (sensor_t st) {
             if (st == sensor_t::sensor_uv)
                 uv_sensor.flag();
             else
-                i2c_sensor_map[st]->flag();
+                i2c_sensors[static_cast<uint8_t>(st)]->flag();
         }
 
         void send_sensor_data() {
             can_tx.set();
-            const CANBus1Msg_t msg = SCISensorData(
+            const MRoverCANMsg_t msg = SCISensorData(
                                                 uv_sensor.get_uv(), 
                                                 thp_sensor.get_thp().temp, 
                                                 thp_sensor.get_thp().humidity, 
@@ -182,7 +185,7 @@ namespace mrover {
 
         void send_sensor_state() {
             can_tx.set();
-            const CANBus1Msg_t msg = SCISensorState(uv_sensor.get_state(), 
+            const MRoverCANMsg_t msg = SCISensorState(uv_sensor.get_state(), 
                                                     thp_sensor.get_state(),
                                                     oxygen_sensor.get_state(), 
                                                     ozone_sensor.get_state(), 

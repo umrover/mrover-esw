@@ -2,7 +2,7 @@
 
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
-#include <CANBus1.hpp>
+#include <MRoverCAN.hpp>
 #include <adc.hpp>
 #include <hw/flash.hpp>
 
