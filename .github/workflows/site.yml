@@ -26,7 +26,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          sparse-checkout: docs
 
       - name: Configure git credentials # for gh-deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -34,7 +37,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
 
@@ -45,6 +48,14 @@ jobs:
       - name: MkDocs build
         if: github.event_name != 'push' || github.ref != 'refs/heads/main'
         run: mkdocs build --strict
+
+      - name: Upload site artifact
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v6
+        with:
+          name: site
+          path: site/
+          retention-days: 7
 
       # Pushes to main: actually deploy
       - name: MkDocs deploy to GitHub Pages
