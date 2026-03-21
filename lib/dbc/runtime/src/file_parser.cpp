@@ -1,5 +1,6 @@
 #include "file_parser.hpp"
 
+#include <cctype>
 #include <charconv>
 #include <concepts>
 #include <expected>
@@ -75,6 +76,40 @@ namespace mrover::dbc_runtime {
             string_view word = sv.substr(0, end);
 
             sv.remove_prefix(end);
+
+            size_t next_start = 0;
+            while (next_start < sv.size() && std::isspace(static_cast<unsigned char>(sv[next_start]))) {
+                ++next_start;
+            }
+            sv.remove_prefix(next_start);
+
+            return word;
+        }
+
+        auto next_word_quoted(string_view& sv) -> string_view {
+            size_t start = 0;
+            while (start < sv.size() && std::isspace(static_cast<unsigned char>(sv[start]))) {
+                ++start;
+            }
+            sv.remove_prefix(start);
+
+            if (sv.empty() || sv[0] != '"') {
+                return {};
+            }
+
+            sv.remove_prefix(1);
+
+            size_t end = 0;
+            while (end < sv.size() && static_cast<unsigned char>(sv[end]) != '"') {
+                ++end;
+            }
+
+            string_view word = sv.substr(0, end);
+
+            sv.remove_prefix(end);
+            if (end < sv.size()) {
+                sv.remove_prefix(1);
+            }
 
             size_t next_start = 0;
             while (next_start < sv.size() && std::isspace(static_cast<unsigned char>(sv[next_start]))) {
@@ -598,7 +633,7 @@ namespace mrover::dbc_runtime {
                 signal.set_maximum(max.value());
             }
 
-            unit = next_word(line);
+            unit = next_word_quoted(line);
         } else {
             signal.clear_minimum_maximum();
             unit = min_and_max;
