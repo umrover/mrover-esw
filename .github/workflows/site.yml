@@ -27,6 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: docs
 
       - name: Configure git credentials # for gh-deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
