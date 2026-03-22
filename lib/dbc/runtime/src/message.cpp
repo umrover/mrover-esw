@@ -51,6 +51,14 @@ namespace mrover::dbc_runtime {
     void CanMessageDescription::set_comment(std::string&& comment) { m_comment = std::move(comment); }
     void CanMessageDescription::set_comment(std::string_view comment) { m_comment = comment; }
 
+    [[nodiscard]] auto CanMessageDescription::is_independent_signal_message() const -> bool {
+        return m_independent_signal_message;
+    }
+
+    void CanMessageDescription::set_independent_signal_message() {
+        m_independent_signal_message = true;
+    }
+
     [[nodiscard]] auto CanMessageDescription::is_valid() const -> bool {
         if (m_name.empty() ||
             m_signals.empty() ||
