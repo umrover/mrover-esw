@@ -1,11 +1,11 @@
 #include "main.h"
-#include "stm32g4xx_hal.h"
 #include "stm32g4xx_hal_adc.h"
 #include "stm32g4xx_hal_tim.h"
 #include "ScienceBoard.hpp"
 #include <MRoverCAN.hpp>
 #include <cstddef>
 #include <hw/pin.hpp>
+#include <serial/smbus.hpp>
 #include <logger.hpp>
 #include <config.hpp>
 
@@ -32,6 +32,7 @@ namespace mrover {
     static constexpr size_t NUM_ADC_CHANNELS = 1;
 
     UART lpuart;
+    SMBus smbus;
     ADC<NUM_ADC_CHANNELS> adc;
     FDCAN fdcan;
     ScienceBoard science_board;
@@ -64,6 +65,7 @@ namespace mrover {
     void init() {
         // initialize interfaces
         lpuart = UART{HLPUART, get_uart_options()};
+        smbus = SMBus{HI2C, get_smbus_options()};
         adc = ADC<NUM_ADC_CHANNELS>{HADC, get_adc_options()};
         fdcan = FDCAN{HFDCAN, get_can_options()};
 
@@ -72,10 +74,10 @@ namespace mrover {
         auto& logger = Logger::instance();
 
         // initialize all sensors
-        auto thp_sensor = THPSensor{HI2C};
-        auto co2_sensor = CO2Sensor{HI2C};
-        auto ozone_sensor = OzoneSensor{HI2C};
-        auto oxygen_sensor = OxygenSensor{HI2C};
+        auto thp_sensor = THPSensor{&smbus};
+        auto co2_sensor = CO2Sensor{&smbus};
+        auto ozone_sensor = OzoneSensor{&smbus};
+        auto oxygen_sensor = OxygenSensor{&smbus};
         auto uv_sensor = UVSensor{&adc, ADC_CHANNEL_0};
 
         // initialize CAN handler and LEDs

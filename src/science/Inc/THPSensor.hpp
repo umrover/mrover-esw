@@ -1,4 +1,5 @@
 #include "ScienceSensor.hpp"
+#include <serial/smbus.hpp>
 #include "stm32g4xx_hal_def.h"
 
 #define BME280_ADDR 0x77
@@ -20,7 +21,7 @@ struct THP_data {
 
 class THPSensor : public ScienceSensor {
 private:
-	I2C_HandleTypeDef* i2c; // i2c handle pointer
+	SMBus* smbus; // i2c handle pointer
 	uint8_t rx_buffer[8]; // I2C receive buffer
 	THP_data thp_data;
 
@@ -39,19 +40,19 @@ private:
 public:
 	THPSensor() = default;
 
-	THPSensor (I2C_HandleTypeDef* i2c_in)
-		: i2c(i2c_in) {}
+	THPSensor (SMBus* smbus_in)
+		: smbus(smbus_in) {}
 
 	// checks nvm bit
 	bool check_nvm(uint32_t timeout_ms = 100) {
-		uint8_t status;
+		uint8_t status[1];
 		uint32_t start = HAL_GetTick();
 
 		while ((HAL_GetTick() - start) < timeout_ms) {
-			if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_NVM,I2C_MEMADD_SIZE_8BIT, &status, 1, HAL_MAX_DELAY) != HAL_OK)
+			if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_NVM, I2C_MEMADD_SIZE_8BIT, status))
 				return false;
 
-			if (!(status & 0x01))
+			if (!(status[0] & 0x01))
 				return true;
 		}
 
@@ -64,7 +65,7 @@ public:
 	    uint8_t buf2[7];
 
 	    // read temp and pressure calibration
-	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_TPCAL, I2C_MEMADD_SIZE_8BIT, buf1, 26, HAL_MAX_DELAY) != HAL_OK)
+	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_TPCAL, I2C_MEMADD_SIZE_8BIT, buf1))
 			return false;
 
 	    dig_t1 = (uint16_t)(buf1[1] << 8) | buf1[0];
@@ -82,10 +83,13 @@ public:
 	    dig_p9 = (int16_t)(buf1[23] << 8) | buf1[22];
 
 	    // read humidity calibration
-	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_HCAL1, I2C_MEMADD_SIZE_8BIT, &dig_h1, 1, HAL_MAX_DELAY) != HAL_OK)
+		uint8_t h1_buf[1];
+	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL1, I2C_MEMADD_SIZE_8BIT, h1_buf))
 			return false;
 
-	    if (HAL_I2C_Mem_Read(i2c, (BME280_ADDR << 1) | 1, BME280_REG_HCAL2, I2C_MEMADD_SIZE_8BIT, buf2, 7, HAL_MAX_DELAY) != HAL_OK)
+		dig_h1 = h1_buf[0];
+
+	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL2, I2C_MEMADD_SIZE_8BIT, buf2))
 			return false;
 
 	    dig_h2 = (int16_t)(buf2[1] << 8) | buf2[0];
@@ -165,7 +169,7 @@ public:
 
 	// polls the sensor for data
 	void poll() override {
-		HAL_I2C_Mem_Read_IT(i2c, (BME280_ADDR << 1) | 1, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, rx_buffer, 8);
+		smbus->async_mem_read(BME280_ADDR, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, rx_buffer);
 	}
 
 	// attempts to initialize sensor, returns true on success and false on failure
@@ -180,17 +184,17 @@ public:
 
 		// set humidity oversampling x1
 		uint8_t ctrl_hum = 0x01;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &ctrl_hum, 1, HAL_MAX_DELAY) != HAL_OK)
+		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_hum), sizeof(ctrl_hum)}))
 			return false;
 
 		// set temp oversampling to x1, pressure x1, and normal mode
 		uint8_t ctrl_meas = 0x27;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas, 1, HAL_MAX_DELAY) != HAL_OK)
+		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_meas), sizeof(ctrl_meas)}))
 			return false;
 
 		// Standby 62.5 ms (close to 10 Hz), filter off
 		uint8_t config = 0x20;
-		if (HAL_I2C_Mem_Write(i2c, BME280_ADDR << 1, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, &config, 1, HAL_MAX_DELAY) != HAL_OK)
+		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&config), sizeof(config)}))
 			return false;
 
 		return true;

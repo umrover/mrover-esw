@@ -1,4 +1,5 @@
 #include "ScienceSensor.hpp"
+#include <serial/smbus.hpp>
 #include "stm32g4xx_hal_def.h"
 #include <cstdint>
 
@@ -11,15 +12,15 @@
 namespace mrover {
 	class OzoneSensor : public ScienceSensor{
 	private:
-		I2C_HandleTypeDef* i2c; // i2c handle pointer
+		SMBus* smbus; // i2c handle pointer
 		float ozone; // ozone value in ppm
 		uint8_t rx_buf[2]; // receive buffer
 
 	public:
 		OzoneSensor() = default;
 
-		OzoneSensor(I2C_HandleTypeDef* i2c_in)
-			: i2c(i2c_in), ozone(0.0) {}
+		OzoneSensor(SMBus* smbus_in)
+			: smbus(smbus_in), ozone(0.0) {}
 
 		// returns the current ozone data in ppm
 		[[nodiscard]] float get_ozone() const {
@@ -34,13 +35,13 @@ namespace mrover {
 
         // polls the sensor for data
         void poll() override {
-			HAL_I2C_Mem_Read_IT(i2c, (OZONE_ADDR << 1) | 1, AUTO_DATA_HIGH_REGISTER, 1, rx_buf, 2);
+			smbus->async_mem_read(OZONE_ADDR, AUTO_DATA_HIGH_REGISTER, 1, rx_buf);
 		}
 
         // attempts to initialize sensor, returns true on success and false on failure
         bool init() override {
 			uint8_t mode = MEASURE_MODE_AUTOMATIC;
-			if (HAL_I2C_Mem_Write(i2c, OZONE_ADDR << 1, MODE_REGISTER, 1, &mode, 1, HAL_MAX_DELAY) != HAL_OK)
+			if (!smbus->blocking_mem_write(OZONE_ADDR, MODE_REGISTER, 1, {reinterpret_cast<const char*>(&mode), sizeof(mode)}))
 				return false;
 
 			return true;

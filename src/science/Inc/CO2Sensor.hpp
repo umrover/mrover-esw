@@ -1,4 +1,5 @@
 #include "ScienceSensor.hpp"
+#include <serial/smbus.hpp>
 #include "stm32g4xx_hal.h"
 #include "stm32g4xx_hal_def.h"
 
@@ -12,7 +13,7 @@ namespace mrover {
 
 	class CO2Sensor : public ScienceSensor{
 	private:
-		I2C_HandleTypeDef* i2c; // i2c handle pointer
+		SMBus* smbus;
 		uint8_t req_buf[2];
         uint8_t rx_buf[2];
 		float percent; // ozone value in ppm
@@ -20,7 +21,7 @@ namespace mrover {
 
 		// requests raw co2 data over i2c, when sensor responds with data callback will be hit and will call receive_buf
 		void request_co2() {
-			HAL_I2C_Master_Transmit_IT(i2c, CO2_ADDR << 1, req_buf, 2);
+			smbus->async_transmit(CO2_ADDR, {reinterpret_cast<const char*>(req_buf), sizeof(req_buf)});
 		}
 
 		// receives raw ozone data over i2c
@@ -32,14 +33,14 @@ namespace mrover {
 				first_read = false;
 			}
 
-			HAL_I2C_Master_Receive_IT(i2c, (CO2_ADDR << 1) | 1, rx_buf, 2);
+			smbus->async_receive(CO2_ADDR, rx_buf);
 		}
 
 	public:
 		CO2Sensor() = default;
 
-		explicit CO2Sensor (I2C_HandleTypeDef* i2c_in)
-			: i2c(i2c_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0), mode(Mode::TX) {}
+		explicit CO2Sensor (SMBus* smbus_in)
+			: smbus(smbus_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0), mode(Mode::TX) {}
 
 		// returns the current ozone data in ppm
 		[[nodiscard]] float get_co2() const {
@@ -67,12 +68,12 @@ namespace mrover {
         bool init() override {
 			// Disable CRC (0x3768)
 			uint8_t tx_buf1[2] = {0x37, 0x68};
-            if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf1, 2, HAL_MAX_DELAY) != HAL_OK)
+            if (!smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf1), sizeof(tx_buf1)}))
 				return false;
 
             // Set measurement mode -> standard measurement mode with 0-25% concentration in air
 			uint8_t tx_buf2[4] = {0x36, 0x15, 0x00, 0x11};
-            if (HAL_I2C_Master_Transmit(i2c, CO2_ADDR << 1, tx_buf2, 4, HAL_MAX_DELAY) != HAL_OK)
+            if (!smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf2), sizeof(tx_buf2)}))
 				return false;
 
 			mode = Mode::TX;

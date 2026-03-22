@@ -1,5 +1,7 @@
 #pragma once
 
+#include "serial/smbus.hpp"
+#include "stm32g4xx_hal_def.h"
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
 #include <MRoverCAN.hpp>
@@ -32,7 +34,7 @@ namespace mrover {
     // retrieves science board uart options
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
-        options.use_dma = true;
+        options.use_dma = false;
         return options;
     }
 
@@ -48,6 +50,14 @@ namespace mrover {
     // retrieves science board adc options
     inline auto get_adc_options() -> ADCBase::Options {
         ADCBase::Options options;
+        options.use_dma = true;
+        return options;
+    }
+
+    // retrieves science board i2c options
+    inline auto get_smbus_options() -> SMBus::Options {
+        SMBus::Options options;
+        options.timeout_ms = HAL_MAX_DELAY;
         options.use_dma = true;
         return options;
     }
