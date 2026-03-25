@@ -340,10 +340,60 @@ namespace mrover {
         }
 
         auto receive(MRoverCANMsg_t const& v) -> void {
-            std::visit([this](auto&& value) -> auto {
+            
+            //-Generated from MRoverCAN.hpp
+            /*
+            using MRoverCANMsg_t = std::variant<
+                BMCModeCmd,     //Index 0
+                BMCMotorState,  //Index 1
+                BMCResetCmd,    //Index 2
+                BMCTargetCmd,   //Index 3
+                ESWAck,         //Index 4
+                ESWConfigCmd,   //Index 5
+                ESWProbe        //Index 6
+            >;
+            */
+
+            switch (v.index())
+            {
+                case 0: //Index 0 - BMCModeCmd
+                    handle(std::get<BMCModeCmd>(v));
+                    break;
+                
+                case 1: //Index 1 - BMCMotorState
+                    //No handle() with parameter type BMCMotorState
+                    //handle(std::get<BMCMotorState>(v));
+                    break;
+                
+                case 2: //Index 2 - BMCResetCmd
+                    handle(std::get<BMCResetCmd>(v));
+                    break;
+                
+                case 3: //Index 3 - BMCTargetCmd
+                    handle(std::get<BMCTargetCmd>(v));
+                    break;
+                
+                case 4: //Index 4 - ESWAck
+                    //No handle() with parameter type ESWAck
+                    //handle(std::get<ESWAck>(v));
+                    break;
+                
+                case 5: //Index 5 - ESWConfigCmd
+                    handle(std::get<ESWConfigCmd>(v));
+                    break;
+                
+                case 6: //Index 6 - ESWProbe
+                    handle(std::get<ESWProbe>(v));
+                    break;
+
+            }
+
+
+            /*std::visit([this](auto&& value) -> auto {
                 handle(value);
             },
-                       v);
+                       v);*/
+            //-Switch case used to optimize this
         }
 
         auto send_state() -> void {
