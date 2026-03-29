@@ -1,8 +1,8 @@
 struct bmc_config_t {
 
-    static inline void* flash_ptr = nullptr;
+static inline void* flash_ptr = nullptr;
 
-    FDCAN::Filter can_node_filter{};
+    FDCAN::Filter can_node_filters[3];
 
     reg_t<uint8_t> CAN_ID{0x0};
     reg_t<uint8_t> HOST_CAN_ID{0x1};
@@ -78,7 +78,7 @@ struct bmc_config_t {
             ROTOR_OUTPUT_RATIO, LIMIT_A_POSITION, LIMIT_B_POSITION, MAX_PWM,
             MIN_POS, MAX_POS, MIN_VEL, MAX_VEL, POS_K_P, POS_K_I, POS_K_D,
             POS_K_F, VEL_K_P, VEL_K_I, VEL_K_D, VEL_K_F
-        );
+    );
     }
 
     struct mem_layout {
@@ -123,3 +123,38 @@ struct bmc_config_t {
     }
 
 };
+
+inline auto get_can_options(bmc_config_t* config) -> FDCAN::Options {
+    config->can_node_filters[0].id1 =  config->get<bmc_config_t::can_id()>;
+    config->can_node_filters[0].id2 = CAN_DEST_ID_MASK;
+    config->can_node_filters[0].id_type = FDCAN::FilterIdType::Extended;
+    config->can_node_filters[0].action = FDCAN::ActionType::Accept;
+    config->can_node_filters[0].mode = FDCAN::ActionType::Mask;
+
+    config->can_node_filters[1].id1 = 71;
+    config->can_node_filters[1].id2 = CAN_SRC_ID_MASK;
+    config->can_node_filters[1].id_type = FDCAN::FilterIdType::Extended;
+    config->can_node_filters[1].action = FDCAN::ActionType::Accept;
+    config->can_node_filters[1].mode = FDCAN::ActionType::Mask;
+
+    config->can_node_filters[2].id1 = 103;
+    config->can_node_filters[2].id2 = CAN_SRC_ID_MASK;
+    config->can_node_filters[2].id_type = FDCAN::FilterIdType::Extended;
+    config->can_node_filters[2].action = FDCAN::ActionType::Accept;
+    config->can_node_filters[2].mode = FDCAN::ActionType::Mask;
+
+    FDCAN::FilterConfig filter;
+    filter.begin = config->can_node_filters;
+    filter.end = config->can_node_filters + 3
+    filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;
+    filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;
+
+    auto can_opts = FDCAN::Options{};
+    can_opts.delay_compensation = true;
+    can_opts.tdc_offset = 13;
+    can_opts.tdc_filter = 1;
+    can_opts.filter_config = filter;
+    return can_opts;
+
+}
+

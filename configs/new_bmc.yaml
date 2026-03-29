@@ -71,3 +71,11 @@ regs:
   type: float
 - name: vel_k_f
   type: float
+can_filtering:
+  id_reg: can_id # may not have field 
+  id_type: ext
+  can_subs:
+    - id: 0x47
+      type: ext
+    - id: 0x67
+      type: ext
