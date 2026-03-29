@@ -26,13 +26,6 @@ namespace mrover {
 
 		// receives raw ozone data over i2c
 		void receive_buf() {
-			// on the first read sensor needs 100ms to update register
-			static bool first_read = true;
-			if (first_read) {
-				HAL_Delay(100);
-				first_read = false;
-			}
-
 			smbus->async_receive(CO2_ADDR, rx_buf);
 		}
 

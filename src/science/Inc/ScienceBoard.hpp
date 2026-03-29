@@ -133,9 +133,9 @@ namespace mrover {
                     if (i2c_sensors[i]->init()) {
                         i2c_queue->push(st);
                         i2c_sensors[i]->clear();
-                        logger.info("%s restart successful", sensor_name.c_str());
+                        logger.info("%s restart successful!", sensor_name.c_str());
                     } else {
-                        logger.info("%s restart failed", sensor_name.c_str());
+                        logger.info("%s restart failed!", sensor_name.c_str());
                     }
                 }
             }

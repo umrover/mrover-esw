@@ -59,6 +59,7 @@ namespace mrover {
         SMBus::Options options;
         options.timeout_ms = HAL_MAX_DELAY;
         options.use_dma = true;
+        options.enable_wd = true;
         return options;
     }
 } // namespace mrover

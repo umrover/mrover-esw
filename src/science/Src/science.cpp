@@ -12,6 +12,7 @@
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim16;
 extern UART_HandleTypeDef hlpuart1;
@@ -23,6 +24,7 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* CO2_TX_TIM = &htim2; // 400ms
     static constexpr TIM_HandleTypeDef* CO2_RX_TIM = &htim3; // 100ms
     static constexpr TIM_HandleTypeDef* CAN_TIM = &htim6; // 500ms
+    static constexpr TIM_HandleTypeDef* I2C_WD_TIM = &htim7; // 500ms
     static constexpr TIM_HandleTypeDef* SENSOR_STATE_TIM = &htim15; // 100ms
     static constexpr TIM_HandleTypeDef* SENSOR_RESTART_TIM = &htim16; // 1000ms
     static constexpr UART_HandleTypeDef* HLPUART = &hlpuart1;
@@ -65,7 +67,7 @@ namespace mrover {
     void init() {
         // initialize interfaces
         lpuart = UART{HLPUART, get_uart_options()};
-        smbus = SMBus{HI2C, get_smbus_options()};
+        smbus = SMBus{HI2C, I2C_WD_TIM, get_smbus_options()};
         adc = ADC<NUM_ADC_CHANNELS>{HADC, get_adc_options()};
         fdcan = FDCAN{HFDCAN, get_can_options()};
 
@@ -123,6 +125,7 @@ namespace mrover {
 
     void update_i2c_queue() {
         // update sensor value
+        smbus.stop_wd();
         sensor_t current_sensor = i2c_queue.front();
         i2c_queue.pop();
         science_board.update_sensor(current_sensor);
@@ -133,6 +136,7 @@ namespace mrover {
 
     void handle_i2c_error() {
         // flag bad sensor
+        smbus.stop_wd();
         sensor_t current_sensor = i2c_queue.front();
         i2c_queue.pop();
         science_board.flag_sensor(current_sensor);
@@ -157,6 +161,19 @@ extern "C" {
             // broadcast CAN data
             if (mrover::initialized)
                 mrover::science_board.send_sensor_data();
+        } else if (htim == mrover::I2C_WD_TIM) {
+            // handle i2c watchdog
+            if (mrover::initialized) {
+                auto& logger = mrover::Logger::instance();
+                logger.info("I2C watchdog triggered, attempting reboot...");
+
+                if (!mrover::smbus.reboot()) {
+                    logger.info("I2C reboot failed!");
+                } else {
+                    logger.info("I2C reboot successful!");
+                    mrover::handle_i2c_error();
+                }
+            }
         } else if (htim == mrover::SENSOR_RESTART_TIM) {
             // attempt to reinitialize any faulty sensors
             if (mrover::initialized)

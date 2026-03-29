@@ -19,21 +19,49 @@ namespace mrover {
         struct Options {
             Options() {}
             bool use_dma{false};
+            bool enable_wd{false};
             uint32_t timeout_ms{I2C_TIMEOUT};
         };
 
         SMBus() = default;
 
-        explicit SMBus(I2C_HandleTypeDef* hi2c, Options const& options = Options()) : m_i2c{hi2c}, m_options(options) {}
+        explicit SMBus(I2C_HandleTypeDef* hi2c, Options options = Options()) : m_i2c{hi2c}, m_options(options) {
+            // need to disable watchdog flag if no timer is provided
+            if (options.enable_wd)
+                options.enable_wd = false;
+        }
 
-        void reboot() const {
-            HAL_I2C_DeInit(m_i2c);
-            HAL_Delay(I2C_REBOOT_DELAY);
-            HAL_I2C_Init(m_i2c);
+        explicit SMBus(I2C_HandleTypeDef* hi2c, TIM_HandleTypeDef* htim, Options options = Options()) : m_i2c{hi2c}, m_tim{htim}, m_options(options) {
+            __HAL_TIM_SET_AUTORELOAD(htim, I2C_TIMEOUT - 1);
         }
 
         void set_timeout(uint32_t timeout) { m_options.timeout_ms = timeout; }
         [[nodiscard]] auto get_timeout() const -> uint32_t { return m_options.timeout_ms; }
+
+        void start_wd() {
+            if (!m_tim)
+                return;
+
+            __HAL_TIM_SET_COUNTER(m_tim, 0);
+            HAL_TIM_Base_Start_IT(m_tim);
+        }
+
+        void stop_wd() {
+            if (!m_tim)
+                return;
+
+            HAL_TIM_Base_Stop_IT(m_tim);
+        }
+
+        auto reboot() -> bool {
+            if (HAL_I2C_DeInit(m_i2c) != HAL_OK)
+                return false;
+
+            if(HAL_I2C_Init(m_i2c) != HAL_OK)
+                return false;
+
+            return true;
+        }
 
         auto blocking_transmit(uint16_t address, std::string_view data) -> bool {
             if (HAL_I2C_Master_Transmit(m_i2c, address << 1, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data())),
@@ -99,9 +127,11 @@ namespace mrover {
         }
 
         auto async_transmit(uint16_t const address, std::string_view data) -> bool {
-            if (!wait_until_ready_or_timeout()) {
+            if (!wait_until_ready_or_timeout())
                 return false;
-            }
+
+            if (m_options.enable_wd)
+                start_wd();
 
             if (m_options.use_dma) {
                 if (HAL_I2C_Master_Transmit_DMA(m_i2c, address << 1, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data())), data.size()) != HAL_OK) {
@@ -117,9 +147,11 @@ namespace mrover {
         }
 
         auto async_receive(uint16_t const address, std::span<uint8_t> data) -> bool {
-            if (!wait_until_ready_or_timeout()) {
+            if (!wait_until_ready_or_timeout())
                 return false;
-            }
+
+            if (m_options.enable_wd)
+                start_wd();
 
             if (m_options.use_dma) {
                 if (HAL_I2C_Master_Receive_DMA(m_i2c, address << 1 | 1, data.data(), data.size()) != HAL_OK) {
@@ -136,9 +168,11 @@ namespace mrover {
         }
 
         auto async_mem_read(uint16_t address, uint16_t mem_addr, uint16_t mem_addr_size, std::span<uint8_t> data) -> bool {
-            if (!wait_until_ready_or_timeout()) {
+            if (!wait_until_ready_or_timeout())
                 return false;
-            }
+
+            if (m_options.enable_wd)
+                start_wd();
 
             if (m_options.use_dma) {
                 if (HAL_I2C_Mem_Read_DMA(m_i2c, address << 1 | 1, mem_addr, mem_addr_size, data.data(), data.size()) != HAL_OK) {
@@ -154,9 +188,11 @@ namespace mrover {
         }
 
         auto async_mem_write(uint16_t address, uint16_t mem_addr, uint16_t mem_addr_size, std::string_view data) -> bool {
-            if (!wait_until_ready_or_timeout()) {
+            if (!wait_until_ready_or_timeout())
                 return false;
-            }
+
+            if (m_options.enable_wd)
+                start_wd();
 
             if (m_options.use_dma) {
                 if (HAL_I2C_Mem_Write_DMA(m_i2c, address << 1, mem_addr, mem_addr_size, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data())), static_cast<uint16_t>(data.size())) != HAL_OK) {
@@ -173,6 +209,7 @@ namespace mrover {
 
     private:
         I2C_HandleTypeDef* m_i2c{};
+        TIM_HandleTypeDef* m_tim{};
         Options m_options;
     };
 #else  // HAL_I2C_MODULE_ENABLED
