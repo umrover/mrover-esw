@@ -44,5 +44,5 @@ vel_k_d: 0.0
 vel_k_f: 0.0
 
 # stall detection
-stall_current: 0.06
+stall_current: 0.1
 delta_position: 1.0  # post-multiplier (already in units)
