@@ -1,0 +1,7 @@
+
+TODO
+
+- testing
+        - run without errors on sample can frames
+        - implement basic unit tests to test each module
+        - stress test the initial can logger to see if any can frames are dropped.
