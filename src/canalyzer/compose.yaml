@@ -59,9 +59,10 @@ services:
   can_logger:
     image: can_logger_image
     container_name: can_logger_instance
+    network_mode: "host"
     restart: unless-stopped
     environment:
-       - INFLUXDB_URL=http://influxdb:8086
+       - INFLUXDB_URL=http://127.0.0.1:8086
        - INFLUXDB_DB=logger_db
        - INFLUXDB_USER=logger
        - INFLUXDB_PASSWORD=password

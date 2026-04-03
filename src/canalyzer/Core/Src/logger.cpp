@@ -9,6 +9,8 @@
 #include <format>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -36,6 +38,10 @@ namespace logger {
             std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
             long long const timestamp) {
 
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "have measurement " << measurement << "on bus: " << bus_name << "\n";
+        }
         _m(measurement);
 
         _t("bus_name", bus_name);
@@ -102,6 +108,11 @@ namespace logger {
 
             for (auto const& can_frame: local_buffer) {
                 auto const* desc = parser.message(can_frame.id);
+                if (desc == nullptr) throw std::runtime_error(std::format("failed to get description for {:x}", can_frame.id));
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "about to post\n";
+                }
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
             }
         }
@@ -126,13 +137,20 @@ namespace logger {
             }
         }
 
-        //add log messasges into the processor
 
-        for (auto it = begin(log_ids); it != end(log_ids); ++it) {
-            mrover::dbc_runtime::CanMessageDescription const* message = parser.message(*it);
-            if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(*it), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
-            processor.add_message_description(*message);
+        //add log messasges into the processor
+        if (mode == log_mode::WHITELIST_IDS) {
+            for (auto it = begin(log_ids); it != end(log_ids); ++it) {
+                mrover::dbc_runtime::CanMessageDescription const* message = parser.message(*it);
+                if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(*it), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
+                processor.add_message_description(*message);
+            }
+        } else if (mode == log_mode::BLACKLIST_IDS) {
+            for (const auto &message : parser.messages()) {
+                processor.add_message_description(message);
+            }
         }
+
 
         //create socket
 
@@ -200,16 +218,16 @@ namespace logger {
     Logger::Logger(int id,
                    std::string& bus_name,
                    std::string& yaml_file_path,
-                   std::string& ascii_log_file_path,
                    Auth& server_info,
                    std::unordered_set<int>&& log_ids,
                    std::unordered_set<std::string>&& dbc_file_paths,
                    log_mode mode,
+                   bool log_ascii,
                    bool debug)
 
         : can_bus_name(bus_name),
           yaml_file_path(yaml_file_path),
-          ascii_log_file_path(ascii_log_file_path),
+          log_ascii(log_ascii),
           si(server_info.db_name, server_info.port, server_info.host, server_info.user, server_info.password),
           log_ids(log_ids),
           dbc_file_paths(std::move(dbc_file_paths)),
@@ -219,7 +237,7 @@ namespace logger {
     Logger::Logger(logger::Logger&& other) noexcept
         : can_bus_name(std::move(other.can_bus_name)),
           yaml_file_path(std::move(other.yaml_file_path)),
-          ascii_log_file_path(std::move(other.ascii_log_file_path)),
+          log_ascii(other.log_ascii),
           si(other.si),
           log_ids(std::move(other.log_ids)),
           dbc_file_paths(std::move(other.dbc_file_paths)),
@@ -230,15 +248,15 @@ namespace logger {
     void Logger::start() {
         try {
             _init_bus();
-
-            std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
-            if (!dir.empty() && !std::filesystem::exists(dir)) {
-                std::filesystem::create_directories(dir);
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "Created directory: " << dir << "\n";
-                }
-            }
+            std::flush(std::cout);
+            // std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
+            // if (!dir.empty() && !std::filesystem::exists(dir)) {
+            //     std::filesystem::create_directories(dir);
+            //     {
+            //         std::lock_guard<std::mutex> lock(cout_mutex);
+            //         std::cout << "Created directory: " << dir << "\n";
+            //     }
+            // }
 
         } catch (std::exception const& e) {
             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -248,13 +266,14 @@ namespace logger {
             std::cerr << "Logger thread failed with unknown exception\n";
         }
 
+        // TODO: create a default ascii_log_file_path with log_ascii + can_bus_name, maybe optional arg
         // Open log file (ofstream will create it if it doesn't exist)
-        std::ofstream file(ascii_log_file_path, std::ios::app); // use app to append
-        if (!file.is_open()) {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cerr << "Logger cannot open file" << ascii_log_file_path << "\n";
-            return;
-        }
+        // std::ofstream file(ascii_log_file_path, std::ios::app); // use app to append
+        // if (!file.is_open()) {
+        //     std::lock_guard<std::mutex> lock(cout_mutex);
+        //     std::cerr << "Logger cannot open file" << ascii_log_file_path << "\n";
+        //     return;
+        // }
 
         if (debug) {
             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -293,7 +312,7 @@ namespace logger {
                 continue;
             }
 
-            uint32_t id = cfd.can_id & CAN_EFF_MASK;
+            uint32_t id = (cfd.can_id & CAN_EFF_MASK & 0xFFFF0000) | 0x80000000; //hacky fix
 
             switch (mode) {
                 case log_mode::WHITELIST_IDS: {
@@ -305,8 +324,8 @@ namespace logger {
                     break;
                 }
             }
-
-            logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
+            // TODO: Fix, need a file path
+            //logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
             DecodedFrame decoded_message = {.id = id, .time = now_ns(), .data = _decode(id, cfd)};
 
@@ -463,9 +482,9 @@ namespace logger {
                 throw std::runtime_error(std::format("found no dbc file paths"));
             }
 
-            std::string ascii_file_path = loggers_node[i]["ascii_file_path"].As<std::string>();
+            bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
 
-            loggers.emplace_back(i, name, yaml_path, ascii_file_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, debug);
+            loggers.emplace_back(i, name, yaml_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, log_ascii, debug);
             if (debug) {
                 std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_root_path << std::endl;

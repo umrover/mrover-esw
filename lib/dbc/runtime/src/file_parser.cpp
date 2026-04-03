@@ -293,6 +293,7 @@ namespace mrover::dbc_runtime {
                 m_is_processing_message = true;
 
                 auto message = parse_message(line);
+                if (message->is_independent_signal_message()) m_vector_independent_sig_msg_id = message->id();
                 if (!message.has_value()) {
                     m_error = message.error();
                     return false;
@@ -422,7 +423,7 @@ namespace mrover::dbc_runtime {
 
         for (auto const& svt: signal_value_types) {
             CanMessageDescription* msg = message(svt.message_id);
-
+            if (svt.message_id == m_vector_independent_sig_msg_id) continue;
             if (msg == nullptr) {
                 m_error = Error::InvalidSignalTypeMessageId;
                 return false;

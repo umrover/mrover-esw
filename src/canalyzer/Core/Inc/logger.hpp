@@ -67,7 +67,6 @@ namespace logger {
         std::string can_bus_name;
         std::string yaml_file_path;
         std::string dbc_root_path;
-        std::string ascii_log_file_path;
         influxdb_cpp::server_info si;
 
         std::unordered_set<int> log_ids;
@@ -88,6 +87,7 @@ namespace logger {
         log_mode mode;
         bool debug = false;
         bool done = false;
+        bool log_ascii;
 
         int read_error_count = 0;            //read error on the can bus
         int read_error_count_incomplete = 0; //if size is less than frame.
@@ -108,11 +108,11 @@ namespace logger {
                 int id,
                 std::string& bus_name,
                 std::string& yaml_file_path,
-                std::string& ascii_log_file_path,
                 Auth& server_info,
                 std::unordered_set<int>&& log_ids,
                 std::unordered_set<std::string>&& dbc_file_paths,
                 log_mode mode,
+                bool log_ascii,
                 bool debug);
 
         Logger(Logger&& other) noexcept;
