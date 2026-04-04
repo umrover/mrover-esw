@@ -17,12 +17,12 @@ namespace mrover {
 
     class AS5047U {
     public:
-        AS5047U(SPI* spi, float const scalar, float const offset, uint8_t const noise_margin, const std::function<void()>& on_complete = nullptr) : m_spi{spi}, m_scalar{scalar}, m_offset{offset} {
+        AS5047U(SPI* spi, float const scalar, float const offset, uint8_t const noise_margin, std::function<void()> const& on_complete = nullptr) : m_spi{spi}, m_scalar{scalar}, m_offset{offset} {
             init(noise_margin, on_complete);
         }
         AS5047U() = default;
 
-        auto init(uint8_t const noise_margin = 0, const std::function<void()>& on_complete = nullptr) -> void {
+        auto init(uint8_t const noise_margin = 0, std::function<void()> const& on_complete = nullptr) -> void {
             m_tx_buf[0] = make_cmd(as5047u_reg::ERRFL);
             m_tx_buf[1] = make_cmd(as5047u_reg::NOP);
 
@@ -40,7 +40,7 @@ namespace mrover {
             this->m_offset = offset;
         }
 
-        auto set_zero_on_chip(const std::function<void()>& on_complete = nullptr) -> void {
+        auto set_zero_on_chip(std::function<void()> const& on_complete = nullptr) -> void {
             m_tx_buf[0] = make_cmd(as5047u_reg::ANGLECOM);
             m_tx_buf[1] = make_cmd(as5047u_reg::NOP);
 

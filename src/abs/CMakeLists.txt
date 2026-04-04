@@ -28,7 +28,7 @@ set(MX_INC_DIR "${CMAKE_SOURCE_DIR}/Inc")
 set(MX_STARTUP_S "${CMAKE_SOURCE_DIR}/startup_stm32g431xx.s")
 
 # Enable compile command to ease indexing with e.g. clangd
-set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Core project settings
 project(${CMAKE_PROJECT_NAME})

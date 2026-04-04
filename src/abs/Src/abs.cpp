@@ -1,17 +1,16 @@
 #include "main.h"
 
 #include <variant>
-#include <cinttypes>
+
+#include <hw/as5047u.hpp>
+#include <hw/pin.hpp>
+#include <logger.hpp>
 #include <serial/fdcan.hpp>
 #include <serial/spi.hpp>
 #include <serial/uart.hpp>
-#include <logger.hpp>
+#include <timer.hpp>
 
 #include "config.hpp"
-#include <timer.hpp>
-#include <hw/pin.hpp>
-#include <hw/as5047u.hpp>
-
 
 extern FDCAN_HandleTypeDef hfdcan1;
 extern UART_HandleTypeDef hlpuart1;
@@ -19,7 +18,6 @@ extern SPI_HandleTypeDef hspi1;
 
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
-
 
 namespace mrover {
 
@@ -63,8 +61,8 @@ namespace mrover {
         Logger::init(&lpuart);
 
         // setup timers
-        encoder_tim.emplace(ENCODER_TIM, true);  // encoder poll timer (on interrupt)
-        publish_tim.emplace(PUBLISH_TIM, true);  // can publish timer (on interrupt)
+        encoder_tim.emplace(ENCODER_TIM, true); // encoder poll timer (on interrupt)
+        publish_tim.emplace(PUBLISH_TIM, true); // can publish timer (on interrupt)
 
         // override default timer frequencies based on config
         encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
@@ -79,11 +77,10 @@ namespace mrover {
 
         // initialize encoder
         encoder.emplace(
-            &spi,
-            config.get<abs_config_t::output_scalar>(),
-            config.get<abs_config_t::position_offset>(),
-            config.get<abs_config_t::noise_margin>()
-        );
+                &spi,
+                config.get<abs_config_t::output_scalar>(),
+                config.get<abs_config_t::position_offset>(),
+                config.get<abs_config_t::noise_margin>());
 
         Logger::instance().info("Initialized ABS Encoder %x", config.get<abs_config_t::can_id>());
         __enable_irq();
@@ -216,5 +213,4 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
     mrover::receive_can_message();
 }
-
 }
