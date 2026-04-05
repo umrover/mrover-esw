@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <deque>
 #include <fstream>
 #include <mutex>
@@ -24,23 +25,12 @@
 
 namespace logger {
 
-    std::string decode(canid_t can_id);
-    std::string make_can_timestamp();
-    long long now_ns();
-
-    struct Auth {
-        std::string host;
-        int port;
-        std::string db_name;
-        std::string user;
-        std::string password;
-        Auth(Auth&& other) noexcept = default;
-        Auth(std::string host, int port, std::string database, std::string user, std::string password);
-    };
+    auto make_can_timestamp() -> std::string;
+    auto now_ms() -> long long;
 
     // GLOBAL
-    extern std::atomic<bool> running;
-    extern std::mutex cout_mutex;
+    inline std::atomic<bool> running;
+    inline std::mutex cout_mutex;
 
     enum class log_mode {
         WHITELIST_IDS,
@@ -59,17 +49,18 @@ namespace logger {
             void post(std::string const& measurement,
                       std::string const& bus_name,
                       std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
-                      long long const timestamp);
+                      long long timestamp);
+            auto commit(influxdb_cpp::server_info const& si) -> int;
         };
 
         int id;
-        int bus_socket;
+        int bus_socket = -1;
         std::string can_bus_name;
         std::string yaml_file_path;
         std::string dbc_root_path;
         influxdb_cpp::server_info si;
 
-        std::unordered_set<int> log_ids;
+        std::unordered_set<uint32_t> log_ids;
         std::unordered_set<std::string> dbc_file_paths;
 
         mrover::dbc_runtime::CanDbcFileParser parser;
@@ -95,12 +86,12 @@ namespace logger {
 
         void _init_bus();
         void _log_ascii(
-                unsigned char* arr,
-                std::string name,
+                unsigned char const* arr,
+                std::string const& name,
                 std::ofstream& outputFile,
                 uint32_t id);
 
-        auto _decode(uint32_t const id, canfd_frame const& can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
+        auto _decode(uint32_t id, canfd_frame const& can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
         void _stop_bus();
 
     public:
@@ -108,25 +99,24 @@ namespace logger {
                 int id,
                 std::string& bus_name,
                 std::string& yaml_file_path,
-                Auth& server_info,
-                std::unordered_set<int>&& log_ids,
+                std::unordered_set<uint32_t>&& log_ids,
                 std::unordered_set<std::string>&& dbc_file_paths,
+                influxdb_cpp::server_info& si,
                 log_mode mode,
-                bool log_ascii,
-                bool debug);
+                bool log_ascii);
 
         Logger(Logger&& other) noexcept;
         void start();
 
-        void print();
-        void print_error();
+        void print() const;
+        void print_error() const;
 
         Logger(Logger const&) = delete;
-        Logger& operator=(Logger const&) = delete;
+        auto operator=(Logger const&) -> Logger& = delete;
     };
 
-    std::vector<Logger> logger_factory(std::string& yaml_path, bool debug = false);
-    static std::string trim(const std::string& s);
+    auto logger_factory(std::string& yaml_path) -> std::vector<Logger>;
+    static auto trim(std::string const& s) -> std::string;
 
     void handle_SIGINT(int);
     void run_bus(std::vector<Logger>& loggers);

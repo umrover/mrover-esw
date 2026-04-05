@@ -40,29 +40,14 @@ services:
       interval: 15s
       retries: 5
 
-  # can_logger:
-  #   build:
-  #     context: ./can_code
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   environment:
-  #     - INFLUXDB_URL=http://influxdb:8086
-  #     - INFLUXDB_DB=logger_db
-  #     - INFLUXDB_USER=logger
-  #     - INFLUXDB_PASSWORD=password
-  #   depends_on:
-  #     influxdb:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./can_logger/logs:/app/logs
-
   can_logger:
     image: can_logger_image
     container_name: can_logger_instance
     network_mode: "host"
     restart: unless-stopped
     environment:
-       - INFLUXDB_URL=http://127.0.0.1:8086
+       - INFLUXDB_HOST=127.0.0.1
+       - INFLUXDB_PORT=8086
        - INFLUXDB_DB=logger_db
        - INFLUXDB_USER=logger
        - INFLUXDB_PASSWORD=password

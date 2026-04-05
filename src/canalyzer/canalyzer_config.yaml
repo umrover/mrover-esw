@@ -1,10 +1,4 @@
 logger_bus_size: 4
-auth:
-  - host: localhost
-    port: 1500 
-    db_name: influxdb
-    user: user
-    password: password
 loggers:
   - name: vcan0
     log_mode: blacklist 

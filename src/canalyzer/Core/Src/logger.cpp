@@ -1,9 +1,12 @@
 #include "logger.hpp"
 #include "Yaml.hpp"
 #include "file_parser.hpp"
+#include "influxdb.hpp"
 
 
+#include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -17,38 +20,20 @@
 
 namespace logger {
 
-    //GLOBALS
-    std::atomic<bool> running = true;
-    std::mutex cout_mutex;
-
-    Auth::Auth(
-            std::string host, int port,
-            std::string database,
-            std::string user,
-            std::string password)
-        : host(std::move(host)),
-          port(port),
-          db_name(std::move(database)),
-          user(std::move(user)),
-          password(std::move(password)) {}
-
     void Logger::DynamicBuilder::post(
             std::string const& measurement,
             std::string const& bus_name,
             std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
             long long const timestamp) {
 
-        {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "have measurement " << measurement << "on bus: " << bus_name << "\n";
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
         }
         _m(measurement);
 
         _t("bus_name", bus_name);
 
         bool is_first_field = true;
-
-        // put timestamp here
 
         for (auto const& [name, value]: data) {
             char delim = is_first_field ? ' ' : ',';
@@ -61,14 +46,26 @@ namespace logger {
             } else if (value.is_string()) {
                 _f_s(delim, name, value.as_string());
             } else {
-                std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cerr << "something weird happened";
+                throw std::runtime_error(std::format("can value with name: {}, is not floating, integral, or string type", name));
             }
         }
+
+        _ts(timestamp);
     }
 
+    auto Logger::DynamicBuilder::commit(influxdb_cpp::server_info const& si) -> int {
+        if (lines_.tellp() == 0) return 0;
 
-    std::string make_can_timestamp() {
+        std::string resp;
+        int ret = _post_http(si, &resp);
+
+        lines_.str("");
+        lines_.clear();
+
+        return ret;
+    }
+
+    auto make_can_timestamp() -> std::string {
         using namespace std::chrono;
 
         auto now = system_clock::now();
@@ -76,14 +73,14 @@ namespace logger {
 
         long long sec = us / 1'000'000;
         long long micros = us % 1'000'000;
-        char buf[32]; // plenty for "(1234567890.123456)"
+        char buf[32];
 
         std::snprintf(buf, sizeof(buf), "(%lld.%06lld)", sec, micros);
-        return std::string(buf);
+        return {buf};
     }
 
-    long long now_ns() {
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+    auto now_ms() -> long long {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
                        std::chrono::system_clock::now().time_since_epoch())
                 .count();
     }
@@ -94,7 +91,6 @@ namespace logger {
 
         while (true) {
             {
-
                 std::unique_lock<std::mutex> lock(buffer_mutex);
                 cv.wait(lock, [this] { return !buffer.empty() || !running.load(); });
 
@@ -107,13 +103,18 @@ namespace logger {
             }
 
             for (auto const& can_frame: local_buffer) {
-                auto const* desc = parser.message(can_frame.id);
+                auto const desc = parser.message(can_frame.id);
                 if (desc == nullptr) throw std::runtime_error(std::format("failed to get description for {:x}", can_frame.id));
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "about to post\n";
-                }
+
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
+                int status = builder.commit(si);
+                if (status != 0) {
+                    {
+                        std::lock_guard<std::mutex> lock(cout_mutex);
+                        std::cout << "build commit failed with error " << status << "\n";
+                        ++influx_post_error_count;
+                    }
+                }
             }
         }
 
@@ -121,8 +122,9 @@ namespace logger {
             std::lock_guard<std::mutex> lock(buffer_mutex);
 
             for (auto const& can_frame: buffer) {
-                auto const* desc = parser.message(can_frame.id);
+                auto desc = parser.message(can_frame.id);
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
+                builder.commit(si);
             }
         }
     }
@@ -131,33 +133,28 @@ namespace logger {
 
         //parse files
 
-        for (auto it = begin(dbc_file_paths); it != end(dbc_file_paths); ++it) {
-            if (!parser.parse(*it)) {
-                throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", *it, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
+        for (auto const& dbc_file_path: dbc_file_paths) {
+            if (!parser.parse(dbc_file_path)) {
+                throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", dbc_file_path, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
             }
         }
 
-
         //add log messasges into the processor
         if (mode == log_mode::WHITELIST_IDS) {
-            for (auto it = begin(log_ids); it != end(log_ids); ++it) {
-                mrover::dbc_runtime::CanMessageDescription const* message = parser.message(*it);
-                if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(*it), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
+            for (unsigned int log_id: log_ids) {
+                auto const message = parser.message(log_id);
+                if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(log_id), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
                 processor.add_message_description(*message);
             }
         } else if (mode == log_mode::BLACKLIST_IDS) {
-            for (const auto &message : parser.messages()) {
+            for (auto const& message: parser.messages()) {
                 processor.add_message_description(message);
             }
         }
 
-
         //create socket
-
         bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-        if (bus_socket < 0) {
-            throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
-        }
+        if (bus_socket < 0) throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
 
         int flags = fcntl(bus_socket, F_GETFL, 0);
         if (flags == -1) {
@@ -165,8 +162,8 @@ namespace logger {
         }
         if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error("Failed to make socket nonblock");
 
-        struct ifreq ifr;
-        struct sockaddr_can addr;
+        struct ifreq ifr {};
+        struct sockaddr_can addr {};
 
         std::strncpy(ifr.ifr_name, can_bus_name.c_str(), IFNAMSIZ - 1);
         ifr.ifr_name[IFNAMSIZ - 1] = '\0';
@@ -191,21 +188,20 @@ namespace logger {
         }
     }
 
-    void Logger::_log_ascii(unsigned char* arr, std::string name, std::ofstream& outputFile, uint32_t id) {
+    void Logger::_log_ascii(unsigned char const* arr, std::string const& name, std::ofstream& outputFile, uint32_t id) {
         if (!outputFile.is_open()) return;
-
 
         outputFile << make_can_timestamp() << can_bus_name << " ";
 
         outputFile << id << "#";
 
-
+        // print two digit unsigned
         for (size_t i = 0; i < CANFD_MAX_DLEN; i++) {
-            outputFile << std::hex                         // switch to hex mode
-                       << std::uppercase                   // use uppercase letters (A–F)
-                       << std::setw(2)                     // pad to 2 digits
-                       << std::setfill('0')                // pad with '0' if needed
-                       << static_cast<int>(arr[i] & 0xFF); // ensure unsigned
+            outputFile << std::hex
+                       << std::uppercase
+                       << std::setw(2)
+                       << std::setfill('0')
+                       << static_cast<int>(arr[i] & 0xFF);
         }
 
         outputFile << std::dec << "\n";
@@ -218,27 +214,27 @@ namespace logger {
     Logger::Logger(int id,
                    std::string& bus_name,
                    std::string& yaml_file_path,
-                   Auth& server_info,
-                   std::unordered_set<int>&& log_ids,
+                   std::unordered_set<uint32_t>&& log_ids,
                    std::unordered_set<std::string>&& dbc_file_paths,
+                   influxdb_cpp::server_info& si,
                    log_mode mode,
-                   bool log_ascii,
-                   bool debug)
+                   bool log_ascii)
 
-        : can_bus_name(bus_name),
+        : id(id),
+          can_bus_name(bus_name),
           yaml_file_path(yaml_file_path),
           log_ascii(log_ascii),
-          si(server_info.db_name, server_info.port, server_info.host, server_info.user, server_info.password),
+          si(si),
           log_ids(log_ids),
           dbc_file_paths(std::move(dbc_file_paths)),
-          mode(mode),
-          debug(debug) {}
+          mode(mode) {}
 
     Logger::Logger(logger::Logger&& other) noexcept
-        : can_bus_name(std::move(other.can_bus_name)),
+        : id(other.id),
+          can_bus_name(std::move(other.can_bus_name)),
           yaml_file_path(std::move(other.yaml_file_path)),
           log_ascii(other.log_ascii),
-          si(other.si),
+          si(std::move(other.si)),
           log_ids(std::move(other.log_ids)),
           dbc_file_paths(std::move(other.dbc_file_paths)),
           mode(other.mode),
@@ -282,7 +278,7 @@ namespace logger {
 
         committer_thread = std::thread(&Logger::_committer_worker, this);
 
-        struct canfd_frame cfd;
+        struct canfd_frame cfd {};
 
 
         while (running.load()) { //catch an interupt instead?
@@ -327,7 +323,7 @@ namespace logger {
             // TODO: Fix, need a file path
             //logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
-            DecodedFrame decoded_message = {.id = id, .time = now_ns(), .data = _decode(id, cfd)};
+            DecodedFrame decoded_message = {.id = id, .time = now_ms(), .data = _decode(id, cfd)};
 
             {
                 std::lock_guard<std::mutex> lock(buffer_mutex);
@@ -342,7 +338,7 @@ namespace logger {
         if (committer_thread.joinable()) committer_thread.join();
     }
 
-    void Logger::print() {
+    void Logger::print() const {
         {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "Auth:\n"
@@ -368,7 +364,7 @@ namespace logger {
         }
     }
 
-    void Logger::print_error() {
+    void Logger::print_error() const {
         if (debug) {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "Logger: " << id << " | read_error_count: " << read_error_count << " | incomplete reads: " << read_error_count_incomplete << " | influx post errors: " << influx_post_error_count << "\n";
@@ -377,46 +373,50 @@ namespace logger {
 
     // End logger class members
 
-
-    std::vector<Logger> logger_factory(std::string& yaml_path, bool debug) {
-        //will init a vector of configured Loggers from a yaml found at path
+    auto logger_factory(std::string& yaml_path) -> std::vector<Logger> {
         std::vector<Logger> loggers;
 
-        const char* dbc_root_env = std::getenv("DBC_ROOT");
-        if (!dbc_root_env) {
-            throw std::runtime_error("DBC_ROOT environment variable is not set");
-        }
-        std::string dbc_root_path = dbc_root_env;
-                
+        char const* dbc_root_env = std::getenv("DBC_ROOT");
+        if (!dbc_root_env) throw std::runtime_error("DBC_ROOT environment variable is not set");
 
+        std::string dbc_root_path = dbc_root_env;
         int size = 0;
-        if (debug) {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "parsing" << std::endl;
-        }
+
         Yaml::Node root;
         try {
             Yaml::Parse(root, yaml_path.c_str());
         } catch (Yaml::Exception const& e) {
-            throw std::runtime_error(std::string("yaml parse broke: ") + e.what());
+            throw std::runtime_error(std::format("yaml parsing broke with error: {}\n", e.what()));
         }
-        if (debug) std::cout << "parsing 1" << std::endl;
+
         size = root["logger_bus_size"].As<int>();
-        if (size > 4) {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cerr << "cannot support more than 4 can busses, recieved bus size of: " << size << std::endl;
-        }
-        if (debug) std::cout << "Size: " << size << std::endl;
+        if (size > 4) throw std::runtime_error(std::format("recieved logger bus size of {}, which is larger than 4", size));
 
-        Yaml::Node auth_node = root["auth"][0];
-        std::string host = auth_node["host"].As<std::string>();
-        int port = auth_node["port"].As<int>();
-        std::string db_name = auth_node["db_name"].As<std::string>();
-        std::string user = auth_node["user"].As<std::string>();
-        std::string password = auth_node["password"].As<std::string>();
-        Auth auth = {host, port, db_name, user, password};
+        std::cout << "Size: " << size << std::endl;
 
-        if (debug) {
+        char const* env_host = std::getenv("INFLUXDB_HOST");
+        if (!env_host) throw std::runtime_error("influxdb environment variable unset: host");
+        std::string host(env_host);
+
+        char const* env_port = std::getenv("INFLUXDB_PORT");
+        if (!env_port) throw std::runtime_error("influxdb environment variable unset: port");
+        int port = std::stoi(env_port);
+
+        char const* env_db = std::getenv("INFLUXDB_DB");
+        if (!env_db) throw std::runtime_error("influxdb environment variable unset: db");
+        std::string db_name(env_db);
+
+        char const* env_user = std::getenv("INFLUXDB_USER");
+        if (!env_user) throw std::runtime_error("influxdb environment variable unset: user");
+        std::string user(env_user);
+
+        char const* env_pass = std::getenv("INFLUXDB_PASSWORD");
+        if (!env_port) throw std::runtime_error("influxdb environment variable unset: password");
+        std::string password(env_pass);
+
+        influxdb_cpp::server_info auth(host, port, db_name, user, password);
+
+        {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "host: " << host << ", port: " << port << ", db_name: " << db_name << ", user " << user << ", password: " << password << std::endl;
         }
@@ -425,12 +425,9 @@ namespace logger {
         loggers.reserve(size);
 
         for (int i = 0; i < size; ++i) {
-            if (debug) {
-                std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "in logger factory, iteration:" << i << "\n";
-            }
-            std::string name = loggers_node[i]["name"].As<std::string>();
-            std::string log_mode_str = loggers_node[i]["log_mode"].As<std::string>();
+
+            auto name = loggers_node[i]["name"].As<std::string>();
+            auto log_mode_str = loggers_node[i]["log_mode"].As<std::string>();
 
             log_mode mode;
             if (log_mode_str == "whitelist") {
@@ -438,11 +435,11 @@ namespace logger {
             } else if (log_mode_str == "blacklist") {
                 mode = log_mode::BLACKLIST_IDS;
             } else {
-                throw std::runtime_error("expected 'whitelist' or 'blacklist'"); // maybe change to std::format
+                throw std::runtime_error(std::format("expected 'whitelist' or 'blacklist' but recieved {}", log_mode_str));
             }
 
-            std::string log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
-            std::unordered_set<int> log_ids;
+            auto log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
+            std::unordered_set<uint32_t> log_ids;
 
             std::stringstream log_specify_stream(log_spec_str);
             std::string token;
@@ -454,11 +451,11 @@ namespace logger {
                 } catch (std::invalid_argument const& e) {
                     throw std::runtime_error(std::format("non-intger arg to stoi in log_specify: {}", e.what()));
                 } catch (...) {
-                    throw std::runtime_error("log_specify stoi broke");
+                    throw std::runtime_error(std::format("log_specify stoi broke parsing token: {}", token));
                 }
             }
 
-            std::string dbc_file_paths_str = loggers_node[i]["dbc_paths"].As<std::string>();
+            auto dbc_file_paths_str = loggers_node[i]["dbc_paths"].As<std::string>();
             std::unordered_set<std::string> dbc_file_paths;
 
             std::stringstream dbc_stream(dbc_file_paths_str);
@@ -478,14 +475,13 @@ namespace logger {
             }
 
             if (dbc_file_paths.empty()) {
-                std::string error = "CAN Bus: " + std::to_string(i) + " parsed 0 file paths";
                 throw std::runtime_error(std::format("found no dbc file paths"));
             }
 
             bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
 
-            loggers.emplace_back(i, name, yaml_path, auth, std::move(log_ids), std::move(dbc_file_paths), mode, log_ascii, debug);
-            if (debug) {
+            loggers.emplace_back(i, name, yaml_path, std::move(log_ids), std::move(dbc_file_paths), auth, mode, log_ascii);
+            {
                 std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_root_path << std::endl;
             }
@@ -505,10 +501,10 @@ namespace logger {
 
         std::vector<std::thread> threads;
 
-        for (int i = 0; i < static_cast<int>(loggers.size()); ++i) {
-            threads.emplace_back(&Logger::start, &loggers[i]);
+        threads.reserve(static_cast<int>(loggers.size()));
+        for (auto& logger: loggers) {
+            threads.emplace_back(&Logger::start, &logger);
         }
-
 
         for (auto& thread: threads) {
             if (thread.joinable()) thread.join();
@@ -519,7 +515,7 @@ namespace logger {
         }
     }
 
-    static std::string trim(std::string const& s) {
+    static auto trim(std::string const& s) -> std::string {
         auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char c) {
             return std::isspace(c);
         });
@@ -529,7 +525,7 @@ namespace logger {
                    }).base();
 
         if (start >= end) return "";
-        return std::string(start, end);
+        return {start, end};
     }
 
 } // namespace logger
