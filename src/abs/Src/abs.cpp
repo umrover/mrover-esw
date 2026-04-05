@@ -1,5 +1,6 @@
 #include "main.h"
 
+#include <cstddef>
 #include <variant>
 
 #include <hw/as5047u.hpp>
@@ -11,6 +12,7 @@
 #include <timer.hpp>
 
 #include "config.hpp"
+#include "stm32g4xx_hal.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
 extern UART_HandleTypeDef hlpuart1;
@@ -43,6 +45,7 @@ namespace mrover {
     std::optional<Timer> publish_tim;
 
     // Hardware Units
+    std::optional<Pin> pgood;
     std::optional<Pin> can_tx;
     std::optional<Pin> can_rx;
     std::optional<MRoverCANHandler> can_receiver;
@@ -51,6 +54,10 @@ namespace mrover {
     auto init() -> void {
         __disable_irq();
         HAL_DBGMCU_EnableDBGSleepMode();
+
+        // pgood
+        pgood.emplace(PGOOD_GPIO_Port, PGOOD_Pin);
+        pgood->set();
 
         // initialize peripherals
         fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
@@ -65,8 +72,19 @@ namespace mrover {
         publish_tim.emplace(PUBLISH_TIM, true); // can publish timer (on interrupt)
 
         // override default timer frequencies based on config
+        Logger::instance().info("can_id = %u", config.get<abs_config_t::can_id>());
+        Logger::instance().info("host_can_id = %u", config.get<abs_config_t::host_can_id>());
+        Logger::instance().info("noise_margin = %u", config.get<abs_config_t::noise_margin>());
+        Logger::instance().info("user_reg = %u", config.get<abs_config_t::user_reg>());
+        Logger::instance().info("output_scalar = %f", config.get<abs_config_t::output_scalar>());
+        Logger::instance().info("position = %f", config.get<abs_config_t::position_offset>());
+        Logger::instance().info("poll = %f", config.get<abs_config_t::poll_frequency>());
+        Logger::instance().info("publish = %f", config.get<abs_config_t::publish_frequency>());
+
         encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
         publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
+        Logger::instance().info("poll timer freq: %f Hz", encoder_tim->get_update_frequency());
+        Logger::instance().info("publish timer freq: %f Hz", publish_tim->get_update_frequency());
 
         // setup debug LEDs
         can_tx.emplace(CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin);
@@ -82,7 +100,8 @@ namespace mrover {
                 config.get<abs_config_t::position_offset>(),
                 config.get<abs_config_t::noise_margin>());
 
-        Logger::instance().info("Initialized ABS Encoder %x", config.get<abs_config_t::can_id>());
+        Logger::instance().info("Initialized ABS Encoder 0x%x", config.get<abs_config_t::can_id>());
+        initialized = true;
         __enable_irq();
     }
 
@@ -117,7 +136,8 @@ namespace mrover {
         if (msg.apply) {
             if (config.set_raw(msg.address, msg.value)) {
                 // re-initialize after configuration is modified
-                init();
+                // init(); // TODO(eric): this is bad, reset instead
+                Logger::instance().info("set address 0x%x to value 0x%x", msg.address, msg.value);
             }
         } else {
             // send data back as an acknowledgement of the request
@@ -156,9 +176,10 @@ namespace mrover {
     }
 
     [[noreturn]] auto loop() -> void {
+        Pin cs_pin{ABS_SS_GPIO_Port, ABS_SS_Pin};
         for (;;) {
             if (enc_request) {
-                encoder->update();
+                encoder->update(cs_pin);
                 enc_request = false;
             }
             if (pending_pub) {
@@ -190,6 +211,12 @@ namespace mrover {
         }
     }
 
+    auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
+        if (huart == LPUART_1) {
+            lpuart.handle_tx_complete();
+        }
+    }
+
 } // namespace mrover
 
 extern "C" {
@@ -208,6 +235,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef* hspi) {
     mrover::spi_callback(hspi);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
+    mrover::uart_tx_callback(huart);
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {

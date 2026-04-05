@@ -1,6 +1,8 @@
 #pragma once
 
 #include <serial/spi.hpp>
+#include <hw/pin.hpp>
+#include <logger.hpp>
 
 namespace mrover {
 
@@ -58,18 +60,41 @@ namespace mrover {
             });
         }
 
-        auto update() -> void {
+        auto update(Pin const& m_cs_pin) -> void {
             m_tx_buf[0] = make_cmd(as5047u_reg::ANGLECOM);
             m_tx_buf[1] = make_cmd(as5047u_reg::VEL);
             m_tx_buf[2] = make_cmd(as5047u_reg::NOP);
 
-            m_spi->transfer(std::span(m_tx_buf, 3), std::span(m_rx_buf, 3), [this]() -> void {
-                this->m_raw_pos = m_rx_buf[1] & 0x3FFF;
+            // m_spi->transfer(std::span(m_tx_buf, 3), std::span(m_rx_buf, 3), [this]() -> void {
+            //     this->m_raw_pos = m_rx_buf[1] & 0x3FFF;
+            //
+            //     uint16_t raw_vel = m_rx_buf[2] & 0x3FFF;
+            //     if (raw_vel & 0x2000) raw_vel |= 0xC000;
+            //     this->m_raw_vel = static_cast<int16_t>(raw_vel);
+            // });
 
+            // Inside as5047u.hpp update() function (assuming synchronous/blocking SPI):
+            m_cs_pin.reset(); // Pull CS LOW
+            m_spi->transfer(std::span(&m_tx_buf[0], 1), std::span(&m_rx_buf[0], 1));
+            m_cs_pin.set();   // Pull CS HIGH
+            // Short delay if necessary (AS5047U requires t_CSn > 350ns between frames)
+            HAL_Delay(350);
+            // for(volatile int i = 0; i < 10; ++i); 
+            m_cs_pin.reset(); 
+            m_spi->transfer(std::span(&m_tx_buf[1], 1), std::span(&m_rx_buf[1], 1));
+            m_cs_pin.set();   
+            m_cs_pin.reset(); 
+            m_spi->transfer(std::span(&m_tx_buf[2], 1), std::span(&m_rx_buf[2], 1), [this]() -> void {
+                // Process m_rx_buf[1] and m_rx_buf[2] here
+                this->m_raw_pos = m_rx_buf[1] & 0x3FFF;
                 uint16_t raw_vel = m_rx_buf[2] & 0x3FFF;
                 if (raw_vel & 0x2000) raw_vel |= 0xC000;
                 this->m_raw_vel = static_cast<int16_t>(raw_vel);
             });
+            m_cs_pin.set();
+
+            Logger::instance().info("pos: %u", this->m_raw_pos);
+            Logger::instance().info("vel: %d", this->m_raw_vel);
         }
 
         [[nodiscard]] auto get_position() const -> float {

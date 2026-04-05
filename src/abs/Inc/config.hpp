@@ -2,6 +2,7 @@
 
 #include <serial/fdcan.hpp>
 #include <serial/uart.hpp>
+#include <serial/spi.hpp>
 #include <tuple>
 
 #include <MRoverCAN.hpp>

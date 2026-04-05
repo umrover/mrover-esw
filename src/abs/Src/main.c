@@ -278,7 +278,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
-  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
@@ -394,7 +394,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ABS_SS_GPIO_Port, ABS_SS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PGOOD_Pin|CAN_RX_LED_Pin|CAN_TX_LED_Pin|CAN_STB_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : ABS_SS_Pin */
+  GPIO_InitStruct.Pin = ABS_SS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ABS_SS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PGOOD_Pin CAN_RX_LED_Pin CAN_TX_LED_Pin CAN_STB_Pin */
   GPIO_InitStruct.Pin = PGOOD_Pin|CAN_RX_LED_Pin|CAN_TX_LED_Pin|CAN_STB_Pin;
