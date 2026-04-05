@@ -48,6 +48,7 @@ namespace mrover {
     std::optional<Pin> pgood;
     std::optional<Pin> can_tx;
     std::optional<Pin> can_rx;
+    std::optional<Pin> abs_ss;
     std::optional<MRoverCANHandler> can_receiver;
     std::optional<AS5047U> encoder;
 
@@ -89,6 +90,8 @@ namespace mrover {
         // setup debug LEDs
         can_tx.emplace(CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin);
         can_rx.emplace(CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin);
+        abs_ss.emplace(ABS_SS_GPIO_Port, ABS_SS_Pin);
+        abs_ss->set();
 
         // initialize fdcan
         can_receiver = MRoverCANHandler{&fdcan};
@@ -96,6 +99,7 @@ namespace mrover {
         // initialize encoder
         encoder.emplace(
                 &spi,
+                &abs_ss.value(),
                 config.get<abs_config_t::output_scalar>(),
                 config.get<abs_config_t::position_offset>(),
                 config.get<abs_config_t::noise_margin>());
@@ -176,10 +180,9 @@ namespace mrover {
     }
 
     [[noreturn]] auto loop() -> void {
-        Pin cs_pin{ABS_SS_GPIO_Port, ABS_SS_Pin};
         for (;;) {
             if (enc_request) {
-                encoder->update(cs_pin);
+                encoder->update();
                 enc_request = false;
             }
             if (pending_pub) {
@@ -206,9 +209,9 @@ namespace mrover {
     }
 
     auto spi_callback(SPI_HandleTypeDef const* hspi) -> void {
-        if (SPI::s_dma_instance != nullptr && hspi == SPI::s_dma_instance->handle()) {
-            SPI::s_dma_instance->handle_irq();
-        }
+        // if (SPI::s_dma_instance != nullptr && hspi == SPI::s_dma_instance->handle()) {
+        //     SPI::s_dma_instance->handle_irq();
+        // }
     }
 
     auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {

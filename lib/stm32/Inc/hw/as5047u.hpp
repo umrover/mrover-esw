@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <span>
+
 #include <serial/spi.hpp>
 #include <hw/pin.hpp>
 #include <logger.hpp>
@@ -9,89 +12,37 @@ namespace mrover {
     namespace as5047u_reg {
         static constexpr uint16_t NOP = 0x0000;
         static constexpr uint16_t ERRFL = 0x0001;
-        static constexpr uint16_t SETTINGS1 = 0x0018;
-        static constexpr uint16_t ZPOSM = 0x0016; // Zero Position MSB
-        static constexpr uint16_t ZPOSL = 0x0017; // Zero Position LSB
-        static constexpr uint16_t DIAAGC = 0x3FFD;
         static constexpr uint16_t VEL = 0x3FC0;
         static constexpr uint16_t ANGLECOM = 0x3FFF;
     } // namespace as5047u_reg
 
     class AS5047U {
     public:
-        AS5047U(SPI* spi, float const scalar, float const offset, uint8_t const noise_margin, std::function<void()> const& on_complete = nullptr) : m_spi{spi}, m_scalar{scalar}, m_offset{offset} {
-            init(noise_margin, on_complete);
+        AS5047U(SPI* spi, Pin* cs_pin, float const scalar, float const offset, uint8_t const noise_margin)
+            : m_spi{spi}, m_cs_pin{cs_pin}, m_scalar{scalar}, m_offset{offset} {
+            init(noise_margin);
         }
         AS5047U() = default;
 
-        auto init(uint8_t const noise_margin = 0, std::function<void()> const& on_complete = nullptr) -> void {
-            m_tx_buf[0] = make_cmd(as5047u_reg::ERRFL);
-            m_tx_buf[1] = make_cmd(as5047u_reg::NOP);
-
-            m_spi->transfer(std::span(m_tx_buf, 2), std::span(m_rx_buf, 2), [this, noise_margin, on_complete]() -> void {
-                // write to SETTINGS1
-                uint16_t const cmd = make_cmd(as5047u_reg::SETTINGS1, false);
-                this->m_tx_buf[0] = cmd;
-                this->m_tx_buf[1] = make_cmd(noise_margin & 0x03, false);
-
-                this->m_spi->transfer(std::span(this->m_tx_buf, 2), std::span(this->m_rx_buf, 2), on_complete);
-            });
+        auto init(uint8_t const noise_margin = 0) -> void {
+            m_cs_pin->set(); // Ensure CS is pulled high initially
+            read_reg(as5047u_reg::ERRFL); // Clear any startup errors
         }
 
         auto set_zero_offset(float const offset) -> void {
             this->m_offset = offset;
         }
 
-        auto set_zero_on_chip(std::function<void()> const& on_complete = nullptr) -> void {
-            m_tx_buf[0] = make_cmd(as5047u_reg::ANGLECOM);
-            m_tx_buf[1] = make_cmd(as5047u_reg::NOP);
+        auto update() -> void {
+            // Read ANGLECOM via pipeline
+            this->m_raw_pos = read_reg(as5047u_reg::ANGLECOM);
 
-            m_spi->transfer(std::span(m_tx_buf, 2), std::span(m_rx_buf, 2), [this, on_complete]() -> void {
-                uint16_t const current_angle = this->m_rx_buf[1] & 0x3FFF;
+            // Read VEL via pipeline
+            uint16_t raw_vel = read_reg(as5047u_reg::VEL);
 
-                // write zero pos MSB addr & data
-                this->m_tx_large_buf[0] = make_cmd(as5047u_reg::ZPOSM, false);
-                this->m_tx_large_buf[1] = make_cmd((current_angle >> 8) & 0x3F, false);
-                // write zero pos LSB addr & data
-                this->m_tx_large_buf[2] = make_cmd(as5047u_reg::ZPOSL, false);
-                this->m_tx_large_buf[3] = make_cmd(current_angle & 0xFF, false);
-
-                this->m_spi->transfer(std::span(this->m_tx_large_buf, 4), std::span(this->m_rx_large_buf, 4), on_complete);
-            });
-        }
-
-        auto update(Pin const& m_cs_pin) -> void {
-            m_tx_buf[0] = make_cmd(as5047u_reg::ANGLECOM);
-            m_tx_buf[1] = make_cmd(as5047u_reg::VEL);
-            m_tx_buf[2] = make_cmd(as5047u_reg::NOP);
-
-            // m_spi->transfer(std::span(m_tx_buf, 3), std::span(m_rx_buf, 3), [this]() -> void {
-            //     this->m_raw_pos = m_rx_buf[1] & 0x3FFF;
-            //
-            //     uint16_t raw_vel = m_rx_buf[2] & 0x3FFF;
-            //     if (raw_vel & 0x2000) raw_vel |= 0xC000;
-            //     this->m_raw_vel = static_cast<int16_t>(raw_vel);
-            // });
-
-            // Inside as5047u.hpp update() function (assuming synchronous/blocking SPI):
-            m_cs_pin.reset(); // Pull CS LOW
-            m_spi->transfer(std::span(&m_tx_buf[0], 1), std::span(&m_rx_buf[0], 1));
-            m_cs_pin.set();   // Pull CS HIGH
-            // Short delay if necessary (AS5047U requires t_CSn > 350ns between frames)
-            HAL_Delay(350);
-            // for(volatile int i = 0; i < 10; ++i); 
-            m_cs_pin.reset(); 
-            m_spi->transfer(std::span(&m_tx_buf[1], 1), std::span(&m_rx_buf[1], 1));
-            m_cs_pin.set();   
-            m_cs_pin.reset(); 
-            m_spi->transfer(std::span(&m_tx_buf[2], 1), std::span(&m_rx_buf[2], 1), [this]() -> void {
-                // Process m_rx_buf[1] and m_rx_buf[2] here
-                this->m_raw_pos = m_rx_buf[1] & 0x3FFF;
-                uint16_t raw_vel = m_rx_buf[2] & 0x3FFF;
-                if (raw_vel & 0x2000) raw_vel |= 0xC000;
-                this->m_raw_vel = static_cast<int16_t>(raw_vel);
-            });
-            m_cs_pin.set();
+            // Handle negative velocities (14-bit sign extension)
+            if (raw_vel & 0x2000u) raw_vel |= 0xC000u;
+            this->m_raw_vel = static_cast<int16_t>(raw_vel);
 
             Logger::instance().info("pos: %u", this->m_raw_pos);
             Logger::instance().info("vel: %d", this->m_raw_vel);
@@ -102,40 +53,62 @@ namespace mrover {
         }
 
         [[nodiscard]] auto get_velocity() const -> float {
+            // Your older file used 24.141f scalar for velocity, but we use the configurable m_scalar here
             return static_cast<float>(m_raw_vel) * m_scalar;
-        }
-
-        auto set_noise_margin(uint8_t const margin, std::function<void()> const& on_complete = nullptr) -> void {
-            uint16_t const cmd = make_cmd(as5047u_reg::SETTINGS1, false);
-            this->m_tx_buf[0] = cmd;
-            this->m_tx_buf[1] = make_cmd(margin & 0x03, false);
-
-            this->m_spi->transfer(std::span(this->m_tx_buf, 2), std::span(this->m_rx_buf, 2), on_complete);
         }
 
     private:
         SPI* m_spi{};
+        Pin* m_cs_pin{};
         float m_scalar{};
         float m_offset{};
         uint16_t m_raw_pos{0};
         int16_t m_raw_vel{0};
 
-        // TODO(eric): RTOS: ensure these aren't used concurrently
-        uint16_t m_tx_buf[3]{0};
-        uint16_t m_rx_buf[3]{0};
-        uint16_t m_tx_large_buf[4]{0};
-        uint16_t m_rx_large_buf[4]{0};
+        static inline auto cmd_read16(uint16_t addr) -> uint16_t {
+            // Base command: bit14=1 (Read), 13:0=ADDR
+            uint16_t cmd = static_cast<uint16_t>((1u << 14) | (addr & 0x3FFFu));
 
-        static auto make_cmd(uint16_t const addr, bool const is_read = true) -> uint16_t {
-            uint16_t cmd = (addr & 0x3FFF);
-            if (is_read) cmd |= (1u << 14);
+            // Calculate even parity
+            uint16_t parity = 0;
+            uint16_t temp = cmd;
+            while (temp > 0) {
+                parity ^= (temp & 1);
+                temp >>= 1;
+            }
 
-            // parity calculation
-            uint16_t p = 0;
-            for (uint8_t i = 0; i < 15; ++i)
-                if (cmd >> i & 1) ++p;
-            if (p % 2 == 0) cmd |= 1u << 15;
+            // If the number of 1s is odd (parity == 1), set Bit 15 to make it even
+            if (parity) {
+                cmd |= (1u << 15);
+            }
+
             return cmd;
+        }
+
+        // Implements the pipeline read that "used to work"
+        auto read_reg(uint16_t const reg) -> uint16_t {
+            uint16_t tx = cmd_read16(reg);
+            uint16_t rx = 0;
+
+            // Step 1: Send the requested address
+            m_cs_pin->reset();
+            // m_spi->transfer(std::span(&tx, 1), std::span(&rx, 1));
+            HAL_SPI_Transmit(m_spi->handle(), reinterpret_cast<uint8_t*>(&tx), 1, HAL_MAX_DELAY);
+            m_cs_pin->set();
+
+            // Small delay to meet CSn high time requirement between frames (t_CSn > 350ns)
+            for(volatile int i = 0; i < 15; ++i) {}
+
+            // Step 2: Send NOP and clock in the actual data from the previous request
+            tx = cmd_read16(as5047u_reg::NOP);
+            m_cs_pin->reset();
+            HAL_SPI_TransmitReceive(m_spi->handle(), reinterpret_cast<uint8_t*>(&tx), reinterpret_cast<uint8_t*>(&rx), 1, HAL_MAX_DELAY);
+            // m_spi->transfer(std::span(&tx, 1), std::span(&rx, 1));
+            m_cs_pin->set();
+
+            for(volatile int i = 0; i < 15; ++i) {}
+
+            return rx & 0x3FFFu;
         }
     };
 } // namespace mrover

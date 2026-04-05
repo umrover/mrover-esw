@@ -138,7 +138,7 @@ namespace mrover {
      */
     inline auto get_spi_options() -> SPI::options_t {
         SPI::options_t options;
-        options.use_dma = false;
+        // options.use_dma = false;
         return options;
     }
 
