@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <span>
 #include <numbers>
+#include <span>
 
-#include <serial/spi.hpp>
 #include <hw/pin.hpp>
+#include <serial/spi.hpp>
 #include <sys.hpp>
 
 
@@ -36,9 +36,7 @@ namespace mrover {
             m_init_tx_buf[1] = cmd_read16(as5047u_reg::NOP);
 
             m_spi->transfer(std::span(&m_init_tx_buf[0], 1), std::span(&m_init_rx_buf[0], 1), nullptr, m_cs_pin);
-            m_spi->transfer(std::span(&m_init_tx_buf[1], 1), std::span(&m_init_rx_buf[1], 1), [this]() -> void {
-                this->m_initialized = true;
-            }, m_cs_pin);
+            m_spi->transfer(std::span(&m_init_tx_buf[1], 1), std::span(&m_init_rx_buf[1], 1), [this]() -> void { this->m_initialized = true; }, m_cs_pin);
         }
 
         auto set_zero_offset(float const offset) -> void {
@@ -53,7 +51,6 @@ namespace mrover {
 
             m_spi->transfer(std::span(&m_tx_buf[0], 1), std::span(&m_rx_buf[0], 1), nullptr, m_cs_pin);
             m_spi->transfer(std::span(&m_tx_buf[1], 1), std::span(&m_rx_buf[1], 1), [this]() -> void {
-
                 uint16_t const new_pos = m_rx_buf[1] & 0x3FFFu;
                 uint32_t const now = System::get_ticks();
 
@@ -75,8 +72,8 @@ namespace mrover {
 
                 this->m_raw_pos = new_pos;
                 this->m_last_tick = now;
-
-            }, m_cs_pin);
+            },
+                            m_cs_pin);
         }
 
         [[nodiscard]] auto get_position() const -> float {

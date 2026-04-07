@@ -4,6 +4,7 @@
 #include <span>
 
 #include <hw/pin.hpp>
+#include <sys.hpp>
 
 #ifdef STM32
 #include "main.h"
@@ -42,37 +43,30 @@ namespace mrover {
             if (!m_options.use_dma) {
                 if (cs_pin) cs_pin->reset();
                 auto const status = HAL_SPI_TransmitReceive(
-                    m_hspi,
-                    reinterpret_cast<uint8_t*>(tx.data()),
-                    reinterpret_cast<uint8_t*>(rx.data()),
-                    static_cast<uint16_t>(tx.size()),
-                    m_options.timeout_ms
-                );
+                        m_hspi,
+                        reinterpret_cast<uint8_t*>(tx.data()),
+                        reinterpret_cast<uint8_t*>(rx.data()),
+                        static_cast<uint16_t>(tx.size()),
+                        m_options.timeout_ms);
                 if (cs_pin) cs_pin->set();
-
-                // if (cs_pin) {
-                //     for (volatile int i = 0; i < 15; i += 1) {}
-                // }
 
                 if (status == HAL_OK && callback) callback();
                 return status == HAL_OK;
-
             }
 
             // dma enabled
             // TODO(eric): something other than dropping messages?
             if (m_queue_count >= QUEUE_SIZE) return false;
 
-            uint32_t const irq_state = __get_PRIMASK();
-            __disable_irq();
-            m_queue[m_head] = {tx, rx, callback, cs_pin};
-            m_head = (m_head + 1) % QUEUE_SIZE;
-            m_queue_count += 1;
-            __set_PRIMASK(irq_state);
+            {
+                System::InterruptGuard();
+                m_queue[m_head] = {tx, rx, callback, cs_pin};
+                m_head = (m_head + 1) % QUEUE_SIZE;
+                m_queue_count += 1;
+            }
 
             resume_dma_transmission();
             return true;
-
         }
 
         auto handle_irq() -> void {
@@ -83,10 +77,6 @@ namespace mrover {
             if (t.callback) t.callback();
             m_tail = (m_tail + 1) % QUEUE_SIZE;
             m_queue_count -= 1;
-
-            // if (t.cs_pin && m_queue_count > 0) {
-            //     for(volatile int i = 0; i < 15; i += 1) {}
-            // }
 
             resume_dma_transmission();
         }
@@ -114,16 +104,15 @@ namespace mrover {
             if (t.cs_pin) t.cs_pin->reset();
 
             HAL_SPI_TransmitReceive_DMA(
-                m_hspi,
-                reinterpret_cast<uint8_t*>(t.tx.data()),
-                reinterpret_cast<uint8_t*>(t.rx.data()),
-                static_cast<uint16_t>(t.tx.size())
-            );
+                    m_hspi,
+                    reinterpret_cast<uint8_t*>(t.tx.data()),
+                    reinterpret_cast<uint8_t*>(t.rx.data()),
+                    static_cast<uint16_t>(t.tx.size()));
         }
     };
 #else  // HAL_SPI_MODULE_ENABLED
     class __attribute__((unavailable("enable 'SPI' in STM32CubeMX to use mrover::SPI"))) SPI {
-        public:
+    public:
         template<typename... Args>
         explicit SPI(Args&&... args) {}
     };

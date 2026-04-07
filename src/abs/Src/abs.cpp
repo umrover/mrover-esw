@@ -9,8 +9,8 @@
 #include <serial/fdcan.hpp>
 #include <serial/spi.hpp>
 #include <serial/uart.hpp>
-#include <timer.hpp>
 #include <sys.hpp>
+#include <timer.hpp>
 
 #include "config.hpp"
 #include "stm32g4xx_hal.h"
@@ -245,5 +245,4 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
     mrover::receive_can_message();
 }
-
 }

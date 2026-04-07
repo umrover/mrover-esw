@@ -79,8 +79,8 @@ namespace mrover {
             InterruptGuard() { disable_interrupts(); }
             ~InterruptGuard() { enable_interrupts(); }
 
-            InterruptGuard(const InterruptGuard&) = delete;
-            auto operator=(const InterruptGuard&) -> InterruptGuard& = delete;
+            InterruptGuard(InterruptGuard const&) = delete;
+            auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;
             InterruptGuard(InterruptGuard&&) = delete;
             auto operator=(InterruptGuard&&) -> InterruptGuard& = delete;
         };
@@ -94,20 +94,20 @@ namespace mrover {
 
             // TODO(eric): store fail state to SRAM here
 
-            for ( ;; ) {
+            for (;;) {
                 __NOP();
             }
         }
 
         [[noreturn]] static auto handle_hard_fault(uint32_t const* fault_stack_address) -> void {
-            uint32_t volatile const r0  = fault_stack_address[0];
-            uint32_t volatile const r1  = fault_stack_address[1];
-            uint32_t volatile const r2  = fault_stack_address[2];
-            uint32_t volatile const r3  = fault_stack_address[3];
-            uint32_t volatile const r12 = fault_stack_address[4];
-            uint32_t volatile const lr  = fault_stack_address[5];
-            uint32_t volatile const pc  = fault_stack_address[6]; // PC (on crash)
-            uint32_t volatile const psr = fault_stack_address[7];
+            uint32_t const volatile r0 = fault_stack_address[0];
+            uint32_t const volatile r1 = fault_stack_address[1];
+            uint32_t const volatile r2 = fault_stack_address[2];
+            uint32_t const volatile r3 = fault_stack_address[3];
+            uint32_t const volatile r12 = fault_stack_address[4];
+            uint32_t const volatile lr = fault_stack_address[5];
+            uint32_t const volatile pc = fault_stack_address[6]; // PC (on crash)
+            uint32_t const volatile psr = fault_stack_address[7];
 
             (void) r0;
             (void) r1;

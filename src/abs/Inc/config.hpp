@@ -1,8 +1,8 @@
 #pragma once
 
 #include <serial/fdcan.hpp>
-#include <serial/uart.hpp>
 #include <serial/spi.hpp>
+#include <serial/uart.hpp>
 #include <tuple>
 
 #include <MRoverCAN.hpp>
