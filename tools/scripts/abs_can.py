@@ -13,8 +13,7 @@ if __name__ == "__main__":
     config = {
         0x00: 0x67,  # can id
         0x01: 0x10,  # host can id
-        0x02: 0x00,  # noise margin
-        0x03: 0x00,  # user reg
+        0x02: 0x0000,  # user reg
         0x04: 1.00,  # output scalar
         0x08: 0.00,  # position offset
         0x0C: 10.0,  # poll frequency
@@ -39,14 +38,14 @@ if __name__ == "__main__":
         bus.send("ESWProbe", {"data": 67}, src_id=SRC_ID, dest_id=CAN_ID)
 
         # write configs:
-        # for addr, value in config.items():
-        #     val_bits: int
-        #     if isinstance(value, float):
-        #         val_bits = float2bits(value)
-        #     else:
-        #         val_bits = value
-        #     bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=CAN_ID)
-        #     sleep(LOOP_DELAY)
+        for addr, value in config.items():
+            val_bits: int
+            if isinstance(value, float):
+                val_bits = float2bits(value)
+            else:
+                val_bits = value
+            bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=CAN_ID)
+            sleep(LOOP_DELAY)
 
         sleep(9999999)
 

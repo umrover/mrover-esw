@@ -10,6 +10,7 @@
 #include <serial/spi.hpp>
 #include <serial/uart.hpp>
 #include <timer.hpp>
+#include <sys.hpp>
 
 #include "config.hpp"
 #include "stm32g4xx_hal.h"
@@ -36,6 +37,7 @@ namespace mrover {
     bool volatile pending_pub = false;
 
     // Peripherals
+    System sys;
     FDCAN fdcan;
     UART lpuart;
     SPI spi;
@@ -54,7 +56,7 @@ namespace mrover {
 
     auto init() -> void {
         __disable_irq();
-        HAL_DBGMCU_EnableDBGSleepMode();
+        sys = System{get_sys_options()};
 
         // pgood
         pgood.emplace(PGOOD_GPIO_Port, PGOOD_Pin);
@@ -73,19 +75,10 @@ namespace mrover {
         publish_tim.emplace(PUBLISH_TIM, true); // can publish timer (on interrupt)
 
         // override default timer frequencies based on config
-        Logger::instance().info("can_id = %u", config.get<abs_config_t::can_id>());
-        Logger::instance().info("host_can_id = %u", config.get<abs_config_t::host_can_id>());
-        Logger::instance().info("noise_margin = %u", config.get<abs_config_t::noise_margin>());
-        Logger::instance().info("user_reg = %u", config.get<abs_config_t::user_reg>());
-        Logger::instance().info("output_scalar = %f", config.get<abs_config_t::output_scalar>());
-        Logger::instance().info("position = %f", config.get<abs_config_t::position_offset>());
-        Logger::instance().info("poll = %f", config.get<abs_config_t::poll_frequency>());
-        Logger::instance().info("publish = %f", config.get<abs_config_t::publish_frequency>());
-
         encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
         publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
-        Logger::instance().info("poll timer freq: %f Hz", encoder_tim->get_update_frequency());
-        Logger::instance().info("publish timer freq: %f Hz", publish_tim->get_update_frequency());
+        Logger::instance().info("Configured Encoder Poll Frequency: %f Hz", encoder_tim->get_update_frequency());
+        Logger::instance().info("Configured CAN Publish Frequency: %f Hz", publish_tim->get_update_frequency());
 
         // setup debug LEDs
         can_tx.emplace(CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin);
@@ -101,8 +94,7 @@ namespace mrover {
                 &spi,
                 &abs_ss.value(),
                 config.get<abs_config_t::output_scalar>(),
-                config.get<abs_config_t::position_offset>(),
-                config.get<abs_config_t::noise_margin>());
+                config.get<abs_config_t::position_offset>());
 
         Logger::instance().info("Initialized ABS Encoder 0x%x", config.get<abs_config_t::can_id>());
         initialized = true;
@@ -139,8 +131,6 @@ namespace mrover {
         // input can either be a request to set a value (apply is set) or read a value (apply not set)
         if (msg.apply) {
             if (config.set_raw(msg.address, msg.value)) {
-                // re-initialize after configuration is modified
-                // init(); // TODO(eric): this is bad, reset instead
                 Logger::instance().info("set address 0x%x to value 0x%x", msg.address, msg.value);
             }
         } else {
@@ -151,8 +141,8 @@ namespace mrover {
         }
     }
 
-    auto handle(ABSResetCmd const& msg) -> void {
-        // TODO(eric) core reset functionality when science makes it into main
+    auto handle(ABSResetCmd const& _) -> void {
+        System::reset();
     }
 
     auto handle(ABSZeroCmd const& msg) -> void {
@@ -189,8 +179,8 @@ namespace mrover {
                 send_can_message(ABSEncoderState{encoder->get_position(), encoder->get_velocity()});
                 pending_pub = false;
             }
-            __DSB();
-            HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+            System::dsb();
+            sys.wfi();
         }
     }
 
@@ -209,9 +199,9 @@ namespace mrover {
     }
 
     auto spi_callback(SPI_HandleTypeDef const* hspi) -> void {
-        // if (SPI::s_dma_instance != nullptr && hspi == SPI::s_dma_instance->handle()) {
-        //     SPI::s_dma_instance->handle_irq();
-        // }
+        if (SPI::s_dma_instance != nullptr && hspi == SPI::s_dma_instance->handle()) {
+            SPI::s_dma_instance->handle_irq();
+        }
     }
 
     auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
@@ -232,6 +222,14 @@ void Loop() {
     mrover::loop();
 }
 
+void Error() {
+    mrover::System::fault(mrover::System::fault_reason_t::HALT_ERROR);
+}
+
+void Fault(void) {
+    mrover::System::fault(mrover::System::fault_reason_t::HARD_FAULT);
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
     mrover::timer_elapsed_callback(htim);
 }
@@ -247,4 +245,5 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
     mrover::receive_can_message();
 }
+
 }

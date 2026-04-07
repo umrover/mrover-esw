@@ -16,8 +16,7 @@ namespace mrover {
 
         reg_t<uint8_t> CAN_ID{0x00};
         reg_t<uint8_t> HOST_CAN_ID{0x01};
-        reg_t<uint8_t> NOISE_MARGIN{0x02};
-        reg_t<uint8_t> USER_REG{0x03};
+        reg_t<uint16_t> USER_REG{0x02};
         reg_t<float> OUTPUT_SCALAR{0x04};
         reg_t<float> POSITION_OFFSET{0x08};
         reg_t<float> POLL_FREQUENCY{0x0C};
@@ -25,8 +24,7 @@ namespace mrover {
 
         using can_id = field_t<&abs_config_t::CAN_ID, 0, 8>;
         using host_can_id = field_t<&abs_config_t::HOST_CAN_ID, 0, 8>;
-        using noise_margin = field_t<&abs_config_t::NOISE_MARGIN, 0, 8>;
-        using user_reg = field_t<&abs_config_t::USER_REG, 0, 8>;
+        using user_reg = field_t<&abs_config_t::USER_REG, 0, 16>;
         using output_scalar = field_t<&abs_config_t::OUTPUT_SCALAR>;
         using position_offset = field_t<&abs_config_t::POSITION_OFFSET>;
         using poll_frequency = field_t<&abs_config_t::POLL_FREQUENCY>;
@@ -39,11 +37,11 @@ namespace mrover {
         void set(auto value) { F::set(*this, value); }
 
         constexpr auto all() {
-            return std::forward_as_tuple(CAN_ID, HOST_CAN_ID, NOISE_MARGIN, USER_REG, OUTPUT_SCALAR, POSITION_OFFSET, POLL_FREQUENCY, PUBLISH_FREQUENCY);
+            return std::forward_as_tuple(CAN_ID, HOST_CAN_ID, USER_REG, OUTPUT_SCALAR, POSITION_OFFSET, POLL_FREQUENCY, PUBLISH_FREQUENCY);
         }
 
         constexpr auto all() const {
-            return std::forward_as_tuple(CAN_ID, HOST_CAN_ID, NOISE_MARGIN, USER_REG, OUTPUT_SCALAR, POSITION_OFFSET, POLL_FREQUENCY, PUBLISH_FREQUENCY);
+            return std::forward_as_tuple(CAN_ID, HOST_CAN_ID, USER_REG, OUTPUT_SCALAR, POSITION_OFFSET, POLL_FREQUENCY, PUBLISH_FREQUENCY);
         }
 
         auto set_raw(uint8_t address, uint32_t const raw) -> bool {
@@ -138,7 +136,13 @@ namespace mrover {
      */
     inline auto get_spi_options() -> SPI::options_t {
         SPI::options_t options;
-        // options.use_dma = false;
+        options.use_dma = false; // TODO get this working
+        return options;
+    }
+
+    inline auto get_sys_options() -> System::options_t {
+        System::options_t options;
+        options.sleep_on_wfi = true;
         return options;
     }
 
