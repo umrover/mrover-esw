@@ -16,8 +16,6 @@ The [XL330-M288-T](https://www.robotis.us/dynamixel-xl330-m288-t/) is a compact 
 | Communication | TTL half-duplex serial |
 | Connector | JST 3-pin (TTL) |
 
-> **Warning:** The XL330 does NOT support RS-485. Make sure your interface board outputs TTL.
-
 ## Interface Hardware: U2D2
 
 The [U2D2](https://www.robotis.us/u2d2/) converts USB to TTL or RS-485 half-duplex serial (`/dev/ttyUSB0` on Linux). It carries data only — servo bus power must come from an external supply. The **U2D2 Power Hub** accessory provides regulated 5V or 12V to the bus from a bench supply.
