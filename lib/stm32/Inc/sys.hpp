@@ -23,10 +23,13 @@ namespace mrover {
             HARD_FAULT
         };
 
-        System() = default;
-        ~System() = default;
+        static auto get() -> System& {
+            static System instance;
+            return instance;
+        }
 
-        explicit System(options_t const options) : m_options{options} {
+        auto init(options_t const options = options_t{}) -> void {
+            m_options = options;
             if (m_options.enable_debug_sleep) {
                 // keep debugger attached when cpu goes to sleep
                 HAL_DBGMCU_EnableDBGSleepMode();
@@ -37,7 +40,6 @@ namespace mrover {
             HAL_DeInit();
             NVIC_SystemReset();
         }
-
 
         // Wait For Interrupt
         auto wfi() const -> void {
@@ -123,6 +125,14 @@ namespace mrover {
 
     private:
         options_t m_options{};
+
+        System() = default;
+        ~System() = default;
+
+        System(System const&) = delete;
+        auto operator=(System const&) -> System& = delete;
+        System(System&&) = delete;
+        auto operator=(System&&) -> System& = delete;
     };
 
 } // namespace mrover

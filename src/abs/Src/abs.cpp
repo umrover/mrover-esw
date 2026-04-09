@@ -37,7 +37,6 @@ namespace mrover {
     bool volatile pending_pub = false;
 
     // Peripherals
-    System sys;
     FDCAN fdcan;
     UART lpuart;
     SPI spi;
@@ -55,8 +54,8 @@ namespace mrover {
     std::optional<AS5047U> encoder;
 
     auto init() -> void {
-        __disable_irq();
-        sys = System{get_sys_options()};
+        System::InterruptGuard guard{};
+        System::get().init(get_sys_options());
 
         // pgood
         pgood.emplace(PGOOD_GPIO_Port, PGOOD_Pin);
@@ -98,7 +97,6 @@ namespace mrover {
 
         Logger::instance().info("Initialized ABS Encoder 0x%x", config.get<abs_config_t::can_id>());
         initialized = true;
-        __enable_irq();
     }
 
     /**
@@ -180,7 +178,7 @@ namespace mrover {
                 pending_pub = false;
             }
             System::dsb();
-            sys.wfi();
+            System::get().wfi();
         }
     }
 
