@@ -3,8 +3,9 @@ from dataclasses import dataclass
 import textwrap
 from pathlib import Path
 import yaml
-import datetime
+from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
 
 # TypeInfo dataclass, used for validating config size
 @dataclass
@@ -13,7 +14,7 @@ class TypeInfo:
     size: int
 
 
-types = {
+types: dict[str, TypeInfo] = {
     "int": TypeInfo("int", 4),
     "uint32_t": TypeInfo("uint32_t", 4),
     "uint16_t": TypeInfo("uint16_t", 2),
@@ -31,11 +32,11 @@ class ChipInfo:
     num_pages: int
 
 
-chips = {"g431cbt6": ChipInfo(0x08000000, 0x0801FFFF, 2048, 64)}
+chips: dict[str, ChipInfo] = {"STM32G431RBTx": ChipInfo(0x08000000, 0x0801FFFF, 2048, 64)}
 
 
 # shorthand for can id types
-can_id_types = {"ext": "Extended"}
+can_id_types: dict[str, str] = {"ext": "Extended"}
 
 
 @dataclass
@@ -49,52 +50,15 @@ class RegGenResult:
 class ConfigGen:
     struct_name: str | None
     tab_size: int
-    template_dir: Path
-
-    # get_raw function
-    GET_RAW_FN: str = """
-        auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
-            bool found = false;
-            std::apply([&](auto const&... reg) -> void {
-                ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
-            },
-                        all());
-            return found;
-        }\n"""
-
-    # set_raw function
-    SET_RAW_FN: str = """\
-        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
-            bool found = false;
-
-            std::apply(
-                    [&](auto const&... reg) -> void {
-                        (
-                                [&] -> void {
-                                    if (reg.addr == address) {
-                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
-                                        reg.write(*this, from_raw<T>(raw));
-                                        found = true;
-                                    }
-                                }(),
-                                ...);
-                    },
-                    all());
-
-            return found;
-        }\n"""
-
-    GET_FN: str = """\
-        template<typename F>
-        auto get() const { return F::get(*this); }\n"""
-
-    SET_FN: str = """\
-        template<typename F>
-        void set(auto value) { F::set(*this, value); }\n"""
 
     def __init__(self, tab_size: int, template_dir: Path):
         self.tab_size = tab_size
-        self.template_dir = template_dir
+        self.env = Environment(
+            loader=FileSystemLoader(str(template_dir)),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
 
     def generate_config_struct(self, yaml_path: str | Path) -> str:
         with open(yaml_path) as file:
@@ -118,66 +82,36 @@ class ConfigGen:
         if mem is None:
             raise ValueError(f"Unsupported chip type: {config.get('chip')}. Must be one of: {list(chips.keys())}")
 
-        tab: str = " " * self.tab_size
-
         output_lines: list[str] = []
 
-        # imports and pragma
-        output_lines.append("#pragma once\n")
-
-        output_lines.append("#include <serial/fdcan.hpp>")
-        output_lines.append("#include <serial/uart.hpp>")
-        output_lines.append("#include <tuple>\n")
-
-        output_lines.append("#include <CANBus1.hpp>")
-        output_lines.append("#include <adc.hpp>")
-        output_lines.append("#include <hw/ad8418a.hpp>")
-        output_lines.append("#include <hw/flash.hpp>\n")
-
-        output_lines.append("namespace mrover {\n")
-
-        output_lines.append(tab + f"struct {self.struct_name} {{\n")
-
-        output_lines.append(tab * 2 + "static inline void* flash_ptr = nullptr;\n")
-
+        num_filters: int = 0
         num_subs: int = 0
         if config["can_filtering"] is not None:
             if config["can_filtering"].get("can_subs") is not None:
                 num_subs = len(config["can_filtering"]["can_subs"])
-            output_lines.append(tab * 2 + f"FDCAN::Filter can_node_filters[{num_subs + 1}];\n")
+            num_filters = num_subs + 1
 
         result: RegGenResult = self.generate_regs_fields(regs, mem)
         reg_names: list[str] = result.reg_names
 
-        output_lines.append(result.reg_output)
-        output_lines.append(result.field_output)
-        output_lines.append("")
+        all_fn: str = self.generate_all_fn(reg_names)
 
-        # add get/set, get/set_raw, size_bytes to output
-        output_lines.append(self.GET_FN)
-        output_lines.append(self.SET_FN)
-        output_lines.append(self.generate_all_fn(reg_names))
-        output_lines.append(self.SET_RAW_FN)
-        output_lines.append(self.GET_RAW_FN)
+        can_fn: str = self.generate_can_fn(config["can_filtering"])
 
-        # memory layout struct
-        output_lines.append(tab * 2 + "struct mem_layout {")
-        output_lines.append(tab * 3 + f"static constexpr uint32_t FLASH_BEGIN_ADDR = {mem.flash_begin:#x};")
-        output_lines.append(tab * 3 + f"static constexpr uint32_t FLASH_END_ADDR = {mem.flash_end:#x};")
-        output_lines.append(tab * 3 + f"static constexpr int PAGE_SIZE = {mem.page_size};")
-        output_lines.append(tab * 3 + f"static constexpr int NUM_PAGES = {mem.num_pages};")
-        output_lines.append(tab * 2 + "};\n")
-
-        output_lines.append(tab * 2 + "static consteval auto size_bytes() -> uint16_t {")
-        output_lines.append(tab * 3 + f"return validated_config_t<{self.struct_name}>::size_bytes();")
-        output_lines.append(tab * 2 + "}")
-
-        # end of config struct
-        output_lines.append(tab + f"}}; // {self.struct_name}\n")
-
-        output_lines.append(self.generate_can_fn(config["can_filtering"]))
-
-        output_lines.append("} // namespace mrover")
+        template = self.env.get_template("config_header.hpp.j2")
+        return template.render(
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            struct_name=self.struct_name,
+            num_filters=num_filters,
+            reg_output=result.reg_output,
+            field_output=result.field_output,
+            all_fn=all_fn,
+            flash_begin=f"{mem.flash_begin:#x}",
+            flash_end=f"{mem.flash_end:#x}",
+            flash_page_size=mem.page_size,
+            flash_num_pages=mem.num_pages,
+            can_fn=can_fn,
+        )
 
         return "\n".join(output_lines)
 
@@ -317,7 +251,7 @@ class ConfigGen:
         output_lines.append(tab * 2 + "can_opts.tdc_filter = 1;")
         output_lines.append(tab * 2 + "can_opts.filter_config = filter;")
         output_lines.append(tab * 2 + "return can_opts;\n")
-        output_lines.append(tab + "}\n")
+        output_lines.append(tab + "} // get_can_options()\n")
 
         return "\n".join(output_lines)
 
@@ -350,7 +284,7 @@ if __name__ == "__main__":
         type=Path,
         required=False,
         default=Path("."),
-        help="directory containing config_header_hpp.j2 (default: current directory)"
+        help="directory containing config_header_hpp.j2 (default: current directory)",
     )
 
     args = parser.parse_args()

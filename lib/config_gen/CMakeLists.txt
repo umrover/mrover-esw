@@ -4,6 +4,8 @@ get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE
 
 set(CONFIG_DIR "${PROJECT_ROOT}/configs/config_gen")
 set(CONFIG_GEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
+set(CONFIG_TEMPLATE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/templates")
+set(CONFIG_TEMPLATE "${CONFIG_TEMPLATE_DIR}/config_header.hpp.j2")
 
 file(MAKE_DIRECTORY ${CONFIG_GEN_DIR})
 
@@ -24,7 +26,8 @@ add_custom_command(
     COMMAND ${VENV_PYTHON} ${CONFIG_SCRIPT}
         --input  ${CONFIG_YAML}
         --output ${CONFIG_OUTPUT}
-    DEPENDS ${CONFIG_YAML} ${CONFIG_SCRIPT}
+        --template-dir ${CONFIG_TEMPLATE_DIR}
+    DEPENDS ${CONFIG_YAML} ${CONFIG_SCRIPT} ${CONFIG_TEMPLATE}
     WORKING_DIRECTORY ${TOOLS_DIR}
     COMMENT "generating config header for ${CMAKE_PROJECT_NAME}"
     VERBATIM
