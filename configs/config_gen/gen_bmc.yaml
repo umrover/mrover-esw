@@ -1,4 +1,4 @@
-name: bmc_config_t
+struct_name: bmc_config_t
 chip: g431cbt6
 regs:
 - name: can_id
@@ -74,8 +74,3 @@ regs:
 can_filtering:
   id_reg: can_id # may not have field 
   id_type: ext
-  can_subs:
-    - id: 0x47
-      type: ext
-    - id: 0x67
-      type: ext

@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import textwrap
 from pathlib import Path
 import yaml
-
+import datetime
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 # TypeInfo dataclass, used for validating config size
 @dataclass
@@ -46,8 +47,9 @@ class RegGenResult:
 
 
 class ConfigGen:
-    struct_name: str
+    struct_name: str | None
     tab_size: int
+    template_dir: Path
 
     # get_raw function
     GET_RAW_FN: str = """
@@ -82,12 +84,6 @@ class ConfigGen:
             return found;
         }\n"""
 
-    # size_bytes function
-    SIZE_BYTES_FN: str = """\
-        static consteval auto size_bytes() -> uint16_t {
-            return validated_config_t<bmc_config_t>::size_bytes();
-        }\n"""
-
     GET_FN: str = """\
         template<typename F>
         auto get() const { return F::get(*this); }\n"""
@@ -96,17 +92,33 @@ class ConfigGen:
         template<typename F>
         void set(auto value) { F::set(*this, value); }\n"""
 
-    def __init__(self, tab_size: int):
+    def __init__(self, tab_size: int, template_dir: Path):
         self.tab_size = tab_size
+        self.template_dir = template_dir
 
-    def generate_config_struct(self, yaml_path: str, tab_size: int) -> str:
+    def generate_config_struct(self, yaml_path: str | Path) -> str:
         with open(yaml_path) as file:
             config = yaml.safe_load(file)
-        self.struct_name = config["name"]
-        regs: list[dict] = config["regs"]
-        mem = chips[config["chip"]]
+        self.struct_name = config.get("struct_name")
+        if self.struct_name is None:
+            raise ValueError(
+                "Missing required field 'struct_name' in config. 'struct_name' defines the name of the config struct to generate"
+            )
 
-        tab: str = " " * tab_size
+        regs: list[dict] | None = config.get("regs")
+        if regs is None:
+            raise ValueError(
+                "Missing required field 'regs' in config. 'regs' defines the list of registers to generate."
+            )
+
+        chip: str | None = config.get("chip")
+        if chip is None:
+            raise ValueError(f"Missing required field 'chip' in config. Must be one of: {list(chips.keys())}")
+        mem: ChipInfo | None = chips.get(chip)
+        if mem is None:
+            raise ValueError(f"Unsupported chip type: {config.get('chip')}. Must be one of: {list(chips.keys())}")
+
+        tab: str = " " * self.tab_size
 
         output_lines: list[str] = []
 
@@ -130,13 +142,15 @@ class ConfigGen:
 
         num_subs: int = 0
         if config["can_filtering"] is not None:
-            num_subs = len(config["can_filtering"]["can_subs"])
+            if config["can_filtering"].get("can_subs") is not None:
+                num_subs = len(config["can_filtering"]["can_subs"])
             output_lines.append(tab * 2 + f"FDCAN::Filter can_node_filters[{num_subs + 1}];\n")
 
         result: RegGenResult = self.generate_regs_fields(regs, mem)
         reg_names: list[str] = result.reg_names
 
-        output_lines += result.reg_output + result.field_output
+        output_lines.append(result.reg_output)
+        output_lines.append(result.field_output)
         output_lines.append("")
 
         # add get/set, get/set_raw, size_bytes to output
@@ -154,7 +168,9 @@ class ConfigGen:
         output_lines.append(tab * 3 + f"static constexpr int NUM_PAGES = {mem.num_pages};")
         output_lines.append(tab * 2 + "};\n")
 
-        output_lines.append(self.SIZE_BYTES_FN)
+        output_lines.append(tab * 2 + "static consteval auto size_bytes() -> uint16_t {")
+        output_lines.append(tab * 3 + f"return validated_config_t<{self.struct_name}>::size_bytes();")
+        output_lines.append(tab * 2 + "}")
 
         # end of config struct
         output_lines.append(tab + f"}}; // {self.struct_name}\n")
@@ -179,7 +195,7 @@ class ConfigGen:
             reg_names.append(name)
             typ: TypeInfo | None = types.get(reg["type"], None)
             if typ is None:
-                raise ValueError(f"Unsupported reg type: {reg['type']}")
+                raise ValueError(f"Unsupported reg type: {reg['type']}. Must be one of {list(types.keys())}")
             fields: list[dict] | None = reg.get("fields")
 
             if fields is not None:
@@ -245,7 +261,7 @@ class ConfigGen:
 
         return "\n".join(output_lines)
 
-    def generate_can_fn(self, can_filtering: dict) -> str:
+    def generate_can_fn(self, can_filtering: dict | None) -> str:
         output_lines: list[str] = []
         tab: str = self.tab_size * " "
         output_lines.append(tab + f"inline auto get_can_options({self.struct_name}* config) -> FDCAN::Options {{")
@@ -272,15 +288,15 @@ class ConfigGen:
         output_lines.append(tab * 2 + "config->can_node_filters[0].mode = FDCAN::ActionType::Mask;\n")
 
         num_subs = 0
-        if can_filtering["can_subs"] is not None:
+        if can_filtering.get("can_subs") is not None:
             num_subs = len(can_filtering["can_subs"])
             sub_num = 1
-            for filter in can_filtering["can_subs"]:
-                output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].id1 = {filter['id']};")
+            for sub in can_filtering["can_subs"]:
+                output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].id1 = {sub['id']};")
                 output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].id2 = CAN_SRC_ID_MASK;")
-                src_id_type: str | None = can_id_types.get(filter["type"], None)
+                src_id_type: str | None = can_id_types.get(sub["type"], None)
                 if src_id_type is None:
-                    raise ValueError(f"Unsuported CAN id type: {filter['type']}")
+                    raise ValueError(f"Unsuported CAN id type: {sub['type']}")
                 output_lines.append(
                     tab * 2 + f"config->can_node_filters[{sub_num}].id_type = FDCAN::FilterIdType::{src_id_type};"
                 )
@@ -329,9 +345,16 @@ if __name__ == "__main__":
         default=4,
         help="Tab size in output file",
     )
+    parser.add_argument(
+        "--template-dir",
+        type=Path,
+        required=False,
+        default=Path("."),
+        help="directory containing config_header_hpp.j2 (default: current directory)"
+    )
 
     args = parser.parse_args()
 
-    gen: ConfigGen = ConfigGen(args.tabsize)
+    gen: ConfigGen = ConfigGen(args.tabsize, args.template_dir)
 
-    print(gen.generate_config_struct(args.input, args.tabsize), file=args.output)
+    print(gen.generate_config_struct(args.input), file=args.output)
