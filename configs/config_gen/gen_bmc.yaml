@@ -1,0 +1,76 @@
+struct_name: bmc_config_t
+chip: STM32G431RBTx
+regs:
+- name: can_id
+  type: uint8_t
+- name: host_can_id
+  type: uint8_t
+- name: sys_cfg
+  type: uint8_t
+  fields:
+  - name: motor_en
+    pos: 0
+  - name: motor_inv
+    pos: 1
+  - name: quad_en
+    pos: 2
+  - name: quad_phase
+    pos: 3
+- name: limit_cfg
+  type: uint8_t
+  fields:
+  - name: lim_a_en
+    pos: 0
+  - name: lim_a_active_high
+    pos: 1
+  - name: lim_a_is_forward
+    pos: 2
+  - name: lim_a_use_readjust
+    pos: 3
+  - name: lim_b_en
+    pos: 4
+  - name: lim_b_active_high
+    pos: 5
+  - name: lim_b_is_forward
+    pos: 6
+  - name: lim_b_use_readjust
+    pos: 7
+- name: quad_cpr
+  type: float
+- name: gear_ratio
+  type: float
+- name: rotor_output_ratio
+  type: float
+- name: limit_a_position
+  type: float
+- name: limit_b_position
+  type: float
+- name: max_pwm
+  type: float
+- name: min_pos
+  type: float
+- name: max_pos
+  type: float
+- name: min_vel
+  type: float
+- name: max_vel
+  type: float
+- name: pos_k_p
+  type: float
+- name: pos_k_i
+  type: float
+- name: pos_k_d
+  type: float
+- name: pos_k_f
+  type: float
+- name: vel_k_p
+  type: float
+- name: vel_k_i
+  type: float
+- name: vel_k_d
+  type: float
+- name: vel_k_f
+  type: float
+can_filtering:
+  id_reg: can_id # may not have field 
+  id_type: ext

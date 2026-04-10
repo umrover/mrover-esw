@@ -1,0 +1,294 @@
+import argparse
+from dataclasses import dataclass
+import textwrap
+from pathlib import Path
+import yaml
+from datetime import datetime
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+
+# TypeInfo dataclass, used for validating config size
+@dataclass
+class TypeInfo:
+    type: str
+    size: int
+
+
+types: dict[str, TypeInfo] = {
+    "int": TypeInfo("int", 4),
+    "uint32_t": TypeInfo("uint32_t", 4),
+    "uint16_t": TypeInfo("uint16_t", 2),
+    "uint8_t": TypeInfo("uint8_t", 1),
+    "float": TypeInfo("float", 4),
+}
+
+
+# ChipInfo dataclass, need page size, want config size to be < 1 page
+@dataclass
+class ChipInfo:
+    flash_begin: int
+    flash_end: int
+    page_size: int
+    num_pages: int
+
+
+chips: dict[str, ChipInfo] = {"STM32G431RBTx": ChipInfo(0x08000000, 0x0801FFFF, 2048, 64)}
+
+
+# shorthand for can id types
+can_id_types: dict[str, str] = {"ext": "Extended"}
+
+
+@dataclass
+class RegGenResult:
+    reg_output: str
+    field_output: str
+    reg_names: list[str]
+    config_size: int
+
+
+class ConfigGen:
+    struct_name: str | None
+    tab_size: int
+
+    def __init__(self, tab_size: int, template_dir: Path):
+        self.tab_size = tab_size
+        self.env = Environment(
+            loader=FileSystemLoader(str(template_dir)),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+    def generate_config_struct(self, yaml_path: str | Path) -> str:
+        with open(yaml_path) as file:
+            config = yaml.safe_load(file)
+        self.struct_name = config.get("struct_name")
+        if self.struct_name is None:
+            raise ValueError(
+                "Missing required field 'struct_name' in config. 'struct_name' defines the name of the config struct to generate"
+            )
+
+        regs: list[dict] | None = config.get("regs")
+        if regs is None:
+            raise ValueError(
+                "Missing required field 'regs' in config. 'regs' defines the list of registers to generate."
+            )
+
+        chip: str | None = config.get("chip")
+        if chip is None:
+            raise ValueError(f"Missing required field 'chip' in config. Must be one of: {list(chips.keys())}")
+        mem: ChipInfo | None = chips.get(chip)
+        if mem is None:
+            raise ValueError(f"Unsupported chip type: {config.get('chip')}. Must be one of: {list(chips.keys())}")
+
+        output_lines: list[str] = []
+
+        num_filters: int = 0
+        num_subs: int = 0
+        if config["can_filtering"] is not None:
+            if config["can_filtering"].get("can_subs") is not None:
+                num_subs = len(config["can_filtering"]["can_subs"])
+            num_filters = num_subs + 1
+
+        result: RegGenResult = self.generate_regs_fields(regs, mem)
+        reg_names: list[str] = result.reg_names
+
+        all_fn: str = self.generate_all_fn(reg_names)
+
+        can_fn: str = self.generate_can_fn(config["can_filtering"])
+
+        template = self.env.get_template("config_header.hpp.j2")
+        return template.render(
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            struct_name=self.struct_name,
+            num_filters=num_filters,
+            reg_output=result.reg_output,
+            field_output=result.field_output,
+            all_fn=all_fn,
+            flash_begin=f"{mem.flash_begin:#x}",
+            flash_end=f"{mem.flash_end:#x}",
+            flash_page_size=mem.page_size,
+            flash_num_pages=mem.num_pages,
+            can_fn=can_fn,
+        )
+
+        return "\n".join(output_lines)
+
+    def generate_regs_fields(self, regs: list[dict], chip: ChipInfo) -> RegGenResult:
+        output_regs: list[str] = []
+        output_fields: list[str] = []
+        reg_names: list[str] = []
+
+        tab: str = self.tab_size * " "
+
+        current_pos: int = 0
+        last_had_fields: bool = False
+        for reg in regs:
+            name: str = reg["name"].upper()
+            reg_names.append(name)
+            typ: TypeInfo | None = types.get(reg["type"], None)
+            if typ is None:
+                raise ValueError(f"Unsupported reg type: {reg['type']}. Must be one of {list(types.keys())}")
+            fields: list[dict] | None = reg.get("fields")
+
+            if fields is not None:
+                output_fields.append("")
+                for field in fields:
+                    field_name: str = field["name"]
+                    field_size: int | None = reg.get("size")
+
+                    if field_size is None:
+                        field_size = 1  # default to field size of 1 if not provided in yaml
+
+                    field_pos = field["pos"]
+                    line = tab * 2 + f"using {field_name} = field_t<&{self.struct_name}::{name}, {field_pos}"
+                    if field_size != 1:
+                        line += f", {field_size}"
+                    line += ">;"
+
+                    output_fields.append(line)
+                last_had_fields = True
+            else:
+                # no fields provided
+                if last_had_fields:
+                    output_fields.append("")  # this block is just to make things look nice
+                    last_had_fields = False
+                if typ.type == "float":
+                    output_fields.append(tab * 2 + f"using {name.lower()} = field_t<&{self.struct_name}::{name}>;")
+                else:
+                    output_fields.append(
+                        tab * 2 + f"using {name.lower()} = field_t<&{self.struct_name}::{name}, 0, {typ.size * 8}>;"
+                    )
+
+            output_regs.append(tab * 2 + f"reg_t<{typ.type}> {name}{{{current_pos:#x}}};")
+
+            current_pos += typ.size
+            # check that config will fit into last page
+            if current_pos >= chip.page_size:
+                raise ValueError(f"Config does not fit in one page: size {current_pos} exceeds {chip.page_size}")
+
+        output_regs.append("")
+        return RegGenResult("\n".join(output_regs), "\n".join(output_fields), reg_names, current_pos)
+
+    def generate_all_fn(self, regs: list[str]) -> str:
+        output_lines: list[str] = []
+        tab: str = self.tab_size * " "
+        # non-const all function
+        output_lines.append(tab * 2 + "constexpr auto all() {")
+        output_lines.append(tab * 3 + "return std::forward_as_tuple(")
+        # use textwrap to join reg names to fit on multiple lines
+        joined_names = ", ".join(regs)
+        wrapped = textwrap.fill(
+            joined_names, width=80, initial_indent=" " * self.tab_size * 4, subsequent_indent=" " * self.tab_size * 4
+        )
+        output_lines.append(wrapped)
+        output_lines.append(tab * 3 + ");")
+        output_lines.append(tab * 2 + "}\n")
+
+        # const all function
+        output_lines.append(tab * 2 + "constexpr auto all() const {")
+        output_lines.append(tab * 3 + "return std::forward_as_tuple(")
+        output_lines.append(wrapped)
+        output_lines.append(tab * 3 + ");")
+        output_lines.append(tab * 2 + "}\n")
+
+        return "\n".join(output_lines)
+
+    def generate_can_fn(self, can_filtering: dict | None) -> str:
+        output_lines: list[str] = []
+        tab: str = self.tab_size * " "
+        output_lines.append(tab + f"inline auto get_can_options({self.struct_name}* config) -> FDCAN::Options {{")
+
+        if can_filtering is None:
+            output_lines.append(tab * 2 + "auto can_opts = FDCAN::Options{};")
+            output_lines.append(tab * 2 + "can_opts.delay_compensation = true;")
+            output_lines.append(tab * 2 + "can_opts.tdc_offset = 13;")
+            output_lines.append(tab * 2 + "can_opts.tdc_filter = 1;")
+            output_lines.append(tab * 2 + "return can_opts;\n")
+            output_lines.append(tab + "}\n")
+            return "\n".join(output_lines)
+
+        can_reg = can_filtering["id_reg"]
+        output_lines.append(
+            tab * 2 + f"config->can_node_filters[0].id1 =  config->get<{self.struct_name}::{can_reg.lower()}()>;"
+        )
+        output_lines.append(tab * 2 + "config->can_node_filters[0].id2 = CAN_DEST_ID_MASK;")
+        dest_id_type: str | None = can_id_types.get(can_filtering["id_type"], None)
+        if dest_id_type is None:
+            raise ValueError(f"Unsuported CAN id type: {can_filtering['id_type']}")
+        output_lines.append(tab * 2 + f"config->can_node_filters[0].id_type = FDCAN::FilterIdType::{dest_id_type};")
+        output_lines.append(tab * 2 + "config->can_node_filters[0].action = FDCAN::ActionType::Accept;")
+        output_lines.append(tab * 2 + "config->can_node_filters[0].mode = FDCAN::ActionType::Mask;\n")
+
+        num_subs = 0
+        if can_filtering.get("can_subs") is not None:
+            num_subs = len(can_filtering["can_subs"])
+            sub_num = 1
+            for sub in can_filtering["can_subs"]:
+                output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].id1 = {sub['id']};")
+                output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].id2 = CAN_SRC_ID_MASK;")
+                src_id_type: str | None = can_id_types.get(sub["type"], None)
+                if src_id_type is None:
+                    raise ValueError(f"Unsuported CAN id type: {sub['type']}")
+                output_lines.append(
+                    tab * 2 + f"config->can_node_filters[{sub_num}].id_type = FDCAN::FilterIdType::{src_id_type};"
+                )
+                output_lines.append(
+                    tab * 2 + f"config->can_node_filters[{sub_num}].action = FDCAN::ActionType::Accept;"
+                )
+                output_lines.append(tab * 2 + f"config->can_node_filters[{sub_num}].mode = FDCAN::ActionType::Mask;\n")
+                sub_num += 1
+
+        output_lines.append(tab * 2 + "FDCAN::FilterConfig filter;")
+        output_lines.append(tab * 2 + "filter.begin = config->can_node_filters;")
+        output_lines.append(tab * 2 + f"filter.end = config->can_node_filters + {num_subs + 1};")
+        output_lines.append(tab * 2 + "filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;")
+        output_lines.append(tab * 2 + "filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;\n")
+        output_lines.append(tab * 2 + "auto can_opts = FDCAN::Options{};")
+        output_lines.append(tab * 2 + "can_opts.delay_compensation = true;")
+        output_lines.append(tab * 2 + "can_opts.tdc_offset = 13;")
+        output_lines.append(tab * 2 + "can_opts.tdc_filter = 1;")
+        output_lines.append(tab * 2 + "can_opts.filter_config = filter;")
+        output_lines.append(tab * 2 + "return can_opts;\n")
+        output_lines.append(tab + "} // get_can_options()\n")
+
+        return "\n".join(output_lines)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate Config Struct from yaml")
+    parser.add_argument(
+        "--input",
+        "-i",
+        type=Path,
+        required=True,
+        help="Path to yaml file describing config",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=argparse.FileType("w"),
+        required=True,
+        help="Path to file where config will be generated",
+    )
+    parser.add_argument(
+        "--tabsize",
+        type=int,
+        required=False,
+        default=4,
+        help="Tab size in output file",
+    )
+    parser.add_argument(
+        "--template-dir",
+        type=Path,
+        required=False,
+        default=Path("."),
+        help="directory containing config_header_hpp.j2 (default: current directory)",
+    )
+
+    args = parser.parse_args()
+
+    gen: ConfigGen = ConfigGen(args.tabsize, args.template_dir)
+
+    print(gen.generate_config_struct(args.input), file=args.output)
