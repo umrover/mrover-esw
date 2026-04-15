@@ -35,11 +35,17 @@ device that can be used to monitor and log CAN bus traffic to both a database an
 - To start the logger, run a bash script to ensure directory and database permissions are correct, then bring up docker containers using docker compose file.
 
 
+## Scripts
+- ./dockerBuld.sh - creates the canalyzer docker image
+- ./start.sh - runs the docker compose has support for handling crtl+c
 
+## Project Notes
+```
+ssh -L 3000:localhost:3000 mrover@<mrover_ip> # port forwards port 3000 (grafana)
+hostname -I # finds the ip of pi
+```
 
-## BUILD INSTRUCTIONS 
-cmake -S . -B build \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_CXX_COMPILER=g++-13
-
-cmake --build build
+## Startup
+- setup CAN interface using start_can.sh on PI
+- run ./start.sh (run ./dockerBuld.sh if you haven't built)
+- crtl+c to end, let script end gracefully
