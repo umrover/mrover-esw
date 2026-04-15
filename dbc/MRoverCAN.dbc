@@ -80,6 +80,14 @@ BO_ 2148728832 BMCMotorState: 16 Vector__XXX
  SG_ is_stalled : 114|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ current : 80|32@1- (1,0) [0|0] "" Vector__XXX
 
+BO_ 2183276179 LIMSwitchState: 1 Vector__XXX
+ SG_ limit_a_state : 0|1@1+ (1, 0) [0|0] "" Vector__XXX
+ SG_ limit_b_state : 1|1@1+ (1, 0) [0|0] "" Vector__XXX
+
+BO_ 2183556898 LIMResetState: 1 Vector__XXX
+ SG_ reset : 0|1@1+ (1, 0) [0|0] "" Vector__XXX
+ SG_ clear_faults : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+
 BO_ 2163277824 ESWProbe: 4 Vector__XXX
  SG_ data : 0|32@1+ (1,0) [0|0] "" Vector__XXX
 

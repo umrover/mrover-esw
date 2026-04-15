@@ -1,10 +1,10 @@
 #pragma once
 
-#include <serial/fdcan.hpp>
-#include <serial/uart.hpp>
 #include <CANBus1.hpp>
 #include <adc.hpp>
 #include <hw/flash.hpp>
+#include <serial/fdcan.hpp>
+#include <serial/uart.hpp>
 
 
 namespace mrover {
@@ -14,7 +14,7 @@ namespace mrover {
         reg_t<uint8_t> HOST_CAN_ID{0x01};
 
 
-        using can_id = field_t<&sb_config_t::CAN_ID, 0, 8>; // retrieves CAN_ID from bits 0-7 of CAN_ID register
+        using can_id = field_t<&sb_config_t::CAN_ID, 0, 8>;           // retrieves CAN_ID from bits 0-7 of CAN_ID register
         using host_can_id = field_t<&sb_config_t::HOST_CAN_ID, 0, 8>; // retrieves HOST_CAN_ID from bits 0-7 of HOST_CAN_ID register
 
         template<typename F>

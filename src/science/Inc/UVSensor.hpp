@@ -24,7 +24,7 @@ namespace mrover {
 
         // update value of uv_index
         float update_uv() {
-            uv_index = 33.0 * ((float)adc->get_channel_value(channel) / (float)adc_res);
+            uv_index = 33.0 * ((float) adc->get_channel_value(channel) / (float) adc_res);
             return uv_index;
         }
 
