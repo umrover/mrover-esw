@@ -39,7 +39,7 @@ namespace mrover {
     // Peripherals
     FDCAN fdcan;
     UART lpuart;
-    SPI spi;
+    std::optional<SPI> spi;
 
     // Timers
     std::optional<Timer> encoder_tim;
@@ -64,7 +64,7 @@ namespace mrover {
         // initialize peripherals
         fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
         lpuart = UART{LPUART_1, get_uart_options()};
-        spi = SPI{SPI_1, get_spi_options()};
+        spi.emplace(SPI_1, get_spi_options());
 
         // initialize logger
         Logger::init(&lpuart);
@@ -90,7 +90,7 @@ namespace mrover {
 
         // initialize encoder
         encoder.emplace(
-                &spi,
+                &spi.value(),
                 &abs_ss.value(),
                 config.get<abs_config_t::output_scalar>(),
                 config.get<abs_config_t::position_offset>());
