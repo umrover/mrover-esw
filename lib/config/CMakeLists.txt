@@ -24,6 +24,7 @@ endif()
 add_custom_command(
     OUTPUT ${CONFIG_OUTPUT}
     COMMAND ${VENV_PYTHON} ${CONFIG_SCRIPT}
+        --name ${CMAKE_PROJECT_NAME}
         --input  ${CONFIG_YAML}
         --output ${CONFIG_OUTPUT}
         --template-dir ${CONFIG_TEMPLATE_DIR}
@@ -33,5 +34,5 @@ add_custom_command(
     VERBATIM
 )
 
-add_library(config_gen INTERFACE ${CONFIG_OUTPUT})
-target_include_directories(config_gen INTERFACE ${CONFIG_GEN_DIR})
+add_library(config INTERFACE ${CONFIG_OUTPUT})
+target_include_directories(config INTERFACE ${CONFIG_GEN_DIR})

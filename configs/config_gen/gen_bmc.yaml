@@ -2,11 +2,11 @@ struct_name: bmc_config_t
 chip: STM32G431RBTx
 regs:
 - name: can_id
-  type: uint8_t
+  type: uint8
 - name: host_can_id
-  type: uint8_t
+  type: uint8
 - name: sys_cfg
-  type: uint8_t
+  type: uint8
   fields:
   - name: motor_en
     pos: 0
@@ -17,7 +17,7 @@ regs:
   - name: quad_phase
     pos: 3
 - name: limit_cfg
-  type: uint8_t
+  type: uint8
   fields:
   - name: lim_a_en
     pos: 0
@@ -36,41 +36,44 @@ regs:
   - name: lim_b_use_readjust
     pos: 7
 - name: quad_cpr
-  type: float
+  type: float32
 - name: gear_ratio
-  type: float
+  type: float32
 - name: rotor_output_ratio
-  type: float
+  type: float32
 - name: limit_a_position
-  type: float
+  type: float32
 - name: limit_b_position
-  type: float
+  type: float32
 - name: max_pwm
-  type: float
+  type: float32
 - name: min_pos
-  type: float
+  type: float32
 - name: max_pos
-  type: float
+  type: float32
 - name: min_vel
-  type: float
+  type: float32
 - name: max_vel
-  type: float
+  type: float32
 - name: pos_k_p
-  type: float
+  type: float32
 - name: pos_k_i
-  type: float
+  type: float32
 - name: pos_k_d
-  type: float
+  type: float32
 - name: pos_k_f
-  type: float
+  type: float32
 - name: vel_k_p
-  type: float
+  type: float32
 - name: vel_k_i
-  type: float
+  type: float32
 - name: vel_k_d
-  type: float
+  type: float32
 - name: vel_k_f
-  type: float
+  type: float32
 can_filtering:
   id_reg: can_id # may not have field 
   id_type: ext
+  delay_compensation: true
+  tdc_offset: 13
+  tdc_filter: 1
