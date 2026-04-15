@@ -24,7 +24,7 @@ namespace mrover {
             uint8_t calibration_buf[1];
             if (HAL_I2C_Mem_Read(i2c, (DEV_ADDR << 1) | 1, OXYGEN_KEY_REGISTER, 1, calibration_buf, 2, HAL_MAX_DELAY) != HAL_OK)
                 return false;
-            
+
             calibration_multiplier = calibration_buf[0] / 1000.0;
             if (calibration_multiplier == 0)
                 calibration_multiplier = 20.9 / 120.0;
@@ -41,7 +41,7 @@ namespace mrover {
             return percent;
         }
 
-        [[nodiscard]]float get_oxygen() {
+        [[nodiscard]] float get_oxygen() {
             return percent;
         }
     }; // class UVSensor

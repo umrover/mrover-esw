@@ -3,13 +3,13 @@
 #include "CO2Sensor.hpp"
 #include "OxygenSensor.hpp"
 #include "OzoneSensor.hpp"
-#include "UVSensor.hpp"
 #include "THPSensor.hpp"
+#include "UVSensor.hpp"
 #include <CANBus1.hpp>
-#include <hw/pin.hpp>
 #include <config.hpp>
-#include <queue>
+#include <hw/pin.hpp>
 #include <logger.hpp>
+#include <queue>
 
 namespace mrover {
     enum Sensor {
@@ -21,7 +21,7 @@ namespace mrover {
         sensor_uv = 5,
     };
 
-    #pragma pack(push,1)
+#pragma pack(push, 1)
     struct SensorStates {
         uint8_t uv_state : 1;
         uint8_t thp_state : 1;
@@ -29,7 +29,7 @@ namespace mrover {
         uint8_t ozone_state : 1;
         uint8_t co2_state : 1;
     };
-    #pragma pack(pop)
+#pragma pack(pop)
 
     class ScienceBoard {
     private:
@@ -45,9 +45,9 @@ namespace mrover {
         Pin dbg_led3{};
         CANBus1Handler can_handler{};
         sb_config_t config;
-        SensorStates sensor_states{1,1,1,1,1};
+        SensorStates sensor_states{1, 1, 1, 1, 1};
 
-         // initialize i2c sensors
+        // initialize i2c sensors
         void init() {
             if (!ozone_sensor.init())
                 flag_sensor(sensor_ozone);
@@ -70,7 +70,7 @@ namespace mrover {
             if (!sensor_states.ozone_state)
                 i2c_queue.push(Sensor::sensor_ozone);
 
-            sensor_states = {1,1,1,1,1};
+            sensor_states = {1, 1, 1, 1, 1};
         }
 
         // deinitialize peripherals and reset mcu
@@ -85,7 +85,7 @@ namespace mrover {
         }
 
         // handles a reset command
-        void handle(const SCIResetCommand& cmd, std::queue<Sensor>& i2c_queue) {
+        void handle(SCIResetCommand const& cmd, std::queue<Sensor>& i2c_queue) {
             if (cmd.clear_faults)
                 clear_faults(i2c_queue);
             else if (cmd.reset)
@@ -96,8 +96,8 @@ namespace mrover {
         ScienceBoard() = default;
 
         ScienceBoard(
-                THP& thp_in, 
-                CO2Sensor& co2_in, 
+                THP& thp_in,
+                CO2Sensor& co2_in,
                 OzoneSensor& ozone_in,
                 OxygenSensor& oxygen_in,
                 UVSensor& uv_in,
@@ -107,16 +107,16 @@ namespace mrover {
                 Pin& dbg_led2_in,
                 Pin& dbg_led3_in,
                 CANBus1Handler& can_handler_in) : thp_sensor(thp_in),
-                                                    co2_sensor(co2_in),
-                                                    ozone_sensor(ozone_in), 
-                                                    oxygen_sensor(oxygen_in),
-                                                    uv_sensor(uv_in),
-                                                    can_tx(can_tx_in),
-                                                    can_rx(can_rx_in),
-                                                    dbg_led1(dbg_led1_in),
-                                                    dbg_led2(dbg_led2_in),
-                                                    dbg_led3(dbg_led3_in),
-                                                    can_handler(can_handler_in) {
+                                                  co2_sensor(co2_in),
+                                                  ozone_sensor(ozone_in),
+                                                  oxygen_sensor(oxygen_in),
+                                                  uv_sensor(uv_in),
+                                                  can_tx(can_tx_in),
+                                                  can_rx(can_rx_in),
+                                                  dbg_led1(dbg_led1_in),
+                                                  dbg_led2(dbg_led2_in),
+                                                  dbg_led3(dbg_led3_in),
+                                                  can_handler(can_handler_in) {
             init();
         }
 
@@ -180,7 +180,7 @@ namespace mrover {
                 return false;
         }
 
-        void update_sensor (Sensor sensor) {
+        void update_sensor(Sensor sensor) {
             if (sensor == sensor_co2_rx)
                 co2_sensor.update_co2();
             else if (sensor == sensor_thp)
@@ -193,7 +193,7 @@ namespace mrover {
                 uv_sensor.update_uv();
         }
 
-        void poll_sensor (Sensor sensor) {
+        void poll_sensor(Sensor sensor) {
             if (sensor == sensor_co2_tx)
                 co2_sensor.request_co2();
             else if (sensor == sensor_co2_rx)
@@ -208,7 +208,7 @@ namespace mrover {
                 uv_sensor.sample_sensor();
         }
 
-        void flag_sensor (Sensor sensor) {
+        void flag_sensor(Sensor sensor) {
             if (sensor == sensor_co2_tx || sensor == sensor_co2_rx)
                 sensor_states.co2_state = 0;
             else if (sensor == sensor_thp)
@@ -223,14 +223,14 @@ namespace mrover {
 
         void send_sensor_data() {
             can_tx.set();
-            const CANBus1Msg_t msg = SCISensorData(
-                                                uv_sensor.get_current_uv(), 
-                                                thp_sensor.get_thp().temp, 
-                                                thp_sensor.get_thp().humidity, 
-                                                thp_sensor.get_thp().pressure, 
-                                                oxygen_sensor.get_oxygen(), 
-                                                ozone_sensor.get_ozone(),
-                                                co2_sensor.get_co2());
+            CANBus1Msg_t const msg = SCISensorData(
+                    uv_sensor.get_current_uv(),
+                    thp_sensor.get_thp().temp,
+                    thp_sensor.get_thp().humidity,
+                    thp_sensor.get_thp().pressure,
+                    oxygen_sensor.get_oxygen(),
+                    ozone_sensor.get_ozone(),
+                    co2_sensor.get_co2());
             // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
             can_handler.send(msg, 0x40, 0x10);
             can_tx.reset();
@@ -238,10 +238,10 @@ namespace mrover {
 
         void send_sensor_state() {
             can_tx.set();
-            const CANBus1Msg_t msg = SCISensorState(sensor_states.uv_state, 
+            CANBus1Msg_t const msg = SCISensorState(sensor_states.uv_state,
                                                     sensor_states.thp_state,
-                                                    sensor_states.oxygen_state, 
-                                                    sensor_states.ozone_state, 
+                                                    sensor_states.oxygen_state,
+                                                    sensor_states.ozone_state,
                                                     sensor_states.co2_state);
             // can_handler.send(msg, config.get<sb_config_t::can_id>(), config.get<sb_config_t::host_can_id>());
             can_handler.send(msg, 0x40, 0x10);
@@ -257,4 +257,4 @@ namespace mrover {
             }
         }
     };
-}
+} // namespace mrover
