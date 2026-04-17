@@ -22,6 +22,7 @@ namespace mrover {
 
         virtual uint32_t get_channel_value(size_t index) = 0;
         virtual void handle_conv_complete() = 0;
+        virtual void start() = 0;
         virtual ADC_HandleTypeDef* handle() const = 0;
         virtual ~ADCBase() = default;
 
@@ -50,7 +51,7 @@ namespace mrover {
         ADC(ADC&&) noexcept = default;
         ADC& operator=(ADC&&) noexcept = default;
 
-        auto start() -> void {
+        auto start() -> void override {
             __disable_irq();
             if (m_options.use_dma) {
                 HAL_ADC_Start_DMA(m_hadc, m_values.data(), static_cast<uint32_t>(NumChannels));
