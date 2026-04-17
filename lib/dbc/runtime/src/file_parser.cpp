@@ -103,6 +103,10 @@ namespace mrover::dbc_runtime {
                 ++end;
             }
 
+            if (end == sv.size()) {
+                return {};
+            }
+
             string_view word = sv.substr(0, end + 1);
 
             sv.remove_prefix(end + 1);
@@ -117,6 +121,25 @@ namespace mrover::dbc_runtime {
             sv.remove_prefix(next_start);
 
             return word;
+        }
+
+        auto next_word_or_quoted(string_view &sv) -> string_view {        
+            size_t start = 0;
+            while (start < sv.size() && std::isspace(static_cast<unsigned char>(sv[start]))) {
+                ++start;
+            }
+
+            sv.remove_prefix(start);
+            
+            if (sv.empty()) {
+                return {};
+            }
+
+            if (sv[0] == '"') {
+                return next_word_quoted(sv);
+            } else {
+                return next_word(sv);
+            }
         }
 
         auto next_line(string_view& sv) -> string_view {
@@ -285,7 +308,7 @@ namespace mrover::dbc_runtime {
                 continue;
             } else if (line.starts_with(MESSAGE_HEADER)) {
                 if (m_is_processing_message) {
-                    if (!add_current_message() && !m_current_message.is_independent_signal_message()) {
+                    if (!add_current_message()) {
                         m_error = Error::InvalidMessageFormat;
                         return false;
                     }
@@ -293,7 +316,6 @@ namespace mrover::dbc_runtime {
                 m_is_processing_message = true;
 
                 auto message = parse_message(line);
-                if (message->is_independent_signal_message()) m_vector_independent_sig_msg_id = message->id();
                 if (!message.has_value()) {
                     m_error = message.error();
                     return false;
@@ -423,7 +445,7 @@ namespace mrover::dbc_runtime {
 
         for (auto const& svt: signal_value_types) {
             CanMessageDescription* msg = message(svt.message_id);
-            if (svt.message_id == m_vector_independent_sig_msg_id) continue;
+            if (msg->is_ignored()) continue;
             if (msg == nullptr) {
                 m_error = Error::InvalidSignalTypeMessageId;
                 return false;
@@ -468,9 +490,6 @@ namespace mrover::dbc_runtime {
             return std::unexpected(Error::InvalidMessageName);
         }
         name.remove_suffix(1);
-        if (name == "VECTOR__INDEPENDENT_SIG_MSG") {
-            message.set_independent_signal_message();
-        }
         message.set_name(name);
 
         // ===== LENGTH =====
@@ -576,7 +595,7 @@ namespace mrover::dbc_runtime {
         signal.set_bit_length(bit_length_result.value());
 
         // ===== FACTOR & OFFSET =====
-        string_view factor_and_offset = next_word(line);
+        string_view factor_and_offset = next_word_or_quoted(line);
         string_view min_and_max;
         string_view unit;
         string_view receiver;
@@ -604,7 +623,7 @@ namespace mrover::dbc_runtime {
                 signal.set_offset(offset.value());
             }
 
-            min_and_max = next_word(line);
+            min_and_max = next_word_or_quoted(line);
         } else {
             signal.clear_factor_offset();
             min_and_max = factor_and_offset;
@@ -722,7 +741,7 @@ namespace mrover::dbc_runtime {
 
     auto CanDbcFileParser::add_current_message() -> bool {
         if (m_is_processing_message) {
-            if (!m_current_message.is_valid()) {
+            if (!m_current_message.is_valid() && !m_current_message.is_valid()) {
                 return false;
             }
             uint32_t const id = m_current_message.id();

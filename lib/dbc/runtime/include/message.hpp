@@ -43,8 +43,7 @@ namespace mrover::dbc_runtime {
         void set_comment(std::string_view comment);
 
 
-        [[nodiscard]] auto is_independent_signal_message() const -> bool;
-        void set_independent_signal_message();
+        [[nodiscard]] auto is_ignored() const -> bool;
         [[nodiscard]] auto is_valid() const -> bool;
 
         friend auto operator<<(std::ostream& os, CanMessageDescription const& message) -> std::ostream&;
@@ -70,7 +69,7 @@ namespace mrover::dbc_runtime {
         std::string m_transmitter;
         std::unordered_map<std::string, CanSignalDescription, TransparentHash, TransparentEqual> m_signals;
         std::string m_comment;
-        bool m_independent_signal_message = false;
+        bool ignored = false;
     };
 
 

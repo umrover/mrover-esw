@@ -84,7 +84,6 @@ namespace mrover::dbc_runtime {
         CanMessageDescription m_current_message;
         bool m_is_processing_message = false;
         std::size_t m_lines_parsed = 0;
-        uint32_t m_vector_independent_sig_msg_id = 0;
         Error m_error = Error::None;
 
         struct CommentAttribute {
