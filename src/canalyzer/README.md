@@ -49,3 +49,15 @@ hostname -I # finds the ip of pi
 - setup CAN interface using start_can.sh on PI
 - run ./start.sh (run ./dockerBuld.sh if you haven't built)
 - crtl+c to end, let script end gracefully
+
+## TODO
+- fix dbc runtime library (owen comments on github issue)
+- fix docker so canalyzer_config.yaml can be editted so docker image does not have to be rebuilt
+- add ascii dump implementation, use docker volumes
+- implement systemd for automated startup
+- improve configuration options, also adding a more remote setup so host machine doesn't have to do stuff on pi terminal
+- have a record of can bus utilization
+- test cases for CI
+- clean up code and add detailed documentation
+- add a small display on the pi
+- auto generate dashboards for grafana
