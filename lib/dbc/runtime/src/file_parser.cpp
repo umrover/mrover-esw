@@ -123,14 +123,14 @@ namespace mrover::dbc_runtime {
             return word;
         }
 
-        auto next_word_or_quoted(string_view &sv) -> string_view {        
+        auto next_word_or_quoted(string_view& sv) -> string_view {
             size_t start = 0;
             while (start < sv.size() && std::isspace(static_cast<unsigned char>(sv[start]))) {
                 ++start;
             }
 
             sv.remove_prefix(start);
-            
+
             if (sv.empty()) {
                 return {};
             }

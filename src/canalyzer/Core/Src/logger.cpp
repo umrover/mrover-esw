@@ -162,8 +162,8 @@ namespace logger {
         }
         if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error("Failed to make socket nonblock");
 
-        struct ifreq ifr {};
-        struct sockaddr_can addr {};
+        struct ifreq ifr{};
+        struct sockaddr_can addr{};
 
         std::strncpy(ifr.ifr_name, can_bus_name.c_str(), IFNAMSIZ - 1);
         ifr.ifr_name[IFNAMSIZ - 1] = '\0';
@@ -278,7 +278,7 @@ namespace logger {
 
         committer_thread = std::thread(&Logger::_committer_worker, this);
 
-        struct canfd_frame cfd {};
+        struct canfd_frame cfd{};
 
 
         while (running.load()) { //catch an interupt instead?
