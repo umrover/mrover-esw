@@ -111,7 +111,7 @@ namespace logger {
                 if (status != 0) {
                     {
                         std::lock_guard<std::mutex> lock(cout_mutex);
-                        std::cout << "build commit failed with error " << status << "\n";
+                        std::cout << std::format("builder commit failed with error: {}\n", status);
                         ++influx_post_error_count;
                     }
                 }
@@ -148,19 +148,20 @@ namespace logger {
             }
         } else if (mode == log_mode::BLACKLIST_IDS) {
             for (auto const& message: parser.messages()) {
+                if (log_ids.find(message.id()) != log_ids.end()) continue;
                 processor.add_message_description(message);
             }
         }
 
         //create socket
         bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-        if (bus_socket < 0) throw std::runtime_error("Failed to create socket: " + std::string(std::strerror(errno)));
+        if (bus_socket < 0) throw std::runtime_error(std::format("failed to create socket, error: {}", std::strerror(errno)));
 
         int flags = fcntl(bus_socket, F_GETFL, 0);
         if (flags == -1) {
-            throw std::runtime_error("socket flags failed");
+            throw std::runtime_error(std::format("failed to fcntl on socket, error: {}", std::strerror(errno)));
         }
-        if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error("Failed to make socket nonblock");
+        if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error(std::format("failed to fcntl noblock on socket, error: {}", std::strerror(errno)));
 
         struct ifreq ifr{};
         struct sockaddr_can addr{};
@@ -170,7 +171,6 @@ namespace logger {
 
         if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
             throw std::runtime_error("ioctl broke: " + can_bus_name);
-            //blow up
         }
 
         std::memset(&addr, 0, sizeof(addr));
@@ -392,7 +392,9 @@ namespace logger {
         size = root["logger_bus_size"].As<int>();
         if (size > 4) throw std::runtime_error(std::format("recieved logger bus size of {}, which is larger than 4", size));
 
-        std::cout << "Size: " << size << std::endl;
+        auto config_name = root["name"].As<std::string>();
+        std::cout << std::format("Using config: {}\n", config_name);
+        std::cout << std::format("Logger Bus Count: {}\n", size);
 
         char const* env_host = std::getenv("INFLUXDB_HOST");
         if (!env_host) throw std::runtime_error("influxdb environment variable unset: host");

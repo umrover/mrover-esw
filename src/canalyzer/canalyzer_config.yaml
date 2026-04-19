@@ -1,3 +1,4 @@
+name: config1
 logger_bus_size: 4
 loggers:
   - name: vcan0
