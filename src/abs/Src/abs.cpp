@@ -37,8 +37,8 @@ namespace mrover {
     bool volatile pending_pub = false;
 
     // Peripherals
-    FDCAN fdcan;
-    UART lpuart;
+    std::optional<FDCAN> fdcan;
+    std::optional<UART> lpuart;
     std::optional<SPI> spi;
 
     // Timers
@@ -62,20 +62,20 @@ namespace mrover {
         pgood->set();
 
         // initialize peripherals
-        fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
-        lpuart = UART{LPUART_1, get_uart_options()};
+        fdcan.emplace(FDCAN_1, get_can_options(&config));
+        lpuart.emplace(LPUART_1, get_uart_options());
         spi.emplace(SPI_1, get_spi_options());
 
         // initialize logger
-        Logger::init(&lpuart);
+        Logger::init(&lpuart.value());
 
         // setup timers
         encoder_tim.emplace(ENCODER_TIM, true); // encoder poll timer (on interrupt)
         publish_tim.emplace(PUBLISH_TIM, true); // can publish timer (on interrupt)
 
         // override default timer frequencies based on config
-        encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
-        publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
+        // encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
+        // publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
         Logger::instance().info("Configured Encoder Poll Frequency: %f Hz", encoder_tim->get_update_frequency());
         Logger::instance().info("Configured CAN Publish Frequency: %f Hz", publish_tim->get_update_frequency());
 
@@ -86,7 +86,7 @@ namespace mrover {
         abs_ss->set();
 
         // initialize fdcan
-        can_receiver = MRoverCANHandler{&fdcan};
+        can_receiver = MRoverCANHandler{&fdcan.value()};
 
         // initialize encoder
         encoder.emplace(
@@ -154,7 +154,7 @@ namespace mrover {
     auto receive_can_message() -> void {
         if (!initialized) return;
 
-        while (fdcan.messages_to_process() > 0) {
+        while (fdcan->messages_to_process() > 0) {
             if (auto const recv = can_receiver->receive(); recv) {
                 can_rx->set();
                 auto const& msg = *recv;
@@ -204,7 +204,7 @@ namespace mrover {
 
     auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
         if (huart == LPUART_1) {
-            lpuart.handle_tx_complete();
+            lpuart->handle_tx_complete();
         }
     }
 

@@ -1,7 +1,7 @@
 from time import sleep
 
 from esw import esw_logger
-from esw.can.canbus import CANBus
+from esw.can.canbus import CANBus, float2bits
 from esw.can.dbc import get_dbc
 from esw.visualization.async_plotter import AsyncPlotter
 
@@ -59,4 +59,5 @@ if __name__ == "__main__":
             #     bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=CAN_ID)
             #     sleep(LOOP_DELAY)
 
+            sleep(2)
             sleep(9999999)
