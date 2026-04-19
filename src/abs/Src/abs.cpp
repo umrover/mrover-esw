@@ -74,8 +74,8 @@ namespace mrover {
         publish_tim.emplace(PUBLISH_TIM, true); // can publish timer (on interrupt)
 
         // override default timer frequencies based on config
-        // encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
-        // publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
+        encoder_tim->set_frequency(config.get<abs_config_t::poll_frequency>());
+        publish_tim->set_frequency(config.get<abs_config_t::publish_frequency>());
         Logger::instance().info("Configured Encoder Poll Frequency: %f Hz", encoder_tim->get_update_frequency());
         Logger::instance().info("Configured CAN Publish Frequency: %f Hz", publish_tim->get_update_frequency());
 
