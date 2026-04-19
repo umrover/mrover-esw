@@ -71,9 +71,7 @@ namespace mrover {
                 }
 
                 this->m_raw_pos = new_pos;
-                this->m_last_tick = now;
-            },
-                            m_cs_pin);
+                this->m_last_tick = now; }, m_cs_pin);
         }
 
         [[nodiscard]] auto get_position() const -> float {
