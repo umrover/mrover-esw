@@ -129,7 +129,7 @@ packetHandler->read4ByteTxRx(portHandler, dxl_id, ADDR_PRESENT_POSITION,
 
 > **Note for AX / MX(1.0) series:** Goal/Present Position is 2 bytes — use `write2ByteTxRx` / `read2ByteTxRx`.
 
-## Common Gotchas
+## Common Issues
 
 **Torque must be disabled to change Operating Mode.** Writing to address 11 while torque is on returns `COMM_SUCCESS` but the servo silently ignores the write.
 
