@@ -1,7 +1,7 @@
 from time import sleep
 
 from esw import esw_logger
-from esw.can.canbus import CANBus
+from esw.can.canbus import CANBus, float2bits
 from esw.can.dbc import get_dbc
 from esw.visualization.async_plotter import AsyncPlotter
 
@@ -11,7 +11,7 @@ if __name__ == "__main__":
     SRC_ID = 0x10
 
     config = {
-        0x00: 0x67,  # can id
+        0x00: 0x38,  # can id
         0x01: 0x10,  # host can id
         0x02: 0x0000,  # user reg
         0x04: 1.00,  # output scalar
@@ -30,34 +30,34 @@ if __name__ == "__main__":
     #     0x10: 0x00,  # publish frequency
     # }
 
-    with AsyncPlotter(
-        labels=(
-            "Position (rad)",
-            "Velocity (rad/s)",
-        ),
-        max_size=200,
-        loop_delay=LOOP_DELAY,
-        x_label="Time (s)",
-        y_label="Waveform",
-    ) as plotter:
+    # with AsyncPlotter(
+    #     labels=(
+    #         "Position (rad)",
+    #         "Velocity (rad/s)",
+    #     ),
+    #     max_size=200,
+    #     loop_delay=LOOP_DELAY,
+    #     x_label="Time (s)",
+    #     y_label="Waveform",
+    # ) as plotter:
 
-        def on_msg_recv(msg):
-            msg_name, signals, src_id, dest_id = msg
-            plotter.send_data(float(signals["position"]), float(signals["velocity"]))
-            esw_logger.info(f"CAN RECV {msg_name}: {signals}")
+    def on_msg_recv(msg):
+        msg_name, signals, src_id, dest_id = msg
+        # plotter.send_data(float(signals["position"]), float(signals["velocity"]))
+        esw_logger.info(f"CAN RECV {msg_name}: {signals}")
 
-        with CANBus(get_dbc(dbc_name="MRoverCAN"), "can0", on_recv=on_msg_recv) as bus:
-            bus.send("ESWProbe", {"data": 67}, src_id=SRC_ID, dest_id=CAN_ID)
+    with CANBus(get_dbc(dbc_name="MRoverCAN"), "can1", on_recv=on_msg_recv) as bus:
+        bus.send("ESWProbe", {"data": 67}, src_id=SRC_ID, dest_id=CAN_ID)
 
-            # write configs:
-            # for addr, value in config.items():
-            #     val_bits: int
-            #     if isinstance(value, float):
-            #         val_bits = float2bits(value)
-            #     else:
-            #         val_bits = value
-            #     bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=CAN_ID)
-            #     sleep(LOOP_DELAY)
+        # write configs:
+        for addr, value in config.items():
+            val_bits: int
+            if isinstance(value, float):
+                val_bits = float2bits(value)
+            else:
+                val_bits = value
+            bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=CAN_ID)
+            sleep(LOOP_DELAY)
 
-            sleep(2)
-            sleep(9999999)
+        sleep(2)
+        sleep(9999999)
