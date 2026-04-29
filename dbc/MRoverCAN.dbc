@@ -106,6 +106,17 @@ BO_ 2152792064 SCIResetCommand: 1 Vector__XXX
  SG_ reset : 0|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ clear_faults : 1|1@1+ (1,0) [0|0] "" Vector__XXX
 
+BO_ 2149580800 ABSEncoderState: 8 Vector__XXX
+ SG_ position : 0|32@1- (1,0) [0|0] "" Vector__XXX
+ SG_ velocity : 32|32@1- (1,0) [0|0] "" Vector__XXX
+
+BO_ 2149646336 ABSResetCmd: 1 Vector__XXX
+ SG_ reset : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ clear_faults : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2149711872 ABSZeroCmd: 4 Vector__XXX
+ SG_ offset : 0|32@1- (1,0) [0|0] "" Vector__XXX
+
 
 
 BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
@@ -137,6 +148,12 @@ BA_ "VFrameFormat" BO_ 2153840640 15;
 BA_ "CANFD_BRS" BO_ 2153840640 1;
 BA_ "VFrameFormat" BO_ 2152792064 15;
 BA_ "CANFD_BRS" BO_ 2152792064 1;
+BA_ "VFrameFormat" BO_ 2149580800 15;
+BA_ "CANFD_BRS" BO_ 2149580800 1;
+BA_ "VFrameFormat" BO_ 2149646336 15;
+BA_ "CANFD_BRS" BO_ 2149646336 1;
+BA_ "VFrameFormat" BO_ 2149711872 15;
+BA_ "CANFD_BRS" BO_ 2149711872 1;
 VAL_ 2148532224 mode 0 "Stopped" 1 "Fault" 5 "Throttle" 6 "Position" 7 "Velocity" ;
 VAL_ 2148532224 enable 1 "Enabled" 0 "Disabled" ;
 VAL_ 2148597760 target_valid 1 "Valid" 0 "Invalid" ;
@@ -154,4 +171,7 @@ SIG_VALTYPE_ 2153775104 pressure : 1;
 SIG_VALTYPE_ 2153775104 oxygen : 1;
 SIG_VALTYPE_ 2153775104 ozone : 1;
 SIG_VALTYPE_ 2153775104 co2 : 1;
+SIG_VALTYPE_ 2149580800 position : 1;
+SIG_VALTYPE_ 2149580800 velocity : 1;
+SIG_VALTYPE_ 2149711872 offset : 1;
 

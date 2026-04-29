@@ -63,8 +63,31 @@ namespace mrover {
             }
         }
 
+        auto set_frequency(float const target_hz) -> void {
+            if (target_hz < 10.0f || target_hz > 100.0f) Error_Handler();
+            uint32_t const psc = htim->Instance->PSC;
+            float const tick_hz = static_cast<float>(sys_clock) / (psc + 1);
+            float const arr_f = (tick_hz / target_hz) - 1.0f;
+
+            uint32_t const arr = static_cast<uint32_t>(arr_f + 0.5f);
+
+            bool const was_running = is_en;
+            __disable_irq();
+            if (was_running) stop();
+
+            __HAL_TIM_SET_AUTORELOAD(htim, arr);
+            __HAL_TIM_SET_COUNTER(htim, 0); // reset counter to avoid phase glitches
+
+            if (was_running) start();
+            __enable_irq();
+        }
+
         auto is_enabled() const -> bool {
             return is_en;
+        }
+
+        auto get_sys_clk_frequency() const -> float {
+            return static_cast<float>(sys_clock);
         }
 
         auto get_update_frequency() const -> float {
