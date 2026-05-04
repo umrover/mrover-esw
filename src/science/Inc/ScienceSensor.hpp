@@ -4,25 +4,25 @@
 namespace mrover {
     class ScienceSensor {
     private:
-        bool state;
+        bool m_state;
 
     public:
         ScienceSensor()
-            : state(true) {}
+            : m_state(true) {}
 
         // flags sensor fault
         void flag() {
-            state = false;
+            m_state = false;
         }
 
         // clears sensor fault
         void clear() {
-            state = true;
+            m_state = true;
         }
 
         // returns the state of the sensor
         bool get_state() const {
-            return state;
+            return m_state;
         }
 
         // attempts to restart the sensor, returns true on success and false on failure

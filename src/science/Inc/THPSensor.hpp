@@ -21,27 +21,27 @@ struct THP_data {
 
 class THPSensor : public ScienceSensor {
 private:
-	SMBus* smbus; // i2c handle pointer
-	uint8_t rx_buffer[8]; // I2C receive buffer
-	THP_data thp_data;
+	SMBus* m_smbus; // i2c handle pointer
+	uint8_t m_rx_buffer[8]; // I2C receive buffer
+	THP_data m_thp_data;
 
 	// dig_xx variables are callibration constants, will be set during sensor initialization
-	uint16_t dig_t1;
-	int16_t  dig_t2, dig_t3;
+	uint16_t m_dig_t1;
+	int16_t  m_dig_t2, m_dig_t3;
 
-	uint16_t dig_p1;
-	int16_t  dig_p2, dig_p3, dig_p4, dig_p5, dig_p6, dig_p7, dig_p8, dig_p9;
+	uint16_t m_dig_p1;
+	int16_t  m_dig_p2, m_dig_p3, m_dig_p4, m_dig_p5, m_dig_p6, m_dig_p7, m_dig_p8, m_dig_p9;
 
-	uint8_t  dig_h1, dig_h3, dig_h6;
-	int16_t  dig_h2, dig_h4, dig_h5;
+	uint8_t  m_dig_h1, m_dig_h3, m_dig_h6;
+	int16_t  m_dig_h2, m_dig_h4, m_dig_h5;
 
 	// t_comp is for compensating humidity and pressure values
-	int32_t t_comp;
+	int32_t m_t_comp;
 public:
 	THPSensor() = default;
 
 	THPSensor (SMBus* smbus_in)
-		: smbus(smbus_in) {}
+		: m_smbus(smbus_in) {}
 
 	// checks nvm bit
 	bool check_nvm(uint32_t timeout_ms = 100) {
@@ -49,7 +49,7 @@ public:
 		uint32_t start = HAL_GetTick();
 
 		while ((HAL_GetTick() - start) < timeout_ms) {
-			if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_NVM, I2C_MEMADD_SIZE_8BIT, status))
+			if (!m_smbus->blocking_mem_read(BME280_ADDR, BME280_REG_NVM, I2C_MEMADD_SIZE_8BIT, status))
 				return false;
 
 			if (!(status[0] & 0x01))
@@ -65,61 +65,61 @@ public:
 	    uint8_t buf2[7];
 
 	    // read temp and pressure calibration
-	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_TPCAL, I2C_MEMADD_SIZE_8BIT, buf1))
+	    if (!m_smbus->blocking_mem_read(BME280_ADDR, BME280_REG_TPCAL, I2C_MEMADD_SIZE_8BIT, buf1))
 			return false;
 
-	    dig_t1 = (uint16_t)(buf1[1] << 8) | buf1[0];
-	    dig_t2 = (int16_t)(buf1[3] << 8) | buf1[2];
-	    dig_t3 = (int16_t)(buf1[5] << 8) | buf1[4];
+	    m_dig_t1 = (uint16_t)(buf1[1] << 8) | buf1[0];
+	    m_dig_t2 = (int16_t)(buf1[3] << 8) | buf1[2];
+	    m_dig_t3 = (int16_t)(buf1[5] << 8) | buf1[4];
 
-	    dig_p1 = (uint16_t)(buf1[7] << 8) | buf1[6];
-	    dig_p2 = (int16_t)(buf1[9] << 8) | buf1[8];
-	    dig_p3 = (int16_t)(buf1[11] << 8) | buf1[10];
-	    dig_p4 = (int16_t)(buf1[13] << 8) | buf1[12];
-	    dig_p5 = (int16_t)(buf1[15] << 8) | buf1[14];
-	    dig_p6 = (int16_t)(buf1[17] << 8) | buf1[16];
-	    dig_p7 = (int16_t)(buf1[19] << 8) | buf1[18];
-	    dig_p8 = (int16_t)(buf1[21] << 8) | buf1[20];
-	    dig_p9 = (int16_t)(buf1[23] << 8) | buf1[22];
+	    m_dig_p1 = (uint16_t)(buf1[7] << 8) | buf1[6];
+	    m_dig_p2 = (int16_t)(buf1[9] << 8) | buf1[8];
+	    m_dig_p3 = (int16_t)(buf1[11] << 8) | buf1[10];
+	    m_dig_p4 = (int16_t)(buf1[13] << 8) | buf1[12];
+	    m_dig_p5 = (int16_t)(buf1[15] << 8) | buf1[14];
+	    m_dig_p6 = (int16_t)(buf1[17] << 8) | buf1[16];
+	    m_dig_p7 = (int16_t)(buf1[19] << 8) | buf1[18];
+	    m_dig_p8 = (int16_t)(buf1[21] << 8) | buf1[20];
+	    m_dig_p9 = (int16_t)(buf1[23] << 8) | buf1[22];
 
 	    // read humidity calibration
 		uint8_t h1_buf[1];
-	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL1, I2C_MEMADD_SIZE_8BIT, h1_buf))
+	    if (!m_smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL1, I2C_MEMADD_SIZE_8BIT, h1_buf))
 			return false;
 
-		dig_h1 = h1_buf[0];
+		m_dig_h1 = h1_buf[0];
 
-	    if (!smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL2, I2C_MEMADD_SIZE_8BIT, buf2))
+	    if (!m_smbus->blocking_mem_read(BME280_ADDR, BME280_REG_HCAL2, I2C_MEMADD_SIZE_8BIT, buf2))
 			return false;
 
-	    dig_h2 = (int16_t)(buf2[1] << 8) | buf2[0];
-	    dig_h3 = buf2[2];
-	    dig_h4 = (int16_t)((buf2[3] << 4) | (buf2[4] & 0x0F));
-	    dig_h5 = (int16_t)((buf2[5] << 4) | (buf2[4] >> 4));
-	    dig_h6 = (int8_t)buf2[6];
+	    m_dig_h2 = (int16_t)(buf2[1] << 8) | buf2[0];
+	    m_dig_h3 = buf2[2];
+	    m_dig_h4 = (int16_t)((buf2[3] << 4) | (buf2[4] & 0x0F));
+	    m_dig_h5 = (int16_t)((buf2[5] << 4) | (buf2[4] >> 4));
+	    m_dig_h6 = (int8_t)buf2[6];
 
 		return true;
 	}
 
 	// converts the raw temp data from the sensor to the actual temp data
 	void compensate_temperature() {
-	    int32_t adc_t = ((int32_t)rx_buffer[3] << 12) | ((int32_t)rx_buffer[4] << 4)  | ((int32_t)rx_buffer[5] >> 4);
-	    int32_t t1 = ((((adc_t >> 3) - ((int32_t)dig_t1 << 1))) * ((int32_t)dig_t2)) >> 11;
-	    int32_t t2 = (((((adc_t >> 4) - ((int32_t)dig_t1)) * ((adc_t >> 4) - ((int32_t)dig_t1))) >> 12) * ((int32_t)dig_t3)) >> 14;
+	    int32_t adc_t = ((int32_t)m_rx_buffer[3] << 12) | ((int32_t)m_rx_buffer[4] << 4)  | ((int32_t)m_rx_buffer[5] >> 4);
+	    int32_t t1 = ((((adc_t >> 3) - ((int32_t)m_dig_t1 << 1))) * ((int32_t)m_dig_t2)) >> 11;
+	    int32_t t2 = (((((adc_t >> 4) - ((int32_t)m_dig_t1)) * ((adc_t >> 4) - ((int32_t)m_dig_t1))) >> 12) * ((int32_t)m_dig_t3)) >> 14;
 
-	    t_comp = t1 + t2;
-	    thp_data.temp = ((t_comp * 5 + 128) >> 8) / 100.0f;
+	    m_t_comp = t1 + t2;
+	    m_thp_data.temp = ((m_t_comp * 5 + 128) >> 8) / 100.0f;
 	}
 
 	// converts the raw humidity data from the sensor to the actual humidity data
 	void compensate_humidity() {
-	    int32_t adc_h = ((int32_t)rx_buffer[6] << 8) | (int32_t)rx_buffer[7];
+	    int32_t adc_h = ((int32_t)m_rx_buffer[6] << 8) | (int32_t)m_rx_buffer[7];
 	    int32_t v_x1;
 
-	    v_x1 = t_comp - 76800;
-	    v_x1 = (((((adc_h << 14) - ((int32_t)dig_h4 << 20) - ((int32_t)dig_h5 * v_x1)) + 16384) >> 15) *
-	           (((((((v_x1 * (int32_t)dig_h6) >> 10) * (((v_x1 * (int32_t)dig_h3) >> 11) + 32768)) >> 10) + 2097152) * (int32_t)dig_h2 + 8192) >> 14));
-	    v_x1 = v_x1 - (((((v_x1 >> 15) * (v_x1 >> 15)) >> 7) * (int32_t)dig_h1) >> 4);
+	    v_x1 = m_t_comp - 76800;
+	    v_x1 = (((((adc_h << 14) - ((int32_t)m_dig_h4 << 20) - ((int32_t)m_dig_h5 * v_x1)) + 16384) >> 15) *
+	           (((((((v_x1 * (int32_t)m_dig_h6) >> 10) * (((v_x1 * (int32_t)m_dig_h3) >> 11) + 32768)) >> 10) + 2097152) * (int32_t)m_dig_h2 + 8192) >> 14));
+	    v_x1 = v_x1 - (((((v_x1 >> 15) * (v_x1 >> 15)) >> 7) * (int32_t)m_dig_h1) >> 4);
 
 	    if (v_x1 < 0)
 	    	v_x1 = 0;
@@ -127,37 +127,37 @@ public:
 	    if (v_x1 > 419430400)
 	        v_x1 = 419430400;
 
-	    thp_data.humidity = (v_x1 >> 12) / 1024.0f;
+	    m_thp_data.humidity = (v_x1 >> 12) / 1024.0f;
 	}
 
 	// converts the pressure raw data from the sensor to the actual pressure data
 	void compensate_pressure() {
-	    int32_t adc_p = ((int32_t)rx_buffer[0] << 12) | ((int32_t)rx_buffer[1] << 4)  | ((int32_t)rx_buffer[2] >> 4);
+	    int32_t adc_p = ((int32_t)m_rx_buffer[0] << 12) | ((int32_t)m_rx_buffer[1] << 4)  | ((int32_t)m_rx_buffer[2] >> 4);
 
-	    int64_t var1 = ((int64_t)t_comp) - 128000;
-	    int64_t var2 = var1 * var1 * (int64_t)dig_p6;
-	    var2 = var2 + ((var1 * (int64_t)dig_p5) << 17);
-	    var2 = var2 + (((int64_t)dig_p4) << 35);
-	    var1 = ((var1 * var1 * (int64_t)dig_p3) >> 8) + ((var1 * (int64_t)dig_p2) << 12);
-	    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)dig_p1) >> 33;
+	    int64_t var1 = ((int64_t)m_t_comp) - 128000;
+	    int64_t var2 = var1 * var1 * (int64_t)m_dig_p6;
+	    var2 = var2 + ((var1 * (int64_t)m_dig_p5) << 17);
+	    var2 = var2 + (((int64_t)m_dig_p4) << 35);
+	    var1 = ((var1 * var1 * (int64_t)m_dig_p3) >> 8) + ((var1 * (int64_t)m_dig_p2) << 12);
+	    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)m_dig_p1) >> 33;
 
 	    if (var1 == 0) {
-	        thp_data.pressure = 0;
+	        m_thp_data.pressure = 0;
 	        return;
 	    }
 
 	    int64_t p = 1048576 - adc_p;
 	    p = (((p << 31) - var2) * 3125) / var1;
-	    var1 = (((int64_t)dig_p9) * (p >> 13) * (p >> 13)) >> 25;
-	    var2 = (((int64_t)dig_p8) * p) >> 19;
-	    p = ((p + var1 + var2) >> 8) + (((int64_t)dig_p7) << 4);
+	    var1 = (((int64_t)m_dig_p9) * (p >> 13) * (p >> 13)) >> 25;
+	    var2 = (((int64_t)m_dig_p8) * p) >> 19;
+	    p = ((p + var1 + var2) >> 8) + (((int64_t)m_dig_p7) << 4);
 
-	    thp_data.pressure = p / 256.0f;
+	    m_thp_data.pressure = p / 256.0f;
 	}
 
 	// returns current thp data
 	[[nodiscard]] THP_data get_thp() const {
-		return thp_data;
+		return m_thp_data;
 	}
 
 	// updates the value of the sensor
@@ -169,7 +169,7 @@ public:
 
 	// polls the sensor for data
 	void poll() override {
-		smbus->async_mem_read(BME280_ADDR, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, rx_buffer);
+		m_smbus->async_mem_read(BME280_ADDR, BME280_REG_DATA, I2C_MEMADD_SIZE_8BIT, m_rx_buffer);
 	}
 
 	// attempts to initialize sensor, returns true on success and false on failure
@@ -184,17 +184,17 @@ public:
 
 		// set humidity oversampling x1
 		uint8_t ctrl_hum = 0x01;
-		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_hum), sizeof(ctrl_hum)}))
+		if (!m_smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_hum), sizeof(ctrl_hum)}))
 			return false;
 
 		// set temp oversampling to x1, pressure x1, and normal mode
 		uint8_t ctrl_meas = 0x27;
-		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_meas), sizeof(ctrl_meas)}))
+		if (!m_smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&ctrl_meas), sizeof(ctrl_meas)}))
 			return false;
 
 		// Standby 62.5 ms (close to 10 Hz), filter off
 		uint8_t config = 0x20;
-		if (!smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&config), sizeof(config)}))
+		if (!m_smbus->blocking_mem_write(BME280_ADDR, BME280_REG_CONFIG, I2C_MEMADD_SIZE_8BIT, {reinterpret_cast<const char*>(&config), sizeof(config)}))
 			return false;
 
 		return true;

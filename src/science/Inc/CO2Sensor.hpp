@@ -13,47 +13,47 @@ namespace mrover {
 
 	class CO2Sensor : public ScienceSensor{
 	private:
-		SMBus* smbus;
-		uint8_t req_buf[2];
-        uint8_t rx_buf[2];
-		float percent; // ozone value in ppm
-		Mode mode;
+		SMBus* m_smbus;
+		uint8_t m_req_buf[2];
+        uint8_t m_rx_buf[2];
+		float m_percent; // ozone value in ppm
+		Mode m_mode;
 
 		// requests raw co2 data over i2c, when sensor responds with data callback will be hit and will call receive_buf
 		void request_co2() {
-			smbus->async_transmit(CO2_ADDR, {reinterpret_cast<const char*>(req_buf), sizeof(req_buf)});
+			m_smbus->async_transmit(CO2_ADDR, {reinterpret_cast<const char*>(m_req_buf), sizeof(m_req_buf)});
 		}
 
 		// receives raw ozone data over i2c
 		void receive_buf() {
-			smbus->async_receive(CO2_ADDR, rx_buf);
+			m_smbus->async_receive(CO2_ADDR, m_rx_buf);
 		}
 
 	public:
 		CO2Sensor() = default;
 
 		explicit CO2Sensor (SMBus* smbus_in)
-			: smbus(smbus_in), req_buf{0x36, 0x39}, rx_buf{0x00, 0x00}, percent(0.0), mode(Mode::TX) {}
+			: m_smbus(smbus_in), m_req_buf{0x36, 0x39}, m_rx_buf{0x00, 0x00}, m_percent(0.0), m_mode(Mode::TX) {}
 
 		// returns the current ozone data in ppm
 		[[nodiscard]] float get_co2() const {
-			return percent;
+			return m_percent;
 		}
 
 		// updates the value of the sensor
         void update() override {
-			uint16_t raw = (rx_buf[0] << 8) | rx_buf[1];
-            percent = (float(raw - (1 << 14)) / (1 << 15)) * 100.0f;
+			uint16_t raw = (m_rx_buf[0] << 8) | m_rx_buf[1];
+            m_percent = (float(raw - (1 << 14)) / (1 << 15)) * 100.0f;
 		}
 
         // polls the sensor for data
         void poll() override {
-			if (mode == Mode::TX) {
+			if (m_mode == Mode::TX) {
 				request_co2();
-				mode = Mode::RX;
-			} else if (mode == Mode::RX) {
+				m_mode = Mode::RX;
+			} else if (m_mode == Mode::RX) {
 				receive_buf();
-				mode = Mode::TX;
+				m_mode = Mode::TX;
 			}
 		}
 
@@ -61,15 +61,15 @@ namespace mrover {
         bool init() override {
 			// Disable CRC (0x3768)
 			uint8_t tx_buf1[2] = {0x37, 0x68};
-            if (!smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf1), sizeof(tx_buf1)}))
+            if (!m_smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf1), sizeof(tx_buf1)}))
 				return false;
 
             // Set measurement mode -> standard measurement mode with 0-25% concentration in air
 			uint8_t tx_buf2[4] = {0x36, 0x15, 0x00, 0x11};
-            if (!smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf2), sizeof(tx_buf2)}))
+            if (!m_smbus->blocking_transmit(CO2_ADDR, {reinterpret_cast<const char*>(tx_buf2), sizeof(tx_buf2)}))
 				return false;
 
-			mode = Mode::TX;
+			m_mode = Mode::TX;
 
 			return true;
 		}
