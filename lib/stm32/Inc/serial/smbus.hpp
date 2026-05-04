@@ -57,7 +57,7 @@ namespace mrover {
             if (HAL_I2C_DeInit(m_i2c) != HAL_OK)
                 return false;
 
-            if(HAL_I2C_Init(m_i2c) != HAL_OK)
+            if (HAL_I2C_Init(m_i2c) != HAL_OK)
                 return false;
 
             return true;
@@ -142,7 +142,7 @@ namespace mrover {
                     return false;
                 }
             }
-            
+
             return true;
         }
 
@@ -162,7 +162,7 @@ namespace mrover {
                     return false;
                 }
             }
-            
+
 
             return true;
         }
