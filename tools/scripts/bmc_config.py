@@ -44,7 +44,7 @@ if __name__ == "__main__":
     node_id = args.id
 
     # open bus
-    with CANBus(get_dbc(dbc_name="CANBus1"), args.can) as bus:
+    with CANBus(get_dbc(dbc_name="MRoverCAN"), args.can) as bus:
         if args.read:
             # TODO read all configs
             pass
@@ -57,7 +57,7 @@ if __name__ == "__main__":
                     val_bits = float2bits(val)
                 else:
                     val_bits = val
-                bus.send("BMCConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=node_id)
+                bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=node_id)
                 sleep(0.1)
                 # sleep(50)
                 # exit(1)

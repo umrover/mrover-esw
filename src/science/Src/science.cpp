@@ -1,4 +1,5 @@
 #include "main.h"
+
 #include "stm32g4xx_hal_adc.h"
 #include "stm32g4xx_hal_tim.h"
 #include "ScienceBoard.hpp"
