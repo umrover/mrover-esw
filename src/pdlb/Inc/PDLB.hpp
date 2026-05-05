@@ -7,8 +7,8 @@
 namespace mrover {
     class PDLB {
     private:
-        AutonLED auton_led;
-        TIM_HandleTypeDef* blink_tim;
+        AutonLED m_auton_led;
+        TIM_HandleTypeDef* m_blink_tim;
         Pin m_can_tx{};
         Pin m_can_rx{};
         MRoverCANHandler m_can_handler{};
@@ -17,21 +17,21 @@ namespace mrover {
         PDLB() = default;
 
         PDLB (AutonLED& auton_led_in, TIM_HandleTypeDef* blink_tim_in, Pin& can_tx_in, Pin& can_rx_in, MRoverCANHandler& can_handler_in)
-            : auton_led{auton_led_in}, blink_tim{blink_tim_in}, m_can_tx{can_tx_in}, m_can_rx{can_rx_in}, m_can_handler{can_handler_in} {}
+            : m_auton_led{auton_led_in}, m_blink_tim{blink_tim_in}, m_can_tx{can_tx_in}, m_can_rx{can_rx_in}, m_can_handler{can_handler_in} {}
 
         void blink() {
-            auton_led.blink();
+            m_auton_led.blink();
         }
 
         void set_led (bool red, bool green, bool blue, bool blinking) {
             if (blinking) {
-                __HAL_TIM_SET_COUNTER(blink_tim, 0);
-                HAL_TIM_Base_Start_IT(blink_tim);
+                __HAL_TIM_SET_COUNTER(m_blink_tim, 0);
+                HAL_TIM_Base_Start_IT(m_blink_tim);
             } else {
-                HAL_TIM_Base_Stop_IT(blink_tim);
+                HAL_TIM_Base_Stop_IT(m_blink_tim);
             }
 
-            auton_led.change_state(red, green, blue, blinking);
+            m_auton_led.change_state(red, green, blue, blinking);
         }
 
         static void reset() {
