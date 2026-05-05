@@ -10,7 +10,7 @@
 
 namespace mrover {
     // CAN IDs
-    const uint8_t PDLB_CAN_ID = 0x26;
+    const uint8_t PDLB_CAN_ID = 0x11;
     const uint8_t JETSON_CAN_ID = 0x10;
 
     // retrieves science pdlb can options

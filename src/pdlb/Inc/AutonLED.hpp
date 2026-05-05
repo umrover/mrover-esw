@@ -9,7 +9,7 @@ namespace mrover {
             Pin m_green_pin;
             Pin m_blue_pin;
 
-            bool m_red{false};
+            bool m_red{true};
             bool m_green{false};
             bool m_blue{false};
             bool m_blinking{false};
@@ -25,7 +25,9 @@ namespace mrover {
         AutonLED() = default;
 
         AutonLED (Pin red_pin, Pin green_pin, Pin blue_pin)
-            : m_red_pin(red_pin), m_green_pin(green_pin), m_blue_pin(blue_pin) {}
+            : m_red_pin(red_pin), m_green_pin(green_pin), m_blue_pin(blue_pin) {
+                change_all_pins();
+            }
 
         void change_state (bool red, bool green, bool blue, bool blinking) {
             m_on = true;
