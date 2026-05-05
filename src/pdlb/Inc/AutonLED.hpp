@@ -9,11 +9,11 @@ namespace mrover {
             Pin m_green_pin;
             Pin m_blue_pin;
 
-            bool m_red{true};
-            bool m_green{true};
-            bool m_blue{true};
-            bool m_blinking{true};
-            bool m_on{};
+            bool m_red{false};
+            bool m_green{false};
+            bool m_blue{false};
+            bool m_blinking{false};
+            bool m_on{true};
 
             void change_all_pins() {
                 m_red_pin.write(m_red && m_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -28,7 +28,7 @@ namespace mrover {
             : m_red_pin(red_pin), m_green_pin(green_pin), m_blue_pin(blue_pin) {}
 
         void change_state (bool red, bool green, bool blue, bool blinking) {
-            m_on = m_blinking == blinking ? true : m_on; // if swapping from static to blinking start on
+            m_on = true;
             m_red = red;
             m_green = green;
             m_blue = blue;
