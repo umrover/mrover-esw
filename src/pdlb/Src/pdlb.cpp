@@ -1,6 +1,6 @@
+#include "PDLB.hpp"
 #include "main.h"
 #include "stm32g4xx_hal_tim.h"
-#include "PDLB.hpp"
 #include <MRoverCAN.hpp>
 #include <config.hpp>
 
@@ -28,9 +28,9 @@ namespace mrover {
         auto can_rx = Pin{CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin};
 
         auto auton_led = AutonLED{
-            Pin(AUTON_LED_R_GPIO_Port, AUTON_LED_R_Pin),
-            Pin(AUTON_LED_G_GPIO_Port, AUTON_LED_G_Pin),
-            Pin(AUTON_LED_B_GPIO_Port, AUTON_LED_B_Pin)};
+                Pin(AUTON_LED_R_GPIO_Port, AUTON_LED_R_Pin),
+                Pin(AUTON_LED_G_GPIO_Port, AUTON_LED_G_Pin),
+                Pin(AUTON_LED_B_GPIO_Port, AUTON_LED_B_Pin)};
 
         pdlb = PDLB{auton_led, BLINK_TIM, can_tx, can_rx, can_handler};
 
@@ -41,22 +41,22 @@ namespace mrover {
 } // namespace mrover
 
 extern "C" {
-    void PostInit() {
-        mrover::init();
-    }
+void PostInit() {
+    mrover::init();
+}
 
-    void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim) {
-        if (htim == mrover::BLINK_TIM) {
-            mrover::pdlb.blink();
-        }
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+    if (htim == mrover::BLINK_TIM) {
+        mrover::pdlb.blink();
     }
+}
 
-    void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
-        if (!mrover::initialized)
-            return;
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
+    if (!mrover::initialized)
+        return;
 
-        while (mrover::fdcan.messages_to_process() > 0) {
-            mrover::pdlb.handle_request();
-        }
+    while (mrover::fdcan.messages_to_process() > 0) {
+        mrover::pdlb.handle_request();
     }
+}
 }

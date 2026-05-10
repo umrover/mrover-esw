@@ -2,16 +2,16 @@
 
 #include "serial/smbus.hpp"
 #include "stm32g4xx_hal_def.h"
-#include <serial/fdcan.hpp>
-#include <serial/uart.hpp>
 #include <MRoverCAN.hpp>
 #include <adc.hpp>
+#include <serial/fdcan.hpp>
+#include <serial/uart.hpp>
 
 
 namespace mrover {
     // CAN IDs
-    const uint8_t PDLB_CAN_ID = 0x11;
-    const uint8_t JETSON_CAN_ID = 0x10;
+    uint8_t const PDLB_CAN_ID = 0x11;
+    uint8_t const JETSON_CAN_ID = 0x10;
 
     // retrieves science pdlb can options
     inline auto get_can_options() -> FDCAN::Options {

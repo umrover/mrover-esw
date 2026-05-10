@@ -1,7 +1,7 @@
 #pragma once
 
-#include "stm32g4xx_hal_tim.h"
 #include "AutonLED.hpp"
+#include "stm32g4xx_hal_tim.h"
 #include <MRoverCAN.hpp>
 
 namespace mrover {
@@ -16,14 +16,14 @@ namespace mrover {
     public:
         PDLB() = default;
 
-        PDLB (AutonLED& auton_led_in, TIM_HandleTypeDef* blink_tim_in, Pin& can_tx_in, Pin& can_rx_in, MRoverCANHandler& can_handler_in)
+        PDLB(AutonLED& auton_led_in, TIM_HandleTypeDef* blink_tim_in, Pin& can_tx_in, Pin& can_rx_in, MRoverCANHandler& can_handler_in)
             : m_auton_led{auton_led_in}, m_blink_tim{blink_tim_in}, m_can_tx{can_tx_in}, m_can_rx{can_rx_in}, m_can_handler{can_handler_in} {}
 
         void blink() {
             m_auton_led.blink();
         }
 
-        void set_led (bool red, bool green, bool blue, bool blinking) {
+        void set_led(bool red, bool green, bool blue, bool blinking) {
             if (blinking) {
                 __HAL_TIM_SET_COUNTER(m_blink_tim, 0);
                 HAL_TIM_Base_Start_IT(m_blink_tim);
@@ -43,12 +43,12 @@ namespace mrover {
         void handle(T const& _) {
         }
 
-        void handle(const PDLBResetCommand& cmd) {
+        void handle(PDLBResetCommand const& cmd) {
             if (cmd.reset)
                 reset();
         }
 
-        void handle(const AutonLEDCommand& cmd) {
+        void handle(AutonLEDCommand const& cmd) {
             set_led(cmd.red, cmd.green, cmd.blue, cmd.blinking);
         }
 
