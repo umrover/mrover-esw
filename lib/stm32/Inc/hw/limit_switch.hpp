@@ -22,8 +22,8 @@ namespace mrover {
 
         explicit LimitSwitch(Pin const& pin) : m_pin{pin} {}
 
-        auto init(bool const present, bool const enabled, bool const active_high, bool const used_for_readjustment,
-                  bool const limits_forward, float const associated_position) -> void {
+        auto init(bool const present, bool const enabled, bool const active_high, bool const used_for_readjustment = false,
+                  bool const limits_forward = false, float const associated_position = 0.0f) -> void {
             m_initialized = true;
             m_present = present;
             m_enabled = enabled;
