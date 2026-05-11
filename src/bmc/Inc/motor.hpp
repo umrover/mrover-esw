@@ -51,6 +51,10 @@ namespace mrover {
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
+        bool limit_a_forward{false};
+        bool limit_a_backward{false};
+        bool limit_b_forward{false};
+        bool limit_b_backward{false};
         bool m_limit_forward_hit{false};
         bool m_limit_backward_hit{false};
         bool m_stalled{false};
@@ -92,25 +96,27 @@ namespace mrover {
             }();
         }
 
-        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
-            if (limit->enabled()) {
-                limit->update_limit_switch();
-                if (limit->limit_forward()) {
-                    at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
-                        if (m_uncalibrated_position) {
-                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
-                        }
-                    }
-                } else if (limit->limit_backward()) {
-                    at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
-                        if (m_uncalibrated_position) {
-                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
-                        }
-                    }
-                } else {
-                    at_limit = false;
+        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit, bool& forward_hit, bool& backward_hit) -> void {
+            at_limit = false;
+            forward_hit = false;
+            backward_hit = false;
+
+            // check valid configuration
+            if (!limit) return;
+            if (!limit->present()) return;
+
+            limit->update_limit_switch();
+            at_limit = limit->pressed();   // raw limit state
+            if (!limit->enabled()) return; // present but disabled
+
+            // logically active (present & enabled)
+            forward_hit = limit->active() && limit->limits_forward();
+            backward_hit = limit->active() && !limit->limits_forward();
+
+            // readjust
+            if (at_limit) {
+                if (auto const readjustment_position = limit->get_readjustment_position(); readjustment_position && m_uncalibrated_position) {
+                    m_calibrated_offset = *m_uncalibrated_position - *readjustment_position;
                 }
             }
         }
@@ -364,10 +370,10 @@ namespace mrover {
 
         auto drive_output() -> void {
             // update limit switch state
-            apply_limit(m_limit_a, m_limit_a_hit);
-            apply_limit(m_limit_b, m_limit_b_hit);
-            m_limit_forward_hit = m_limit_a->is_forward_limit() ? m_limit_a_hit : (m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
-            m_limit_backward_hit = !m_limit_a->is_forward_limit() ? m_limit_a_hit : (!m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
+            apply_limit(m_limit_a, m_limit_a_hit, limit_a_forward, limit_a_backward);
+            apply_limit(m_limit_b, m_limit_b_hit, limit_b_forward, limit_b_backward);
+            m_limit_forward_hit = limit_a_forward || limit_b_forward;
+            m_limit_backward_hit = limit_a_backward || limit_b_backward;
             if (m_encoder_mode != encoder_mode_t::NONE) sample_encoder();
             write_output_pwm();
         }

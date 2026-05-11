@@ -45,12 +45,12 @@ namespace mrover {
 
         [[nodiscard]] auto pressed() const -> bool { return m_is_pressed; }
 
-        [[nodiscard]] auto limit_forward() const -> bool {
-            return m_initialized && m_enabled && m_is_pressed && m_limits_forward;
+        [[nodiscard]] auto active() const -> bool {
+            return m_initialized && m_enabled && m_is_pressed;
         }
 
-        [[nodiscard]] auto limit_backward() const -> bool {
-            return m_initialized && m_enabled && m_is_pressed && !m_limits_forward;
+        [[nodiscard]] auto limits_forward() const -> bool {
+            return m_limits_forward;
         }
 
         [[nodiscard]] auto get_readjustment_position() const
@@ -65,7 +65,9 @@ namespace mrover {
             return m_initialized && m_enabled && m_used_for_readjustment;
         }
 
-        auto enabled() const -> bool { return m_enabled; }
+        [[nodiscard]] auto enabled() const -> bool { return m_enabled; }
+
+        [[nodiscard]] auto present() const -> bool { return m_present; }
 
         auto enable() -> void { m_enabled = true; }
 
