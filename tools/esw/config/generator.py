@@ -3,7 +3,7 @@ import yaml
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from esw.config.types import ChipInfo, RegGenResult, TypeInfo, chips, types, can_id_types
+from esw.config.types import ChipInfo, TypeInfo, chips, types, can_id_types
 
 
 class ConfigGen:
@@ -70,22 +70,23 @@ class ConfigGen:
 
         template = self.env.get_template("config_header.hpp.j2")
 
-        with open(output_path, "w") as f:
-            template.stream(
-                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                project_name=self.project_name,
-                struct_name=self.struct_name,
-                regs=regs,
-                reg_names=reg_names,
-                flash_begin=f"{mem.flash_begin:#x}",
-                flash_end=f"{mem.flash_end:#x}",
-                flash_page_size=mem.page_size,
-                flash_num_pages=mem.num_pages,
-                can_filtering=config["can_filtering"],
-            ).dump(f)
+        rendered = template.render(
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            project_name=self.project_name,
+            struct_name=self.struct_name,
+            regs=regs,
+            reg_names=reg_names,
+            flash_begin=f"{mem.flash_begin:#x}",
+            flash_end=f"{mem.flash_end:#x}",
+            flash_page_size=mem.page_size,
+            flash_num_pages=mem.num_pages,
+            can_filtering=config["can_filtering"],
+        )
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(rendered)
 
     def validate_can_filtering(self, can_filtering: dict, reg_names: list[str]) -> None:
-
         can_reg: str | None = can_filtering.get("id_reg")
         if can_reg is None:
             raise ValueError(

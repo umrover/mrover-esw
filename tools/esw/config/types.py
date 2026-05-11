@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Type
 
 
 # TypeInfo dataclass, used for validating config size
@@ -16,6 +17,24 @@ types: dict[str, TypeInfo] = {
     "uint8": TypeInfo("uint8_t", 1),
     "float32": TypeInfo("float", 4),
     "float64": TypeInfo("double", 8),
+}
+
+
+@dataclass(frozen=True)
+class PyTypeInfo:
+    size: int
+    pytype: Type[int] | Type[float] | Type[bool]
+
+
+pytypes: dict[str, PyTypeInfo] = {
+    "uint8": PyTypeInfo(1, int),
+    "uint16": PyTypeInfo(2, int),
+    "uint32": PyTypeInfo(4, int),
+    "int8": PyTypeInfo(1, int),
+    "int16": PyTypeInfo(2, int),
+    "int32": PyTypeInfo(4, int),
+    "float32": PyTypeInfo(4, float),
+    "bool": PyTypeInfo(1, bool),
 }
 
 

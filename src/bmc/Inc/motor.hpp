@@ -10,9 +10,9 @@
 #include <pidf.hpp>
 #include <variant>
 
+#include "bmc_config.hpp"
 #include "err.hpp"
 #include "type.hpp"
-#include "bmc_config.hpp"
 
 
 namespace mrover {
@@ -197,19 +197,21 @@ namespace mrover {
             m_max_velocity = m_config_ptr->get<bmc_config_t::max_vel>();
 
             // init limit switches
+            bool present = m_config_ptr->get<bmc_config_t::lim_a_present>();
             bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
             bool active_high = m_config_ptr->get<bmc_config_t::lim_a_active_high>();
             bool use_readjust = m_config_ptr->get<bmc_config_t::lim_a_use_readjust>();
             bool is_forward = m_config_ptr->get<bmc_config_t::lim_a_is_forward>();
             float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
-            m_limit_a->init(en, active_high, use_readjust, is_forward, position);
+            m_limit_a->init(present, en, active_high, use_readjust, is_forward, position);
 
+            present = m_config_ptr->get<bmc_config_t::lim_b_present>();
             en = m_config_ptr->get<bmc_config_t::lim_b_en>();
             active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
             use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
             is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
             position = m_config_ptr->get<bmc_config_t::limit_b_position>();
-            m_limit_b->init(en, active_high, use_readjust, is_forward, position);
+            m_limit_b->init(present, en, active_high, use_readjust, is_forward, position);
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();

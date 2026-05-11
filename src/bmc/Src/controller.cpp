@@ -6,13 +6,13 @@
 #include <hw/quadrature.hpp>
 #include <logger.hpp>
 #include <serial/fdcan.hpp>
-#include <timer.hpp>
 #include <sys.hpp>
+#include <timer.hpp>
 
+#include "bmc_config.hpp"
 #include "main.h"
 #include "motor.hpp"
 #include "type.hpp"
-#include "bmc_config.hpp"
 
 
 extern ADC_HandleTypeDef hadc1;

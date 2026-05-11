@@ -1,10 +1,10 @@
 #pragma once
 
 #include <adc.hpp>
-#include <sys.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/flash.hpp>
 #include <serial/uart.hpp>
+#include <sys.hpp>
 
 namespace mrover {
 

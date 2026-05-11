@@ -9,6 +9,7 @@ namespace mrover {
     class LimitSwitch {
         Pin m_pin;
         bool m_initialized{};
+        bool m_present{};
         bool m_enabled{};
         bool m_is_pressed{};
         bool m_active_high{};
@@ -21,9 +22,10 @@ namespace mrover {
 
         explicit LimitSwitch(Pin const& pin) : m_pin{pin} {}
 
-        auto init(bool const enabled, bool const active_high, bool const used_for_readjustment,
+        auto init(bool const present, bool const enabled, bool const active_high, bool const used_for_readjustment,
                   bool const limits_forward, float const associated_position) -> void {
             m_initialized = true;
+            m_present = present;
             m_enabled = enabled;
             m_is_pressed = false;
             m_active_high = active_high;
@@ -38,7 +40,7 @@ namespace mrover {
 
         auto update_limit_switch() -> void {
             // This suggests active low
-            m_is_pressed = m_enabled ? m_active_high == m_pin.read() : false;
+            m_is_pressed = m_present ? m_active_high == m_pin.read() : false;
         }
 
         [[nodiscard]] auto pressed() const -> bool { return m_is_pressed; }

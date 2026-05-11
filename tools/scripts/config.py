@@ -3,19 +3,26 @@ from pathlib import Path
 from time import sleep
 
 from esw import esw_logger
-from esw.bmc.config import parse_config
 from esw.can.dbc import get_dbc
 from esw.can.canbus import CANBus, float2bits
+from esw.config.parser import parse_config, display_config
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Configure a BMC")
+    parser = argparse.ArgumentParser(description="Configure a Board via CAN Configuration Interface")
     parser.add_argument(
         "--file",
         "-f",
         type=Path,
         required=True,
-        help="Path to BMC Configuration File",
+        help="Path to Board Configuration File",
+    )
+    parser.add_argument(
+        "--definition",
+        "-d",
+        type=Path,
+        required=True,
+        help="Path to Board Configuration Definition File",
     )
     parser.add_argument(
         "--can",
@@ -40,7 +47,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # read config file
-    cfg = parse_config(args.file)
+    cfg = parse_config(args.definition, args.file)
+    display_config(cfg)
     node_id = args.id
 
     # open bus
@@ -50,7 +58,9 @@ if __name__ == "__main__":
             pass
         else:
             # send all configs
-            for reg, (addr, val) in cfg.items():
+            for reg, info in cfg.items():
+                addr = info["addr"]
+                val = info["value"]
                 esw_logger.info(f"Configured {reg} - ADDR 0x{addr:x} @ {val}")
                 val_bits: int
                 if isinstance(val, float):
@@ -59,8 +69,6 @@ if __name__ == "__main__":
                     val_bits = val
                 bus.send("ESWConfigCmd", {"address": addr, "value": val_bits, "apply": 0x1}, dest_id=node_id)
                 sleep(0.1)
-                # sleep(50)
-                # exit(1)
 
         sleep(1)
         esw_logger.info("Configuration Complete!")
