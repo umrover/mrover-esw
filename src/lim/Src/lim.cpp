@@ -114,7 +114,6 @@ namespace mrover {
 
         // set initialization state and initial error state
         initialized = true;
-        Logger::instance().info("initialized!");
     }
 
     [[noreturn]] auto loop() -> void {
