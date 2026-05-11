@@ -30,11 +30,9 @@ namespace mrover {
         // Configured Fields
         {% for reg in regs %}
         {% set REG_NAME = reg.name | upper %}
-        {# Use .get() to avoid StrictUndefined errors for missing keys #}
         {% set reg_fields = reg.get('fields') %}
         {% if reg_fields %}
         {% for field in reg_fields %}
-        {# Check for 'size' in field, then 'size' in reg, then default to 1 #}
         {% set field_size = field.get('size', reg.get('size', 1)) %}
         using {{ field.name }} = field_t<&{{ struct_name }}::{{ REG_NAME }}, {{ field.pos }}{% if field_size != 1 %}, {{ field_size }}{% endif %}>;
         {% endfor %}
