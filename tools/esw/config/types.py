@@ -47,7 +47,7 @@ class ChipInfo:
     num_pages: int
 
 
-chips: dict[str, ChipInfo] = {"STM32G431RBTx": ChipInfo(0x08000000, 0x0801FFFF, 2048, 64)}
+chips: dict[str, ChipInfo] = {"STM32G431CBTx": ChipInfo(0x08000000, 0x0801FFFF, 2048, 64)}
 
 
 # shorthand for can id types

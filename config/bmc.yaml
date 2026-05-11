@@ -1,5 +1,5 @@
 struct_name: bmc_config_t
-chip: STM32G431RBTx
+chip: STM32G431CBTx
 regs:
 - name: can_id
   type: uint8
