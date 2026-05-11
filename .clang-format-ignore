@@ -7,6 +7,7 @@ src/**/stm32*_it.c
 src/**/syscalls.c
 src/**/sysmem.c
 src/**/system_stm32*.c
+src/**/*_config.hpp
 
 lib/stm32g4/**/*
 **/*build*/**/*

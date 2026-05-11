@@ -3,7 +3,6 @@
 #include <MRoverCAN.hpp>
 #include <algorithm>
 #include <cinttypes>
-#include <err.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
@@ -11,7 +10,9 @@
 #include <pidf.hpp>
 #include <variant>
 
-#include "config.hpp"
+#include "bmc_config.hpp"
+#include "err.hpp"
+#include "type.hpp"
 
 
 namespace mrover {
@@ -50,6 +51,10 @@ namespace mrover {
         bool m_enabled{false};
         bool m_limit_a_hit{false};
         bool m_limit_b_hit{false};
+        bool limit_a_forward{false};
+        bool limit_a_backward{false};
+        bool limit_b_forward{false};
+        bool limit_b_backward{false};
         bool m_limit_forward_hit{false};
         bool m_limit_backward_hit{false};
         bool m_stalled{false};
@@ -89,39 +94,34 @@ namespace mrover {
                 if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
                 return std::numeric_limits<float>::quiet_NaN();
             }();
-            // Logger::instance().info("velocity: %f", m_velocity);
         }
 
-        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
-            if (limit->enabled()) {
-                limit->update_limit_switch();
-                if (limit->limit_forward()) {
-                    at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
-                        if (m_uncalibrated_position) {
-                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
-                        }
-                    }
-                } else if (limit->limit_backward()) {
-                    at_limit = true;
-                    if (std::optional<float> const readjustment_position = limit->get_readjustment_position()) {
-                        if (m_uncalibrated_position) {
-                            m_calibrated_offset = m_uncalibrated_position.value() - readjustment_position.value();
-                        }
-                    }
-                } else {
-                    at_limit = false;
+        auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit, bool& forward_hit, bool& backward_hit) -> void {
+            at_limit = false;
+            forward_hit = false;
+            backward_hit = false;
+
+            // check valid configuration
+            if (!limit) return;
+            if (!limit->present()) return;
+
+            limit->update_limit_switch();
+            at_limit = limit->pressed();   // raw limit state
+            if (!limit->enabled()) return; // present but disabled
+
+            // logically active (present & enabled)
+            forward_hit = limit->active() && limit->limits_forward();
+            backward_hit = limit->active() && !limit->limits_forward();
+
+            // readjust
+            if (at_limit) {
+                if (auto const readjustment_position = limit->get_readjustment_position(); readjustment_position && m_uncalibrated_position) {
+                    m_calibrated_offset = *m_uncalibrated_position - *readjustment_position;
                 }
             }
         }
 
         auto detect_stall() -> void {
-            // Logger::instance().info("m_stall_en: %u", m_stall_en);
-            // Logger::instance().info("current: %u", m_current_sensor);
-            // Logger::instance().info("quad: %u", m_quad_encoder);
-            // Logger::instance().info("current surge: %s", (m_current_sensor->get_delta_current() > m_delta_current) ? "true" : "false");
-            // Logger::instance().info("position change: %s", (m_quad_encoder->get_delta_position() < m_delta_position) ? "true" : "false");
-
             if (m_stall_en && m_current_sensor && m_current_sensor->current() > m_stall_current) {
                 if (m_quad_encoder) {
                     m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
@@ -182,7 +182,7 @@ namespace mrover {
          * Should be called after configuration is updated.
          */
         auto init() -> void {
-            __disable_irq();
+            System::InterruptGuard guard{};
 
             // configure motor parameters
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
@@ -203,19 +203,21 @@ namespace mrover {
             m_max_velocity = m_config_ptr->get<bmc_config_t::max_vel>();
 
             // init limit switches
+            bool present = m_config_ptr->get<bmc_config_t::lim_a_present>();
             bool en = m_config_ptr->get<bmc_config_t::lim_a_en>();
             bool active_high = m_config_ptr->get<bmc_config_t::lim_a_active_high>();
             bool use_readjust = m_config_ptr->get<bmc_config_t::lim_a_use_readjust>();
             bool is_forward = m_config_ptr->get<bmc_config_t::lim_a_is_forward>();
             float position = m_config_ptr->get<bmc_config_t::limit_a_position>();
-            m_limit_a->init(en, active_high, use_readjust, is_forward, position);
+            m_limit_a->init(present, en, active_high, use_readjust, is_forward, position);
 
+            present = m_config_ptr->get<bmc_config_t::lim_b_present>();
             en = m_config_ptr->get<bmc_config_t::lim_b_en>();
             active_high = m_config_ptr->get<bmc_config_t::lim_b_active_high>();
             use_readjust = m_config_ptr->get<bmc_config_t::lim_b_use_readjust>();
             is_forward = m_config_ptr->get<bmc_config_t::lim_b_is_forward>();
             position = m_config_ptr->get<bmc_config_t::limit_b_position>();
-            m_limit_b->init(en, active_high, use_readjust, is_forward, position);
+            m_limit_b->init(present, en, active_high, use_readjust, is_forward, position);
 
             // initialize encoders (error if multiple enabled)
             bool const quad = m_config_ptr->get<bmc_config_t::quad_en>();
@@ -235,8 +237,6 @@ namespace mrover {
             } else {
                 m_encoder_mode = encoder_mode_t::NONE;
             }
-
-            __enable_irq();
         }
 
         template<typename T>
@@ -370,10 +370,10 @@ namespace mrover {
 
         auto drive_output() -> void {
             // update limit switch state
-            apply_limit(m_limit_a, m_limit_a_hit);
-            apply_limit(m_limit_b, m_limit_b_hit);
-            m_limit_forward_hit = m_limit_a->is_forward_limit() ? m_limit_a_hit : (m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
-            m_limit_backward_hit = !m_limit_a->is_forward_limit() ? m_limit_a_hit : (!m_limit_b->is_forward_limit() ? m_limit_b_hit : false);
+            apply_limit(m_limit_a, m_limit_a_hit, limit_a_forward, limit_a_backward);
+            apply_limit(m_limit_b, m_limit_b_hit, limit_b_forward, limit_b_backward);
+            m_limit_forward_hit = limit_a_forward || limit_b_forward;
+            m_limit_backward_hit = limit_a_backward || limit_b_backward;
             if (m_encoder_mode != encoder_mode_t::NONE) sample_encoder();
             write_output_pwm();
         }

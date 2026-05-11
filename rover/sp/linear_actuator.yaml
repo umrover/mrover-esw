@@ -1,5 +1,5 @@
 # CAN messaging
-can_id: 65
+can_id: 66
 host_can_id: 16
 
 # system configuration
@@ -8,6 +8,8 @@ motor_inv: false # TODO
 quad_en: true
 quad_phase: false
 stall_en: true
+lim_a_present: false
+lim_b_present: false
 
 # limit configuration
 lim_a_en: false
@@ -20,9 +22,10 @@ lim_b_is_forward: false
 lim_b_use_readjust: false
 
 # encoder params
-quad_cpr: 1.0
+# https://www.firgelliauto.com/products/super-duty-actuators?variant=39956755087431
+quad_cpr: 1644 # pulses per cm 
 gear_ratio: 1.0
-rotor_output_ratio: 1.0
+rotor_output_ratio: 100.0 # cm/m
 
 # position & velocity limits
 limit_a_position: 0.0
@@ -44,5 +47,5 @@ vel_k_d: 0.0
 vel_k_f: 0.0
 
 # stall detection
-stall_current: 1.0 # TODO
+stall_current: 0.06
 delta_position: 1.0  # post-multiplier (already in units)
