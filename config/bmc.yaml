@@ -16,6 +16,12 @@ regs:
     pos: 2
   - name: quad_phase
     pos: 3
+  - name: stall_en
+    pos: 4
+  - name: lim_a_present
+    pos: 5
+  - name: lim_b_present
+    pos: 6
 - name: limit_cfg
   type: uint8
   fields:
@@ -70,6 +76,10 @@ regs:
 - name: vel_k_d
   type: float32
 - name: vel_k_f
+  type: float32
+- name: stall_current
+  type: float32
+- name: delta_position
   type: float32
 can_filtering:
   id_reg: can_id # may not have field 

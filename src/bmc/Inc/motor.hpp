@@ -3,7 +3,6 @@
 #include <MRoverCAN.hpp>
 #include <algorithm>
 #include <cinttypes>
-#include <err.hpp>
 #include <hw/ad8418a.hpp>
 #include <hw/hbridge.hpp>
 #include <hw/limit_switch.hpp>
@@ -11,7 +10,9 @@
 #include <pidf.hpp>
 #include <variant>
 
-#include "config.hpp"
+#include "err.hpp"
+#include "type.hpp"
+#include "bmc_config.hpp"
 
 
 namespace mrover {
@@ -89,7 +90,6 @@ namespace mrover {
                 if (m_velocity_raw) return m_velocity_raw.value() * m_rotor_output_ratio;
                 return std::numeric_limits<float>::quiet_NaN();
             }();
-            // Logger::instance().info("velocity: %f", m_velocity);
         }
 
         auto apply_limit(std::optional<LimitSwitch>& limit, bool& at_limit) -> void {
@@ -116,12 +116,6 @@ namespace mrover {
         }
 
         auto detect_stall() -> void {
-            // Logger::instance().info("m_stall_en: %u", m_stall_en);
-            // Logger::instance().info("current: %u", m_current_sensor);
-            // Logger::instance().info("quad: %u", m_quad_encoder);
-            // Logger::instance().info("current surge: %s", (m_current_sensor->get_delta_current() > m_delta_current) ? "true" : "false");
-            // Logger::instance().info("position change: %s", (m_quad_encoder->get_delta_position() < m_delta_position) ? "true" : "false");
-
             if (m_stall_en && m_current_sensor && m_current_sensor->current() > m_stall_current) {
                 if (m_quad_encoder) {
                     m_stalled = m_quad_encoder->get_delta_position() < m_delta_position;
@@ -182,7 +176,7 @@ namespace mrover {
          * Should be called after configuration is updated.
          */
         auto init() -> void {
-            __disable_irq();
+            System::InterruptGuard guard{};
 
             // configure motor parameters
             m_enabled = m_config_ptr->get<bmc_config_t::motor_en>();
@@ -235,8 +229,6 @@ namespace mrover {
             } else {
                 m_encoder_mode = encoder_mode_t::NONE;
             }
-
-            __enable_irq();
         }
 
         template<typename T>

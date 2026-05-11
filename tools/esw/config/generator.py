@@ -1,11 +1,9 @@
-# user imports
-from .types import ChipInfo, RegGenResult, TypeInfo, chips, types, can_id_types
-
-# libraries
 from pathlib import Path
 import yaml
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+from esw.config.types import ChipInfo, RegGenResult, TypeInfo, chips, types, can_id_types
 
 
 class ConfigGen:
@@ -45,8 +43,25 @@ class ConfigGen:
         if mem is None:
             raise ValueError(f"Unsupported chip type: {config.get('chip')}. Must be one of: {list(chips.keys())}")
 
-        result: RegGenResult = self.generate_regs_fields(regs, mem)
-        reg_names: list[str] = result.reg_names
+        current_pos: int = 0
+        reg_names: list[str] = []
+
+        for reg in regs:
+            name: str = reg["name"].upper()
+            reg_names.append(name)
+
+            typ: TypeInfo | None = types.get(reg["type"])
+            if typ is None:
+                raise ValueError(f"Unsupported reg type: {reg['type']}. Must be one of {list(types.keys())}")
+
+            reg["cpp_type"] = typ.type
+            reg["size_bytes"] = typ.size
+            reg["address"] = current_pos
+            current_pos += typ.size
+            reg.setdefault("fields", [])
+
+        if current_pos >= mem.page_size:
+            raise ValueError(f"Config does not fit in one page: size {current_pos} exceeds {mem.page_size}")
 
         if config.get("can_filtering") is None:
             raise ValueError("can_filtering not specified, unable to generate get_can_options")
@@ -60,8 +75,7 @@ class ConfigGen:
                 timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 project_name=self.project_name,
                 struct_name=self.struct_name,
-                reg_output=result.reg_output,
-                field_output=result.field_output,
+                regs=regs,
                 reg_names=reg_names,
                 flash_begin=f"{mem.flash_begin:#x}",
                 flash_end=f"{mem.flash_end:#x}",
@@ -69,62 +83,6 @@ class ConfigGen:
                 flash_num_pages=mem.num_pages,
                 can_filtering=config["can_filtering"],
             ).dump(f)
-
-    def generate_regs_fields(self, regs: list[dict], chip: ChipInfo) -> RegGenResult:
-        output_regs: list[str] = []
-        output_fields: list[str] = []
-        reg_names: list[str] = []
-
-        tab: str = self.tab_size * " "
-
-        current_pos: int = 0
-        last_had_fields: bool = False
-        for reg in regs:
-            name: str = reg["name"].upper()
-            reg_names.append(name)
-            typ: TypeInfo | None = types.get(reg["type"], None)
-            if typ is None:
-                raise ValueError(f"Unsupported reg type: {reg['type']}. Must be one of {list(types.keys())}")
-            fields: list[dict] | None = reg.get("fields")
-
-            if fields is not None:
-                output_fields.append("")
-                for field in fields:
-                    field_name: str = field["name"]
-                    field_size: int | None = reg.get("size")
-
-                    if field_size is None:
-                        field_size = 1  # default to field size of 1 if not provided in yaml
-
-                    field_pos = field["pos"]
-                    line = tab * 2 + f"using {field_name} = field_t<&{self.struct_name}::{name}, {field_pos}"
-                    if field_size != 1:
-                        line += f", {field_size}"
-                    line += ">;"
-
-                    output_fields.append(line)
-                last_had_fields = True
-            else:
-                # no fields provided
-                if last_had_fields:
-                    output_fields.append("")  # this block is just to make things look nice
-                    last_had_fields = False
-                if typ.type == "float":
-                    output_fields.append(tab * 2 + f"using {name.lower()} = field_t<&{self.struct_name}::{name}>;")
-                else:
-                    output_fields.append(
-                        tab * 2 + f"using {name.lower()} = field_t<&{self.struct_name}::{name}, 0, {typ.size * 8}>;"
-                    )
-
-            output_regs.append(tab * 2 + f"reg_t<{typ.type}> {name}{{{current_pos:#x}}};")
-
-            current_pos += typ.size
-            # check that config will fit into last page
-            if current_pos >= chip.page_size:
-                raise ValueError(f"Config does not fit in one page: size {current_pos} exceeds {chip.page_size}")
-
-        output_regs.append("")
-        return RegGenResult("\n".join(output_regs), "\n".join(output_fields), reg_names, current_pos)
 
     def validate_can_filtering(self, can_filtering: dict, reg_names: list[str]) -> None:
 
@@ -143,6 +101,7 @@ class ConfigGen:
         resolved_dest_id_type = can_id_types.get(dest_id_type)
         if resolved_dest_id_type is None:
             raise ValueError(f"Unsuported CAN id type: {can_filtering['id_type']}")
+        can_filtering["id_type"] = resolved_dest_id_type
 
         if can_filtering.get("delay_compensation") is None:
             raise ValueError("Missing required field 'delay_compensation' in can")

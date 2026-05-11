@@ -5,13 +5,10 @@
 // Last Updated: {{ timestamp }}
 // ======================================================
 
-#include <serial/fdcan.hpp>
-#include <serial/uart.hpp>
 #include <tuple>
 
-#include <CANBus1.hpp>
-#include <adc.hpp>
-#include <hw/ad8418a.hpp>
+#include <MRoverCAN.hpp>
+#include <serial/fdcan.hpp>
 #include <hw/flash.hpp>
 
 namespace mrover {
@@ -22,11 +19,33 @@ namespace mrover {
 
         {% set num_filters = (can_filtering.can_subs | default([]) | length) + 1 %}
         {% if num_filters != 0 %}
-        FDCAN::Filter can_node_filters[{{num_filters}}];
+        FDCAN::Filter can_node_filters[{{num_filters}}]{};
         {% endif %}
 
-{{ reg_output }}
-{{ field_output }}
+        // Configured Registers
+        {% for reg in regs %}
+        reg_t<{{ reg.cpp_type }}> {{ reg.name | upper }}{{ "{" }}0x{{ "%x" | format(reg.address) }}{{ "}" }};
+        {% endfor %}
+
+        // Configured Fields
+        {% for reg in regs %}
+        {% set REG_NAME = reg.name | upper %}
+        {# Use .get() to avoid StrictUndefined errors for missing keys #}
+        {% set reg_fields = reg.get('fields') %}
+        {% if reg_fields %}
+        {% for field in reg_fields %}
+        {# Check for 'size' in field, then 'size' in reg, then default to 1 #}
+        {% set field_size = field.get('size', reg.get('size', 1)) %}
+        using {{ field.name }} = field_t<&{{ struct_name }}::{{ REG_NAME }}, {{ field.pos }}{% if field_size != 1 %}, {{ field_size }}{% endif %}>;
+        {% endfor %}
+        {% else %}
+        {% if reg.cpp_type == "float" %}
+        using {{ reg.name | lower }} = field_t<&{{ struct_name }}::{{ REG_NAME }}>;
+        {% else %}
+        using {{ reg.name | lower }} = field_t<&{{ struct_name }}::{{ REG_NAME }}, 0, {{ reg.size_bytes * 8 }}>;
+        {% endif %}
+        {% endif %}
+        {% endfor %}
 
 
         template<typename F>
@@ -114,20 +133,20 @@ namespace mrover {
         config->can_node_filters[0].id1 = config->get<{{ project_name }}_config_t::{{can_filtering.id_reg }}>();
         config->can_node_filters[0].id2 = CAN_DEST_ID_MASK;
         config->can_node_filters[0].id_type = FDCAN::FilterIdType::{{ can_filtering.id_type }};
-        config->can_node_filters[0].action = FDCAN::ActionType::Accept;
-        config->can_node_filters[0].mode = FDCAN::ActionType::Mask;
+        config->can_node_filters[0].action = FDCAN::FilterAction::Accept;
+        config->can_node_filters[0].mode = FDCAN::FilterMode::Mask;
         {% for sub in can_filtering.can_subs | default([]) %}
 
         config->can_node_filters[{{ loop.index }}].id1 =  {{ sub.can_id }};
         config->can_node_filters[{{ loop.index }}].id2 = CAN_SRC_ID_MASK;
         config->can_node_filters[{{ loop.index }}].id_type = FDCAN::FilterIdType::{{ sub.id_type }};
-        config->can_node_filters[{{ loop.index }}].action = FDCAN::ActionType::Accept;
-        config->can_node_filters[{{ loop.index }}].mode = FDCAN::ActionType::Mask;
+        config->can_node_filters[{{ loop.index }}].action = FDCAN::FilterAction::Accept;
+        config->can_node_filters[{{ loop.index }}].mode = FDCAN::FilterMode::Mask;
         {% endfor %}
 
         FDCAN::FilterConfig filter;
-        filter.begin = &config->can_node_filter;
-        filter.end = &config->can_node_filter + {{ (can_filtering.can_subs | default([]) | length) + 1}};
+        filter.begin = config->can_node_filters;
+        filter.end = config->can_node_filters + {{ (can_filtering.can_subs | default([]) | length) + 1}};
         filter.global_non_matching_std_action = FDCAN::FilterAction::Reject;
         filter.global_non_matching_ext_action = FDCAN::FilterAction::Reject;
 
