@@ -18,7 +18,8 @@ set(CONFIG_YAML "${CONFIG_DIR}/${CMAKE_PROJECT_NAME}.yaml")
 set(CONFIG_OUTPUT "${CONFIG_GEN_DIR}/${CMAKE_PROJECT_NAME}_config.hpp")
 
 if(NOT EXISTS ${CONFIG_YAML})
-    message(FATAL_ERROR "could not find config yaml ${CONFIG_YAML}")
+    message(WARNING "could not find config yaml ${CONFIG_YAML}")
+    return()
 endif()
 
 add_custom_command(
@@ -34,5 +35,7 @@ add_custom_command(
     VERBATIM
 )
 
-add_library(config INTERFACE ${CONFIG_OUTPUT})
-target_include_directories(config INTERFACE ${CONFIG_GEN_DIR})
+if(EXISTS ${CONFIG_YAML})
+    add_library(config INTERFACE ${CONFIG_OUTPUT})
+    target_include_directories(config INTERFACE ${CONFIG_GEN_DIR})
+endif()

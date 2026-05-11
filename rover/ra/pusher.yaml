@@ -8,6 +8,8 @@ motor_inv: true
 quad_en: false
 quad_phase: false
 stall_en: true
+lim_a_present: true
+lim_b_present: true
 
 # limit configuration
 lim_a_en: true
