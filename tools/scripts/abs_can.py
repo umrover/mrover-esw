@@ -3,7 +3,6 @@ from time import sleep
 from esw import esw_logger
 from esw.can.canbus import CANBus, float2bits
 from esw.can.dbc import get_dbc
-from esw.visualization.async_plotter import AsyncPlotter
 
 if __name__ == "__main__":
     LOOP_DELAY = 0.05
