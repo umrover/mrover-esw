@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <numbers>
 #include <span>
 
@@ -25,23 +25,22 @@ namespace mrover {
         static constexpr float TWO_PI = 2.0f * std::numbers::pi_v<float>;
 
         AS5047U(SPI* spi,
-            Pin* cs_pin,
-            float const scalar,
-            float const offset,
-            bool const continuous_mode,
-            bool const invert,
-            bool const bounded_mode = false,
-            float const min_bound = 0.0f,
-            float const max_bound = 0.0f):
-        m_spi{spi},
-        m_cs_pin{cs_pin},
-        m_scalar{scalar},
-        m_offset{offset},
-        m_continuous_mode{continuous_mode},
-        m_invert{invert},
-        m_bounded_mode{bounded_mode},
-        m_min_bound{min_bound},
-        m_max_bound{max_bound} {
+                Pin* cs_pin,
+                float const scalar,
+                float const offset,
+                bool const continuous_mode,
+                bool const invert,
+                bool const bounded_mode = false,
+                float const min_bound = 0.0f,
+                float const max_bound = 0.0f) : m_spi{spi},
+                                                m_cs_pin{cs_pin},
+                                                m_scalar{scalar},
+                                                m_offset{offset},
+                                                m_continuous_mode{continuous_mode},
+                                                m_invert{invert},
+                                                m_bounded_mode{bounded_mode},
+                                                m_min_bound{min_bound},
+                                                m_max_bound{max_bound} {
             init();
         }
         AS5047U() = default;
@@ -111,8 +110,7 @@ namespace mrover {
                 }
 
                 this->m_raw_pos = new_pos;
-                this->m_last_tick = now;
-            }, m_cs_pin);
+                this->m_last_tick = now; }, m_cs_pin);
         }
 
         [[nodiscard]] auto get_position() const -> float {
