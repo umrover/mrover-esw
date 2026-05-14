@@ -31,26 +31,32 @@ namespace mrover {
                 options.enable_wd = false;
         }
 
+#ifdef HAL_TIM_MODULE_ENABLED
         explicit SMBus(I2C_HandleTypeDef* hi2c, TIM_HandleTypeDef* htim, Options options = Options()) : m_i2c{hi2c}, m_tim{htim}, m_options(options) {
             __HAL_TIM_SET_AUTORELOAD(htim, I2C_TIMEOUT - 1);
         }
+#endif
 
         void set_timeout(uint32_t timeout) { m_options.timeout_ms = timeout; }
         [[nodiscard]] auto get_timeout() const -> uint32_t { return m_options.timeout_ms; }
 
         void start_wd() {
+#ifdef HAL_TIM_MODULE_ENABLED
             if (!m_tim)
                 return;
 
             __HAL_TIM_SET_COUNTER(m_tim, 0);
             HAL_TIM_Base_Start_IT(m_tim);
+#endif
         }
 
         void stop_wd() {
+#ifdef HAL_TIM_MODULE_ENABLED
             if (!m_tim)
                 return;
 
             HAL_TIM_Base_Stop_IT(m_tim);
+#endif
         }
 
         auto reboot() -> bool {
@@ -209,7 +215,9 @@ namespace mrover {
 
     private:
         I2C_HandleTypeDef* m_i2c{};
+#ifdef HAL_TIM_MODULE_ENABLED
         TIM_HandleTypeDef* m_tim{};
+#endif
         Options m_options;
     };
 #else  // HAL_I2C_MODULE_ENABLED
