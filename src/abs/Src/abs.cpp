@@ -12,7 +12,8 @@
 #include <sys.hpp>
 #include <timer.hpp>
 
-#include "config.hpp"
+#include "abs_config.hpp"
+#include "options.hpp"
 #include "stm32g4xx_hal.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
@@ -90,10 +91,15 @@ namespace mrover {
 
         // initialize encoder
         encoder.emplace(
-                &spi.value(),
-                &abs_ss.value(),
+                &*spi,
+                &*abs_ss,
                 config.get<abs_config_t::output_scalar>(),
-                config.get<abs_config_t::position_offset>());
+                config.get<abs_config_t::position_offset>(),
+                config.get<abs_config_t::continuous_mode>(),
+                config.get<abs_config_t::invert>(),
+                config.get<abs_config_t::bounded_mode>(),
+                config.get<abs_config_t::min_bound>(),
+                config.get<abs_config_t::max_bound>());
 
         Logger::instance().info("Initialized ABS Encoder 0x%x", config.get<abs_config_t::can_id>());
         initialized = true;
@@ -139,12 +145,15 @@ namespace mrover {
         }
     }
 
-    auto handle(ABSResetCmd const& _) -> void {
+    auto handle(ABSResetCmd const&) -> void {
         System::reset();
     }
 
-    auto handle(ABSZeroCmd const& msg) -> void {
-        encoder->set_zero_offset(msg.offset);
+    auto handle(ABSZeroCmd const&) -> void {
+        float const current_raw_rads = encoder->get_raw_radians();
+        config.set<abs_config_t::position_offset>(current_raw_rads);
+        encoder->set_zero_offset(current_raw_rads);
+        Logger::instance().info("zero position set and saved to %f", current_raw_rads);
     }
 
     /**
