@@ -1,6 +1,6 @@
 # Introduction
 
-Welcome to MRover Embedded Software! The Getting Started section is designed to get you up and
+Welcome to ESW! The Getting Started section is designed to get you up and
 running as smooth as possible. It consists of three starter projects to help you get experience with
 using microcontrollers and communication protocols, as well as gain familiarity with the tools we use.
 There is also useful information linked below to supplement the starter projects.
@@ -9,7 +9,7 @@ There is also useful information linked below to supplement the starter projects
 
 All new members are asked to complete the following:
 
-1. [Install STM32Cube* Tools](stm32cube/index.md)
+1. [Install STM32Cube\* Tools](stm32cube/index.md)
 2. [Starter Project: LED](starter/led/index.md)
 3. [Starter Project: Servo Part 1](starter/servo/part1-pwm.md)
 4. [Starter Project: Servo Part 2](starter/servo/part2-can.md)
