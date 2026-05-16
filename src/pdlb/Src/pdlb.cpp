@@ -35,14 +35,13 @@ namespace mrover {
         pdlb = PDLB{auton_led, BLINK_TIM, can_tx, can_rx, can_handler};
 
         initialized = true;
-
-        event_loop();
     }
 } // namespace mrover
 
 extern "C" {
 void PostInit() {
     mrover::init();
+    mrover::event_loop();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
