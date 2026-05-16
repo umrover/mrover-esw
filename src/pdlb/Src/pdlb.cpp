@@ -14,6 +14,7 @@ namespace mrover {
     PDLB pdlb;
     FDCAN fdcan;
 
+    pdlb_config_t config;
     bool initialized = false;
 
     void event_loop() {
@@ -21,7 +22,7 @@ namespace mrover {
     }
 
     void init() {
-        fdcan = FDCAN{HFDCAN, get_can_options()};
+        fdcan = FDCAN{HFDCAN, get_can_options(&config)};
 
         auto can_handler = MRoverCANHandler{&fdcan};
         auto can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
