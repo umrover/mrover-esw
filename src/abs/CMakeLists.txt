@@ -81,6 +81,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     dbc
     util
     units
+    config
 )
 
 # Link compile commands for LSPs

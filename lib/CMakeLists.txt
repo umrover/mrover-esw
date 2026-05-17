@@ -10,8 +10,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_subdirectory(../tools tools)
+
 add_subdirectory(dbc)
 if (DEFINED MX_SRC_DIR AND DEFINED MX_INC_DIR AND DEFINED MX_STARTUP_S)
+    add_subdirectory(config)
     add_subdirectory(stm32g4)
 endif ()
 add_subdirectory(stm32)

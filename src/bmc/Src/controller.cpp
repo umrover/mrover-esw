@@ -6,13 +6,13 @@
 #include <hw/quadrature.hpp>
 #include <logger.hpp>
 #include <serial/fdcan.hpp>
+#include <sys.hpp>
 #include <timer.hpp>
 
-#include "config.hpp"
+#include "bmc_config.hpp"
 #include "main.h"
 #include "motor.hpp"
-#include "stm32g431xx.h"
-#include "stm32g4xx_hal_tim.h"
+#include "type.hpp"
 
 
 extern ADC_HandleTypeDef hadc1;
@@ -51,9 +51,9 @@ namespace mrover {
     bool volatile control_update = false;
 
     // Peripherals
-    UART lpuart;
-    ADC<NUM_ADC_CHANNELS> adc;
-    FDCAN fdcan;
+    std::optional<UART> lpuart;
+    std::optional<ADC<NUM_ADC_CHANNELS>> adc;
+    std::optional<FDCAN> fdcan;
 
     // Timers
     std::optional<Timer> tx_tim;
@@ -93,7 +93,7 @@ namespace mrover {
 
         motor->reset_wwdg();
 
-        while (fdcan.messages_to_process() > 0) {
+        while (fdcan->messages_to_process() > 0) {
             if (auto const recv = can_receiver->receive(); recv) {
                 can_rx->set();
                 auto const& msg = *recv;
@@ -108,16 +108,16 @@ namespace mrover {
      * Initialization sequence for BMC.
      */
     auto init() -> void {
-        __disable_irq();
-        HAL_DBGMCU_EnableDBGSleepMode();
+        System::InterruptGuard guard{};
+        System::get().init(get_sys_options());
 
         // initialize peripherals
-        lpuart = UART{LPUART_1, get_uart_options()};
-        adc = ADC<NUM_ADC_CHANNELS>{ADC_1, get_adc_options()};
-        fdcan = FDCAN{FDCAN_1, get_can_options(&config)};
+        lpuart.emplace(LPUART_1, get_uart_options());
+        adc.emplace(ADC_1, get_adc_options());
+        fdcan.emplace(FDCAN_1, get_can_options(&config));
 
         // initialize logger
-        Logger::init(&lpuart);
+        Logger::init(&*lpuart);
 
         // setup timers
         tx_tim.emplace(TX_TIM, true);              // transmit timer (on interrupt)
@@ -134,12 +134,12 @@ namespace mrover {
         can_rx.emplace(CAN_RX_LED_GPIO_Port, CAN_RX_LED_Pin);
 
         // initialize fdcan
-        can_receiver = MRoverCANHandler{&fdcan};
+        can_receiver = MRoverCANHandler{&*fdcan};
 
         // setup motor instance
         motor.emplace(
                 HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
-                AD8418A{&adc, ADC_CHANNEL_0},
+                AD8418A{&*adc, ADC_CHANNEL_0},
                 LimitSwitch{Pin{LIMIT_A_GPIO_Port, LIMIT_A_Pin}},
                 LimitSwitch{Pin{LIMIT_B_GPIO_Port, LIMIT_B_Pin}},
                 QuadratureEncoder{ENCODER_TIM, enc_timer_handle},
@@ -149,7 +149,6 @@ namespace mrover {
 
         // set initialization state and initial error state
         initialized = true;
-        __enable_irq();
     }
 
     [[noreturn]] auto loop() -> void {
@@ -163,8 +162,8 @@ namespace mrover {
                 motor->drive_output();
                 control_update = false;
             }
-            __DSB();
-            HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+            System::dsb();
+            System::get().wfi();
         }
     }
 
@@ -190,7 +189,7 @@ namespace mrover {
      */
     auto uart_tx_callback(UART_HandleTypeDef const* huart) -> void {
         if (huart == LPUART_1) {
-            lpuart.handle_tx_complete();
+            lpuart->handle_tx_complete();
         }
     }
 

@@ -1,0 +1,16 @@
+# can info
+can_id: 18
+host_can_id: 16
+
+# limit a
+lim_a_present: true
+lim_a_en: true
+lim_a_active_high: false
+
+# limit b
+lim_b_present: true
+lim_b_en: true
+lim_b_active_high: false
+
+# publish freq
+publish_frequency: 10.0
