@@ -30,7 +30,7 @@ namespace mrover {
         }
 
         void change_state(bool red, bool green, bool blue, bool blinking) {
-            if (red || blue)
+            if (m_blinking != blinking)
                 m_on = true;
             
             m_red = red;

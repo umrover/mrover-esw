@@ -25,10 +25,10 @@ namespace mrover {
 
         void set_led(bool red, bool green, bool blue, bool blinking) {
             if (blinking) {
-                __HAL_TIM_SET_COUNTER(m_blink_tim, 0);
                 HAL_TIM_Base_Start_IT(m_blink_tim);
             } else {
                 HAL_TIM_Base_Stop_IT(m_blink_tim);
+                __HAL_TIM_SET_COUNTER(m_blink_tim, 0);
             }
 
             m_auton_led.change_state(red, green, blue, blinking);
