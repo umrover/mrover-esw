@@ -117,6 +117,16 @@ BO_ 2149646336 ABSResetCmd: 1 Vector__XXX
 BO_ 2149711872 ABSZeroCmd: 4 Vector__XXX
  SG_ offset : 0|32@1- (1,0) [0|0] "" Vector__XXX
 
+BO_ 2154889216 PDLBResetCommand: 1 Vector__XXX
+ SG_ reset : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ clear_faults : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2154823680 AutonLEDCommand: 8 Vector__XXX
+ SG_ red : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ green : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ blue : 2|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ blinking : 3|1@1+ (1,0) [0|0] "" Vector__XXX
+
 BO_ 2150629376 LIMState: 1 Vector__XXX
  SG_ lim_a : 0|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ lim_b : 1|1@1+ (1,0) [0|0] "" Vector__XXX
@@ -162,6 +172,8 @@ BA_ "VFrameFormat" BO_ 2149646336 15;
 BA_ "CANFD_BRS" BO_ 2149646336 1;
 BA_ "VFrameFormat" BO_ 2149711872 15;
 BA_ "CANFD_BRS" BO_ 2149711872 1;
+BA_ "VFrameFormat" BO_ 2154889216 15;
+BA_ "VFrameFormat" BO_ 2154823680 15;
 BA_ "VFrameFormat" BO_ 2150629376 15;
 BA_ "CANFD_BRS" BO_ 2150629376 1;
 BA_ "VFrameFormat" BO_ 2150694912 15;
