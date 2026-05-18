@@ -80,6 +80,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32
     dbc
     util
+    config
 )
 
 # Link compile commands for LSPs

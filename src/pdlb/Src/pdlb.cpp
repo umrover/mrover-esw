@@ -1,6 +1,7 @@
 #include "PDLB.hpp"
 #include "main.h"
 #include "stm32g4xx_hal_tim.h"
+#include "pdlb_config.hpp"
 #include <MRoverCAN.hpp>
 #include <config.hpp>
 
@@ -14,6 +15,7 @@ namespace mrover {
     PDLB pdlb;
     FDCAN fdcan;
 
+    pdlb_config_t config;
     bool initialized = false;
 
     void event_loop() {
@@ -21,7 +23,7 @@ namespace mrover {
     }
 
     void init() {
-        fdcan = FDCAN{HFDCAN, get_can_options()};
+        fdcan = FDCAN{HFDCAN, get_can_options(&config)};
 
         auto can_handler = MRoverCANHandler{&fdcan};
         auto can_tx = Pin{CAN_TX_LED_GPIO_Port, CAN_TX_LED_Pin};
