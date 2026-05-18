@@ -31,7 +31,7 @@ namespace mrover {
                 options.enable_wd = false;
         }
 
-#ifdef HAL_TIM_MODULE_ENABLED
+#ifdef HAL_TIM_MODULE_ENABLED // TODO: explore using integrated SMBus timeout check instead of this
         explicit SMBus(I2C_HandleTypeDef* hi2c, TIM_HandleTypeDef* htim, Options options = Options()) : m_i2c{hi2c}, m_tim{htim}, m_options(options) {
             __HAL_TIM_SET_AUTORELOAD(htim, I2C_TIMEOUT - 1);
         }
