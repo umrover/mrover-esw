@@ -17,7 +17,7 @@ jobs:
     outputs:
       dirs: ${{ steps.load.outputs.dirs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - id: load
         run: |
@@ -33,7 +33,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check if Docker rebuild is necessary
         id: changed
         uses: dorny/paths-filter@v3
@@ -75,7 +75,7 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository }}/arm-gnu:13.3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Create python venv
         run: |
@@ -105,7 +105,7 @@ jobs:
 
     steps:
       - name: Checkout repo and submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'recursive'
 
