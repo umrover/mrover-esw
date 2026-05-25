@@ -1,9 +1,9 @@
-#include <optional>
 #include <MRoverCAN.hpp>
+#include <optional>
 
+#include "main.h"
 #include "pdb.hpp"
 #include "pdb_config.hpp"
-#include "main.h"
 
 extern TIM_HandleTypeDef htim2;
 extern FDCAN_HandleTypeDef hfdcan1;
