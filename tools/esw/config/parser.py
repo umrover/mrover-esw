@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -50,7 +51,7 @@ def parse_config(definition_yaml: Path, config_yaml: Path) -> dict[str, dict[str
     with open(config_yaml, "r") as f:
         user_data = yaml.safe_load(f)
 
-    reg_states = {}
+    reg_states: dict[int, dict[str, Any]] = {}
     for field, info in config_map.items():
         val = user_data.get(field, 0)
         addr = info["addr"]
@@ -71,7 +72,7 @@ def parse_config(definition_yaml: Path, config_yaml: Path) -> dict[str, dict[str
             mask = (1 << info["width"]) - 1
             reg_states[addr]["value"] |= (int(val) & mask) << info["offset"]
 
-    registers = {}
+    registers: dict[str, dict[str, int]] = {}
     for addr in sorted(reg_states.keys()):
         info = reg_states[addr]
 
