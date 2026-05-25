@@ -107,7 +107,7 @@ BUILD_DIR="build/$PRESET"
 
 # clean the project if that paramter was set
 if [[ "$DO_CLEAN" == "true" ]]; then
-    run_step "cleaning build dir" clean "$BUILD_DIR" "$ESW_ROOT/lib/dbc/build"  # "$VENV_PATH"
+    run_step "cleaning build dir" clean "$BUILD_DIR" "$VENV_PATH" "$ESW_ROOT/lib/dbc/build"
     exit 0
 fi
 
