@@ -4,11 +4,11 @@ host_can_id: 16
 
 # system configuration
 motor_en: true
-motor_inv: false # TODO
+motor_inv: false
 quad_en: true
 quad_phase: false
 stall_en: true
-lim_a_present: false
+lim_a_present: true
 lim_b_present: false
 
 # limit configuration
