@@ -15,31 +15,32 @@ else()
     set(VENV_PIP ${VENV_DIR}/bin/pip)
 endif()
 
-add_custom_command(
-    OUTPUT ${VENV_DIR}/pyvenv.cfg
-    COMMAND ${Python3_EXECUTABLE} -m venv ${VENV_DIR}
-    COMMENT "creating venv"
-    VERBATIM
-)
-
-add_custom_target(python_venv DEPENDS ${VENV_DIR}/pyvenv.cfg)
-
 set(PYPROJECT_TOML ${TOOLS_DIR}/pyproject.toml)
+set(SETUP_SCRIPT ${TOOLS_DIR}/setup_venv.py)
 
-add_custom_command(
-    OUTPUT ${VENV_DIR}/package.timestamp
-    DEPENDS python_venv ${PYPROJECT_TOML}
-    WORKING_DIRECTORY ${TOOLS_DIR}
-    COMMAND ${VENV_PIP} install --upgrade pip setuptools wheel
-    COMMAND ${VENV_PIP} install --editable ".[dev]"
-    COMMAND ${CMAKE_COMMAND} -E touch ${VENV_DIR}/package.timestamp
-    COMMENT "installing esw python tools"
-    VERBATIM
+# auto reconfigure on pyproject change
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PYPROJECT_TOML})
+
+message(STATUS "executing venv setup")
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} ${SETUP_SCRIPT} ${VENV_DIR} ${PYPROJECT_TOML} ${VENV_PIP}
+    RESULT_VARIABLE VENV_RESULT
+    OUTPUT_VARIABLE VENV_OUTPUT
+    ERROR_VARIABLE VENV_ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-add_custom_target(python_package DEPENDS ${VENV_DIR}/package.timestamp)
+if(NOT VENV_RESULT EQUAL 0)
+    message(FATAL_ERROR "python environment setup failed\n${VENV_OUTPUT}\n${VENV_ERROR}")
+elseif(VENV_OUTPUT MATCHES "^WARNING:")
+    string(REGEX REPLACE "^WARNING:[ \t]*" "" CLEAN_WARNING "${VENV_OUTPUT}")
+    message(WARNING "${CLEAN_WARNING}")
+elseif(VENV_OUTPUT MATCHES "^STATUS:")
+    string(REGEX REPLACE "^STATUS:[ \t]*" "" CLEAN_STATUS "${VENV_OUTPUT}")
+    message(STATUS "${CLEAN_STATUS}")
+endif()
 
-add_custom_target(python_env_ready DEPENDS python_package)
+add_custom_target(python_env_ready)
 
 function(run_python_tool TARGET_NAME SCRIPT)
     add_custom_target(
