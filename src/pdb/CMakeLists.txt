@@ -20,7 +20,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME pdlb)
+set(CMAKE_PROJECT_NAME pdb)
 
 # Set source settings
 set(MX_SRC_DIR "${CMAKE_SOURCE_DIR}/Src")
@@ -80,6 +80,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32
     dbc
     util
+    config
 )
 
 # Link compile commands for LSPs

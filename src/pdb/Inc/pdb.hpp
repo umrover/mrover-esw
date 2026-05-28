@@ -1,11 +1,11 @@
 #pragma once
 
-#include "AutonLED.hpp"
+#include "auton_led.hpp"
 #include "stm32g4xx_hal_tim.h"
 #include <MRoverCAN.hpp>
 
 namespace mrover {
-    class PDLB {
+    class PDB {
     private:
         AutonLED m_auton_led;
         TIM_HandleTypeDef* m_blink_tim;
@@ -14,9 +14,9 @@ namespace mrover {
         MRoverCANHandler m_can_handler{};
 
     public:
-        PDLB() = default;
+        PDB() = default;
 
-        PDLB(AutonLED& auton_led_in, TIM_HandleTypeDef* blink_tim_in, Pin& can_tx_in, Pin& can_rx_in, MRoverCANHandler& can_handler_in)
+        PDB(AutonLED& auton_led_in, TIM_HandleTypeDef* blink_tim_in, Pin& can_tx_in, Pin& can_rx_in, MRoverCANHandler& can_handler_in)
             : m_auton_led{auton_led_in}, m_blink_tim{blink_tim_in}, m_can_tx{can_tx_in}, m_can_rx{can_rx_in}, m_can_handler{can_handler_in} {}
 
         void blink() {
@@ -24,6 +24,7 @@ namespace mrover {
         }
 
         void set_led(bool red, bool green, bool blue, bool blinking) {
+            // TODO(nate): use timer abstraction for this
             if (blinking) {
                 HAL_TIM_Base_Start_IT(m_blink_tim);
             } else {
@@ -34,6 +35,7 @@ namespace mrover {
             m_auton_led.change_state(red, green, blue, blinking);
         }
 
+        // TODO(nate): use system abstraction for this
         static void reset() {
             HAL_DeInit();
             NVIC_SystemReset();
@@ -43,12 +45,12 @@ namespace mrover {
         void handle(T const& _) {
         }
 
-        void handle(PDLBResetCommand const& cmd) {
+        void handle(PDBResetCmd const& cmd) {
             if (cmd.reset)
                 reset();
         }
 
-        void handle(AutonLEDCommand const& cmd) {
+        void handle(PDBAutonLEDCmd const& cmd) {
             set_led(cmd.red, cmd.green, cmd.blue, cmd.blinking);
         }
 
