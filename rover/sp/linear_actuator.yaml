@@ -23,9 +23,9 @@ lim_b_use_readjust: false
 
 # encoder params
 # https://www.firgelliauto.com/products/super-duty-actuators?variant=39956755087431
-quad_cpr: 1644 # pulses per cm 
+quad_cpr: 1644 # pulses per cm (41.1 pulses/mm * 4 counts/pulse * 10mm/cm)
 gear_ratio: 1.0
-rotor_output_ratio: 100.0 # cm/m
+rotor_output_ratio: 0.01 # m/cm
 
 # position & velocity limits
 limit_a_position: 0.0
