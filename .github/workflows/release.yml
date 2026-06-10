@@ -1,0 +1,72 @@
+name: release CAN library
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'the semver version tag for this release (e.g., v1.0.4)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+
+  docker-image:
+    uses: ./.github/workflows/docker.yml
+
+  release-can:
+    needs: docker-image
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/arm-gnu:${{ needs.docker-image.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate version tag format
+        run: |
+          TAG="${{ inputs.version_tag }}"
+          # regex matches strict format: 'v' followed by numbers separated by dots (e.g., v1.23.0)
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::invalid tag format '$TAG' - release tags must strictly follow semver formatting (e.g., v1.0.4)"
+            exit 1
+          fi
+
+      - name: Create python venv
+        run: |
+          cmake -S ./tools -B ./tools/build
+          cmake --build ./tools/build --target python_env_ready
+          rm -rf tools/build/
+
+      - name: Generate DBC sources
+        run: |
+          . tools/venv/bin/activate
+          # force override cmake dependencies (usually provided by STM32 cmake or scripts)
+          cmake -S ./lib/dbc -B ./lib/dbc/build \
+            -DVENV_PYTHON=$(which python) \
+            -DTOOLS_DIR=$(pwd)/tools
+          # create only the DBC source files
+          cmake --build ./lib/dbc/build --target dbc
+
+      - name: Package release assets
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p release_package
+          cp lib/dbc/build/*.hpp release_package/
+          cp lib/dbc/release.CMakeLists.txt release_package/CMakeLists.txt
+          tar -czf mrover_can.tar.gz -C release_package .
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: Release ${{ inputs.version_tag }}
+          files: mrover_can.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
