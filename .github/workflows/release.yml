@@ -53,7 +53,6 @@ jobs:
           cmake --build ./lib/dbc/build --target dbc
 
       - name: Package release assets
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p release_package
           cp lib/dbc/build/*.hpp release_package/
