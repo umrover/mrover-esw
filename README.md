@@ -18,7 +18,9 @@ Information about how to start the starter projects can be found in the document
 The `scripts/` directory contains various build and utility scripts.
 
 The `tools/` directory contains our Python utilities. This includes scripts for generating new projects
-and helpful CAN utlities.
+and helpful CAN utlities. Python dependencies are managed with [uv](https://docs.astral.sh/uv/); `just venv`
+sets up `tools/.venv`, or install [direnv](https://direnv.net/) and run `direnv allow` in the repo root to
+have it kept in sync automatically.
 
 The `dbc/` directory contains our CAN database files.
 

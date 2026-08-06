@@ -10,24 +10,24 @@ authors = [
     { name = "Michigan Mars Rover Embedded Software Team" }
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 dependencies = [
-    "Jinja2~=3.1.6",
-    "cantools~=41.0.2",
-    "matplotlib~=3.10.8",
-    "moteus~=0.3.98",
-    "moteus-gui~=0.3.98",
-    "zensical~=0.0.39",
-    "pyserial~=3.5",
-    "python-can~=4.6.1",
+    "Jinja2>=3.1.6",
+    "cantools>=41.0.2",
+    "matplotlib>=3.10.8",
+    "moteus>=0.3.98",
+    "moteus-gui>=0.3.98",
+    "zensical>=0.0.39",
+    "pyserial>=3.5",
+    "python-can>=4.6.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest~=9.0.1",
-    "ruff~=0.14.6",
-    "ty~=0.0.11",
+    "pytest>=9.0.1",
+    "ruff>=0.14.6",
+    "ty>=0.0.11",
 ]
 
 [tool.setuptools.packages.find]
@@ -37,6 +37,9 @@ exclude = ["fdcanusb"]
 [tool.ruff]
 line-length = 120
 indent-width = 4
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 
 [tool.ruff.format]
 indent-style = "space"

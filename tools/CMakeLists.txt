@@ -2,22 +2,20 @@ cmake_minimum_required(VERSION 3.22)
 
 project(tools)
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_program(UV_EXECUTABLE uv REQUIRED)
 
 set(TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "tools directory")
-set(VENV_DIR ${TOOLS_DIR}/venv)
+set(VENV_DIR ${TOOLS_DIR}/.venv)
 
 if (WIN32)
     set(VENV_PYTHON ${VENV_DIR}/Scripts/python.exe CACHE INTERNAL "python installation")
-    set(VENV_PIP ${VENV_DIR}/Scripts/pip.exe)
 else()
     set(VENV_PYTHON ${VENV_DIR}/bin/python CACHE INTERNAL "python installation")
-    set(VENV_PIP ${VENV_DIR}/bin/pip)
 endif()
 
 add_custom_command(
     OUTPUT ${VENV_DIR}/pyvenv.cfg
-    COMMAND ${Python3_EXECUTABLE} -m venv ${VENV_DIR}
+    COMMAND ${UV_EXECUTABLE} venv --python 3.12 --allow-existing ${VENV_DIR}
     COMMENT "creating venv"
     VERBATIM
 )
@@ -25,13 +23,13 @@ add_custom_command(
 add_custom_target(python_venv DEPENDS ${VENV_DIR}/pyvenv.cfg)
 
 set(PYPROJECT_TOML ${TOOLS_DIR}/pyproject.toml)
+set(UV_LOCK ${TOOLS_DIR}/uv.lock)
 
 add_custom_command(
     OUTPUT ${VENV_DIR}/package.timestamp
-    DEPENDS python_venv ${PYPROJECT_TOML}
+    DEPENDS python_venv ${PYPROJECT_TOML} ${UV_LOCK}
     WORKING_DIRECTORY ${TOOLS_DIR}
-    COMMAND ${VENV_PIP} install --upgrade pip setuptools wheel
-    COMMAND ${VENV_PIP} install --editable ".[dev]"
+    COMMAND ${CMAKE_COMMAND} -E env UV_PROJECT_ENVIRONMENT=${VENV_DIR} ${UV_EXECUTABLE} sync
     COMMAND ${CMAKE_COMMAND} -E touch ${VENV_DIR}/package.timestamp
     COMMENT "installing esw python tools"
     VERBATIM

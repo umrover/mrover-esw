@@ -6,12 +6,16 @@ on:
     paths:
       - docs/**
       - zensical.toml
+      - tools/pyproject.toml
+      - tools/uv.lock
       - .github/workflows/site.yml
   pull_request:
     branches: [ "main" ]
     paths:
       - docs/**
       - zensical.toml
+      - tools/pyproject.toml
+      - tools/uv.lock
       - .github/workflows/site.yml
   workflow_dispatch: {}  # manual trigger for testing after merge
 
@@ -31,16 +35,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
-      - name: Install Zensical
-        run: pip install zensical==0.0.39
+      - name: Sync Python env
+        run: uv sync --project tools --locked
 
       - name: Zensical build
-        run: zensical build --clean
+        run: uv run --project tools zensical build --clean
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v4

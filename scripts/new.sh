@@ -9,7 +9,7 @@ ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
 SCRIPT_NAME=$(basename "$0")
 
 TOOLS_DIR="$ESW_ROOT/tools"
-VENV_PATH="$TOOLS_DIR/venv"
+VENV_PATH="$TOOLS_DIR/.venv"
 BUILD_DIR="$TOOLS_DIR/build"
 GENERATE_SCRIPT="$TOOLS_DIR/scripts/generate_project.py"
 CMAKE_SCRIPT="$TOOLS_DIR/scripts/update_cmake_cfg.py"

@@ -77,6 +77,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check uv.lock is up to date
+        run: cd tools && uv lock --check
+
       - name: Create python venv
         run: |
           cmake -S ./tools -B ./tools/build
@@ -85,7 +88,7 @@ jobs:
 
       - name: Run style (format and lint)
         run: |
-          . tools/venv/bin/activate
+          . tools/.venv/bin/activate
           chmod +x scripts/style.sh
           ./scripts/style.sh --format --lint
 

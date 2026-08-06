@@ -24,13 +24,13 @@ alias v := venv
 # start a local zensical server
 docs:
     #!/usr/bin/env zsh
-    source ./tools/venv/bin/activate
+    source ./tools/.venv/bin/activate
     zensical serve
 
 # update cmake tooling
 cmake src *libs:
     #!/usr/bin/env zsh
-    source tools/venv/bin/activate
+    source tools/.venv/bin/activate
     PY_LIB_ARGS=()
     for lib in {{libs}}; do
         PY_LIB_ARGS+=(--lib "$lib")
@@ -40,7 +40,7 @@ cmake src *libs:
 # run serial monitor on stlinkv3
 monitor baud="115200" log="INFO":
     #!/usr/bin/env zsh
-    source tools/venv/bin/activate
+    source tools/.venv/bin/activate
     python ./tools/scripts/monitor.py --baud {{baud}} --log-level {{log}}
 
 # install/update the venv

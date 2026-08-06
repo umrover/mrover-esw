@@ -10,7 +10,7 @@ NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
 TOOLS_DIR="$ESW_ROOT/tools"
-VENV_PATH="$TOOLS_DIR/venv"
+VENV_PATH="$TOOLS_DIR/.venv"
 SRC=""
 PRESET="Debug"
 TARGET_NAME=""

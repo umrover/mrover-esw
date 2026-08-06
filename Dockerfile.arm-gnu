@@ -7,7 +7,7 @@ ENV ARM_GNU_NAME=arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y zsh build-essential git bzip2 wget cmake ninja-build \
-    software-properties-common python3-venv python3-pip lsb-release wget gnupg && \
+    software-properties-common lsb-release wget gnupg && \
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main" && \
     apt-get update && \
@@ -20,6 +20,9 @@ RUN apt-get update && apt-get upgrade -y && \
 RUN wget -c ${ARM_GNU_LINK} -O - | tar -xJ -C ${ARM_GNU_PATH}
 
 ENV PATH="${ARM_GNU_PATH}/${ARM_GNU_NAME}/bin:${PATH}"
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+RUN uv python install 3.12
 
 ENTRYPOINT [ "/bin/bash" ]
 
