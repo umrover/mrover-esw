@@ -135,8 +135,9 @@ namespace logger {
      * @brief Create Loggers for all busses
      *
      * @param yaml_path Path to Logger config yaml
+     * @param dbc_path Path to dbc volume
      */
-    auto logger_factory(std::string& yaml_path) -> std::vector<Logger>;
+    auto logger_factory(std::string& yaml_path, std::string& dbc_path) -> std::vector<Logger>;
     static auto trim(std::string const& s) -> std::string;
 
     /**

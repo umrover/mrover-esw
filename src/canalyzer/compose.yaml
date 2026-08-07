@@ -57,6 +57,7 @@ services:
     volumes:
        - ./can_logger/logs:/app/logs
        - ./canalyzer_config.yaml:/app/config.yaml
+       - ../../dbc/:/app/dbc/
 
 # DEFINE THE VOLUMES HERE
 volumes:

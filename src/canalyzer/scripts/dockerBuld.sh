@@ -1,26 +1,17 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
 IMAGE_NAME="can_logger_image"
-PROJECT_REL_PATH="src/canalyzer"
-BUILD_CONTEXT="../../.."
-DOCKER_FILE="../Core/Dockerfile"
-REPO_ROOT="mrover-esw"
-DBC_PATH="dbc/"
 
-if [ ! -d "$BUILD_CONTEXT" ]; then
-    echo "Error: build directory '$BUILD_CONTEXT' not found"
-    exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_CONTEXT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+DOCKER_FILE="$BUILD_CONTEXT/src/canalyzer/Core/Dockerfile"
 
-RESOLVED_DIR=$(basename "$(realpath "$BUILD_CONTEXT")")
-if [ "$RESOLVED_DIR" != "$REPO_ROOT" ]; then
-    echo "Error: build context must be the '$REPO_ROOT' directory, but got '$RESOLVED_DIR'"
+if [ ! -f "$DOCKER_FILE" ]; then
+    echo "Error: Dockerfile not found at '$DOCKER_FILE'"
     exit 1
 fi
 
 echo "Building CAN code image..."
-docker build -t "$IMAGE_NAME" -f "$DOCKER_FILE" \
-    --build-arg PROJECT_REL_PATH="$PROJECT_REL_PATH" \
-    --build-arg DBC_PATH="$DBC_PATH" \
-    "$BUILD_CONTEXT" 
+docker build -t "$IMAGE_NAME" -f "$DOCKER_FILE" "$BUILD_CONTEXT"
 echo "CAN code image build complete"

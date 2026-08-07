@@ -4,12 +4,13 @@
 #include <string>
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cout << "usage: ./canalyzer <path_to_yaml>";
+    if (argc != 3) {
+        std::cout << "usage: ./canalyzer <path_to_yaml> <path_to_dbc_folder>";
         return 1;
     }
     logger::running.store(true);
     std::string yaml_path(argv[1]);
-    std::vector<logger::Logger> loggers = logger::logger_factory(yaml_path);
+    std::string dbc_path(argv[2]);
+    std::vector<logger::Logger> loggers = logger::logger_factory(yaml_path, dbc_path);
     run_bus(loggers);
 }

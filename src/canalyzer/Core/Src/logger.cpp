@@ -374,13 +374,9 @@ namespace logger {
 
     // End logger class members
 
-    auto logger_factory(std::string& yaml_path) -> std::vector<Logger> {
+    auto logger_factory(std::string& yaml_path, std::string& dbc_path) -> std::vector<Logger> {
         std::vector<Logger> loggers;
 
-        char const* dbc_root_env = std::getenv("DBC_ROOT");
-        if (!dbc_root_env) throw std::runtime_error("DBC_ROOT environment variable is not set");
-
-        std::string dbc_root_path = dbc_root_env;
         int size = 0;
 
         Yaml::Node root;
@@ -465,7 +461,7 @@ namespace logger {
 
             while (std::getline(dbc_stream, token, ',')) {
                 token = trim(token);
-                std::string full_path = dbc_root_path + token;
+                std::string full_path = dbc_path + token;
                 if (!std::filesystem::exists(full_path)) {
                     throw std::runtime_error(std::format("couldn't find path: {} in filesystem", full_path));
                 }
@@ -486,7 +482,7 @@ namespace logger {
             loggers.emplace_back(i, name, yaml_path, std::move(log_ids), std::move(dbc_file_paths), auth, mode, log_ascii);
             {
                 std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << dbc_root_path << std::endl;
+                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << "" << std::endl;
             }
         } //endfor
 
