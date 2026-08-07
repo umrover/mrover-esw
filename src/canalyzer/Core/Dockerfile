@@ -7,6 +7,7 @@ RUN apt-get update && \
 WORKDIR /usr/src/app
 
 # Context is the repo root, so this brings in src/, lib/, everything
+# this will copy all of mrover-esw
 COPY . .
 
 # Build into a directory that can't possibly collide with a host artifact

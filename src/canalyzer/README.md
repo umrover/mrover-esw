@@ -82,3 +82,17 @@ docker0          DOWN           6e:ae:dd:13:63:2d <NO-CARRIER,BROADCAST,MULTICAS
 
 ssh mrover@fe80::2ecf:67ff:feae:ee5a%enp108s0
 ```
+
+## Setting up raspberry pi wifi
+```
+nmcli device status    // see if wifi is visible
+nmcli device wifi list // see available wifi networks
+sudo nmcli device connect <wifi_name> password <wifi_password>
+```
+
+### Example
+```
+nmcli device status
+nmcli device wifi list
+sudo nmcli device connect "TOD_Guest"
+```
