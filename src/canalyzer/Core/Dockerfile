@@ -18,7 +18,8 @@ WORKDIR /usr/src/repo
 ENV DBC_ROOT=/usr/src/repo/${DBC_PATH}
 
 # 3. Copy the entire repository
-COPY . .
+#  COPY . .
+    
 
 # 4. Navigate to project folder
 WORKDIR /usr/src/repo/${PROJECT_REL_PATH}

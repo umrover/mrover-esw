@@ -46,10 +46,26 @@ namespace logger {
         };
 
         struct DynamicBuilder : public influxdb_cpp::builder {
+
+            /**
+             * @brief Creates a POST to InfluxDB
+             *
+             * @param measurement Name of specific measurement
+             * @param bus_name Name of bus sourcing data
+             * @param data Map of signal names and signal values
+             * @param timestamp Time in microseconds econds data was taken
+             */
             void post(std::string const& measurement,
                       std::string const& bus_name,
                       std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
                       long long timestamp);
+            /**
+             * @brief Commit POST request buffer to InfluxDB
+             *
+             * @param si Server info of the InfluxDB instance
+             *
+             * @return return code of _post_http()
+             */
             auto commit(influxdb_cpp::server_info const& si) -> int;
         };
 
@@ -115,9 +131,22 @@ namespace logger {
         auto operator=(Logger const&) -> Logger& = delete;
     };
 
+    /**
+     * @brief Create Loggers for all busses
+     *
+     * @param yaml_path Path to Logger config yaml
+     */
     auto logger_factory(std::string& yaml_path) -> std::vector<Logger>;
     static auto trim(std::string const& s) -> std::string;
 
+    /**
+     * @brief Signal interrupt handler
+     */
     void handle_SIGINT(int);
+    /**
+     * @brief Start the CAN logger bus
+     *
+     * @param loggers The set of loggers to start running
+     */
     void run_bus(std::vector<Logger>& loggers);
 } // namespace logger

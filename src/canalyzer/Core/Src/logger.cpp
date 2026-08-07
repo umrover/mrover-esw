@@ -29,13 +29,13 @@ namespace logger {
         if (lines_.tellp() > 0) {
             lines_ << '\n';
         }
+    
         _m(measurement);
-
         _t("bus_name", bus_name);
 
         bool is_first_field = true;
 
-        for (auto const& [name, value]: data) {
+        for (auto const& [name, value] : data) {
             char delim = is_first_field ? ' ' : ',';
             is_first_field = false;
 
@@ -46,7 +46,7 @@ namespace logger {
             } else if (value.is_string()) {
                 _f_s(delim, name, value.as_string());
             } else {
-                throw std::runtime_error(std::format("can value with name: {}, is not floating, integral, or string type", name));
+                throw std::runtime_error(std::format("CAN value with name: {}, is not floating, integral, or string type", name));
             }
         }
 
@@ -107,7 +107,7 @@ namespace logger {
                 if (desc == nullptr) throw std::runtime_error(std::format("failed to get description for {:x}", can_frame.id));
 
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
-                int status = builder.commit(si);
+                const int status = builder.commit(si);
                 if (status != 0) {
                     {
                         std::lock_guard<std::mutex> lock(cout_mutex);
@@ -118,6 +118,7 @@ namespace logger {
             }
         }
 
+        // flush the buffer before returning
         {
             std::lock_guard<std::mutex> lock(buffer_mutex);
 
@@ -133,7 +134,7 @@ namespace logger {
 
         //parse files
 
-        for (auto const& dbc_file_path: dbc_file_paths) {
+        for (auto const& dbc_file_path : dbc_file_paths) {
             if (!parser.parse(dbc_file_path)) {
                 throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", dbc_file_path, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
             }
@@ -141,7 +142,7 @@ namespace logger {
 
         //add log messasges into the processor
         if (mode == log_mode::WHITELIST_IDS) {
-            for (unsigned int log_id: log_ids) {
+            for (const unsigned int log_id: log_ids) {
                 auto const message = parser.message(log_id);
                 if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(log_id), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
                 processor.add_message_description(*message);
@@ -478,7 +479,7 @@ namespace logger {
 
             if (dbc_file_paths.empty()) {
                 throw std::runtime_error(std::format("found no dbc file paths"));
-            }
+            }       
 
             bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
 
@@ -518,10 +519,12 @@ namespace logger {
     }
 
     static auto trim(std::string const& s) -> std::string {
+        // find the first char that is not space, iterator
         auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char c) {
             return std::isspace(c);
         });
 
+        // find the last char that is not space from end, iterator
         auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char c) {
                        return std::isspace(c);
                    }).base();

@@ -61,3 +61,24 @@ hostname -I # finds the ip of pi
 - clean up code and add detailed documentation
 - add a small display on the pi
 - auto generate dashboards for grafana
+
+## How to Connect to PI using ssh
+```
+avahi-resolve mrover.local // find the ip of mrover.local
+ip -br link 		   // find ethernet iface
+ssh mrover@<mrover.local ip>%<ethernet iface>
+```
+### Example
+```
+avahi-resolve -n mrover.local
+mrover.local	fe80::2ecf:67ff:feae:ee5a
+
+ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> 
+enp108s0         UP             10:7c:61:8f:da:cc <BROADCAST,MULTICAST,UP,LOWER_UP> 
+wlo1             UP             f8:fe:5e:7c:0e:ca <BROADCAST,MULTICAST,UP,LOWER_UP> 
+br-22ce80cc1b19  DOWN           8e:47:58:f4:f4:fb <NO-CARRIER,BROADCAST,MULTICAST,UP> 
+docker0          DOWN           6e:ae:dd:13:63:2d <NO-CARRIER,BROADCAST,MULTICAST,UP> 
+
+ssh mrover@fe80::2ecf:67ff:feae:ee5a%enp108s0
+```
