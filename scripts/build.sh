@@ -61,6 +61,15 @@ check_deps() {
     done
 }
 
+check_submodules() {
+    local submodule_dir="$ESW_ROOT/lib/stm32g4/STM32CubeG4"
+    if [ ! -e "$submodule_dir/.git" ]; then
+        printf "%b\n" "${RED}✗ error: submodule not found at $submodule_dir${NC}"
+        printf "%b\n" "${RED}  run: git submodule update --init --recursive${NC}"
+        exit 1
+    fi
+}
+
 clean() {
     local build_dir="$1"
     local venv_dir="$2"
@@ -99,6 +108,7 @@ if [[ -z "$TARGET_NAME" ]]; then
 fi
 
 check_deps
+check_submodules
 
 printf "%b\n" "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======${NC}"
 
