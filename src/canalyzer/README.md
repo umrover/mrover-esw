@@ -62,6 +62,10 @@ hostname -I # finds the ip of pi
 - add a small display on the pi
 - auto generate dashboards for grafana
 
+### PI Info
+
+### Note that PI over ethernet seems to drop a lot, try to ssh via ethernet and then pi connect over shared network
+
 ## How to Connect to PI using ssh
 ```
 avahi-resolve mrover.local // find the ip of mrover.local
@@ -95,4 +99,20 @@ sudo nmcli device connect <wifi_name> password <wifi_password>
 nmcli device status
 nmcli device wifi list
 sudo nmcli device connect "TOD_Guest"
+```
+
+## Getting Canplayer to work
+Connect fdcanusb and pi hat to laptop
+```
+./createVCAN.sh // sets up the vcan devices
+canplayer -I candump.log -i <vcan_devname>=<can_dumpname> // start dumping candump.log onto vcan device
+```
+
+### Looking at influxdb
+From ssh to rpi
+```
+docker exec -it influxdb influx -user admin -password password
+USE logger_db;
+SHOW measurements;
+SELECT * FROM SCIData limit 10;
 ```

@@ -14,6 +14,4 @@ COPY . .
 RUN cmake -S src/canalyzer -B /build && \
     cmake --build /build -j"$(nproc)"
 
-WORKDIR /usr/src/app/src/canalyzer
-
-ENTRYPOINT ["/build/canalyzer", "/app/canalyzer_config.yaml", "/app/dbc/"]
+ENTRYPOINT ["/build/canalyzer", "/app/config.yaml", "/app/dbc/"]
