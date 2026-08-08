@@ -258,9 +258,11 @@ namespace logger {
         } catch (std::exception const& e) {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cerr << "Logger thread failed: " << e.what() << "\n";
+            return;
         } catch (...) {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cerr << "Logger thread failed with unknown exception\n";
+            return;
         }
 
         // TODO: create a default ascii_log_file_path with log_ascii + can_bus_name, maybe optional arg

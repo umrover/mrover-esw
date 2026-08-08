@@ -741,7 +741,7 @@ namespace mrover::dbc_runtime {
 
     auto CanDbcFileParser::add_current_message() -> bool {
         if (m_is_processing_message) {
-            if (!m_current_message.is_valid() && !m_current_message.is_valid()) {
+            if (!m_current_message.is_valid() && !m_current_message.is_ignored()) {
                 return false;
             }
             uint32_t const id = m_current_message.id();
