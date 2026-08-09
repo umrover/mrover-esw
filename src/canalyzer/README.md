@@ -116,3 +116,15 @@ USE logger_db;
 SHOW measurements;
 SELECT * FROM SCIData limit 10;
 ```
+
+### systemd
+useful info
+https://blog.usedbytes.com/2019/11/run-at-startup-without-rc.local/
+
+### setting up pi from raw
+ - install git
+ - install docker
+ - install can-utils
+```
+sudo apt-get install can-utils // socketCAN
+```

@@ -29,13 +29,13 @@ namespace logger {
         if (lines_.tellp() > 0) {
             lines_ << '\n';
         }
-    
+
         _m(measurement);
         _t("bus_name", bus_name);
 
         bool is_first_field = true;
 
-        for (auto const& [name, value] : data) {
+        for (auto const& [name, value]: data) {
             char delim = is_first_field ? ' ' : ',';
             is_first_field = false;
 
@@ -107,7 +107,7 @@ namespace logger {
                 if (desc == nullptr) throw std::runtime_error(std::format("failed to get description for {:x}", can_frame.id));
 
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
-                const int status = builder.commit(si);
+                int const status = builder.commit(si);
                 if (status != 0) {
                     {
                         std::lock_guard<std::mutex> lock(cout_mutex);
@@ -134,7 +134,7 @@ namespace logger {
 
         //parse files
 
-        for (auto const& dbc_file_path : dbc_file_paths) {
+        for (auto const& dbc_file_path: dbc_file_paths) {
             if (!parser.parse(dbc_file_path)) {
                 throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", dbc_file_path, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
             }
@@ -142,7 +142,7 @@ namespace logger {
 
         //add log messasges into the processor
         if (mode == log_mode::WHITELIST_IDS) {
-            for (const unsigned int log_id: log_ids) {
+            for (unsigned int const log_id: log_ids) {
                 auto const message = parser.message(log_id);
                 if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(log_id), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
                 processor.add_message_description(*message);
@@ -477,7 +477,7 @@ namespace logger {
 
             if (dbc_file_paths.empty()) {
                 throw std::runtime_error(std::format("found no dbc file paths"));
-            }       
+            }
 
             bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
 
