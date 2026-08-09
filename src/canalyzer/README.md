@@ -128,3 +128,45 @@ https://blog.usedbytes.com/2019/11/run-at-startup-without-rc.local/
 ```
 sudo apt-get install can-utils // socketCAN
 ```
+
+### setting up pi from raw (waveshare init)
+wiki here: https://www.waveshare.com/wiki/2-CH_CAN_FD_HAT
+
+- step 1
+```
+sudo raspi-config
+Choose Interfacing Options -> SPI -> Yes to enable the SPI interface.
+```
+- step 2
+```
+sudo reboot
+```
+- step 3
+```
+sudo apt-get update
+sudo apt-get install python3-pip
+sudo apt-get install python3-pil
+sudo apt-get install python3-numpy
+sudo pip3 install RPi.GPIO # this doesnt work because relies on venv
+sudo pip3 install spidev 
+sudo pip3 install python-can
+
+# alternate solution is to download systemwide packages (easy fix for downloading RPi.GPIO, spidev, python-can)
+sudo pip3 install --break-system-packages RPi.GPIO spidev python-can
+```
+- step 4
+sudo nano /boot/config.txt
+# add at the end of config.txt
+dtparam=spi=on
+dtoverlay=spi1-3cs
+dtoverlay=mcp251xfd,spi0-0,interrupt=25
+dtoverlay=mcp251xfd,spi0-1,interrupt=13
+dtoverlay=mcp251xfd,spi1-0,interrupt=24
+dtoverlay=mcp251xfd,spi1-1,interrupt=23
+```
+- step 5
+```
+# reboot and check
+sudo reboot
+dmesg | grep spi
+```
