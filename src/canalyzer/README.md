@@ -155,6 +155,7 @@ sudo pip3 install python-can
 sudo pip3 install --break-system-packages RPi.GPIO spidev python-can
 ```
 - step 4
+```
 sudo nano /boot/config.txt
 # add at the end of config.txt
 dtparam=spi=on
@@ -166,7 +167,17 @@ dtoverlay=mcp251xfd,spi1-1,interrupt=23
 ```
 - step 5
 ```
-# reboot and check
+#reboot and check
 sudo reboot
 dmesg | grep spi
+```
+
+### how to test using fdcanusb
+```
+# bring up vcan interfaces
+./src/canalyzer/scripts/createVCAN.sh
+# start running fdcanusb
+./scripts/fdcanusb.sh --net vcan0
+# canplayer a log
+canplayer -I can.dump vcan0=<can_used_in_dump>
 ```
