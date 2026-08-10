@@ -21,11 +21,11 @@ alias v := venv
     just build {{src}} {{preset}}
     ./scripts/build.sh --src {{src}} --preset {{preset}} --flash
 
-# start a local mkdocs server
+# start a local zensical server
 docs:
     #!/usr/bin/env zsh
     source ./tools/venv/bin/activate
-    mkdocs serve
+    zensical serve
 
 # update cmake tooling
 cmake src *libs:

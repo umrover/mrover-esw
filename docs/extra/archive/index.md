@@ -29,13 +29,13 @@ Below is a diagram of the 3BM architecture.
 
 The 3BM uses seven hardware timers:
 
--   **htim1** (`PWM_TIMER_[0,1,2]`): PWM timer for the three motors (`TIM_CHANNEL_[0,1,2]` for motor [0,1,2], respectively)
--   **htim2** (`GENERIC_ELAPSED_TIMER`): Repeating count up timer where each tick is 0.001 ms (1000 ns). It used used by:
-    -   The absolute and quadrature encoder to measure how much time has elapsed since the last reading in order to measure velocity
-    -   The PIDF controller in order to measure the time elapsed since the last reading to update the "D" term
--   **htim4** (`QUADRATURE_TICK_TIMER`): Incremental encoder timer configured to read a two-phase quadrature encoder
--   **htim6** (`GLOBAL_UPDATE_TIMER`): 20 Hz timer which triggers a CAN FD transmit (sends motor state)
--   **htim15**, **htim16**, **htim17** (`RECEIVE_WATCHDOG_TIMER_[0,1,2]`): FDCAN watchdog timer that needs to be reset every time a message is received
+- **htim1** (`PWM_TIMER_[0,1,2]`): PWM timer for the three motors (`TIM_CHANNEL_[0,1,2]` for motor \[0,1,2\], respectively)
+- **htim2** (`GENERIC_ELAPSED_TIMER`): Repeating count up timer where each tick is 0.001 ms (1000 ns). It used used by:
+    - The absolute and quadrature encoder to measure how much time has elapsed since the last reading in order to measure velocity
+    - The PIDF controller in order to measure the time elapsed since the last reading to update the "D" term
+- **htim4** (`QUADRATURE_TICK_TIMER`): Incremental encoder timer configured to read a two-phase quadrature encoder
+- **htim6** (`GLOBAL_UPDATE_TIMER`): 20 Hz timer which triggers a CAN FD transmit (sends motor state)
+- **htim15**, **htim16**, **htim17** (`RECEIVE_WATCHDOG_TIMER_[0,1,2]`): FDCAN watchdog timer that needs to be reset every time a message is received
 
 ## SA Arduino (2024-2025)
 

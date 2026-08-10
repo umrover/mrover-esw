@@ -9,6 +9,7 @@ namespace mrover {
     class LimitSwitch {
         Pin m_pin;
         bool m_initialized{};
+        bool m_present{};
         bool m_enabled{};
         bool m_is_pressed{};
         bool m_active_high{};
@@ -21,9 +22,10 @@ namespace mrover {
 
         explicit LimitSwitch(Pin const& pin) : m_pin{pin} {}
 
-        auto init(bool const enabled, bool const active_high, bool const used_for_readjustment,
-                  bool const limits_forward, float const associated_position) -> void {
+        auto init(bool const present, bool const enabled, bool const active_high, bool const used_for_readjustment = false,
+                  bool const limits_forward = false, float const associated_position = 0.0f) -> void {
             m_initialized = true;
+            m_present = present;
             m_enabled = enabled;
             m_is_pressed = false;
             m_active_high = active_high;
@@ -38,17 +40,17 @@ namespace mrover {
 
         auto update_limit_switch() -> void {
             // This suggests active low
-            m_is_pressed = m_enabled ? m_active_high == m_pin.read() : false;
+            m_is_pressed = m_present ? m_active_high == m_pin.read() : false;
         }
 
         [[nodiscard]] auto pressed() const -> bool { return m_is_pressed; }
 
-        [[nodiscard]] auto limit_forward() const -> bool {
-            return m_initialized && m_enabled && m_is_pressed && m_limits_forward;
+        [[nodiscard]] auto active() const -> bool {
+            return m_initialized && m_enabled && m_is_pressed;
         }
 
-        [[nodiscard]] auto limit_backward() const -> bool {
-            return m_initialized && m_enabled && m_is_pressed && !m_limits_forward;
+        [[nodiscard]] auto limits_forward() const -> bool {
+            return m_limits_forward;
         }
 
         [[nodiscard]] auto get_readjustment_position() const
@@ -63,7 +65,9 @@ namespace mrover {
             return m_initialized && m_enabled && m_used_for_readjustment;
         }
 
-        auto enabled() const -> bool { return m_enabled; }
+        [[nodiscard]] auto enabled() const -> bool { return m_enabled; }
+
+        [[nodiscard]] auto present() const -> bool { return m_present; }
 
         auto enable() -> void { m_enabled = true; }
 

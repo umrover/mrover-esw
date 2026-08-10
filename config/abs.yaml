@@ -1,0 +1,34 @@
+struct_name: abs_config_t
+chip: STM32G431CBTx
+regs:
+- name: can_id
+  type: uint8
+- name: host_can_id
+  type: uint8
+- name: sys_cfg
+  type: uint16
+  fields:
+  - name: continuous_mode
+    pos: 0
+  - name: bounded_mode
+    pos: 1
+  - name: invert
+    pos: 2
+- name: output_scalar
+  type: float32
+- name: position_offset
+  type: float32
+- name: poll_frequency
+  type: float32
+- name: publish_frequency
+  type: float32
+- name: min_bound
+  type: float32
+- name: max_bound
+  type: float32
+can_filtering:
+  id_reg: can_id # may not have field 
+  id_type: ext
+  delay_compensation: true
+  tdc_offset: 13
+  tdc_filter: 1

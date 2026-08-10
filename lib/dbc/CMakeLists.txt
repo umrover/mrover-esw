@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 
-add_subdirectory(../../tools tools)
-
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 set(DBC_SOURCE_DIR "${PROJECT_ROOT}/dbc")
 set(DBC_GEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")

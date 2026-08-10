@@ -1,0 +1,33 @@
+struct_name: lim_config_t
+chip: STM32G431CBTx
+regs:
+- name: can_id
+  type: uint8
+- name: host_can_id
+  type: uint8
+- name: sys_cfg
+  type: uint8
+  fields:
+  - name: lim_a_present
+    pos: 0
+  - name: lim_b_present
+    pos: 1
+- name: limit_cfg
+  type: uint8
+  fields:
+  - name: lim_a_en
+    pos: 0
+  - name: lim_a_active_high
+    pos: 1
+  - name: lim_b_en
+    pos: 2
+  - name: lim_b_active_high
+    pos: 3
+- name: publish_frequency
+  type: float32
+can_filtering:
+  id_reg: can_id # may not have field 
+  id_type: ext
+  delay_compensation: true
+  tdc_offset: 13
+  tdc_filter: 1

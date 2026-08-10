@@ -1,0 +1,14 @@
+# can
+can_id: 55
+host_can_id: 16
+
+# encoder settings
+continuous_mode: false
+bounded_mode: true
+invert: true
+output_scalar: 1.00
+position_offset: 0.00
+poll_frequency: 10.00
+publish_frequency: 10.00
+min_bound: -3.00
+max_bound: 3.00

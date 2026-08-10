@@ -34,6 +34,11 @@ namespace mrover {
                 // keep debugger attached when cpu goes to sleep
                 HAL_DBGMCU_EnableDBGSleepMode();
             }
+
+            // enable DWT counter
+            CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+            DWT->CYCCNT = 0;
+            DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
         }
 
         static auto reset() -> void {
@@ -62,6 +67,10 @@ namespace mrover {
 
         static auto get_ticks() -> uint32_t {
             return HAL_GetTick();
+        }
+
+        static auto get_micros() -> uint32_t {
+            return DWT->CYCCNT / (SystemCoreClock / 1000000U);
         }
 
         static auto delay_ms(uint32_t const ms) -> void {

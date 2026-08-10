@@ -1,0 +1,69 @@
+[project]
+site_name = "MRover ESW"
+docs_dir = "docs"
+site_dir = "site" # where the site will be built to
+site_url = "https://umrover.github.io/mrover-esw"
+repo_url = "https://github.com/umrover/mrover-esw"
+repo_name = "umrover/mrover-esw"
+edit_uri = "edit/main/docs/" # by default zensical uses master, but our default branch is main
+
+nav = [
+  { Home = "index.md" },
+  { "Getting Started" = [
+    { Introduction = "getting-started/intro.md" },
+    { STM32Cube = "getting-started/stm32cube/index.md" },
+    { "Starter Projects" = [
+      { LED = "getting-started/starter/led/index.md" },
+      { Servo = [
+        { "Part 1 - PWM" = "getting-started/starter/servo/part1-pwm.md" },
+        { "Part 2 - CAN" = "getting-started/starter/servo/part2-can.md" },
+      ]},
+      { "Temp-Humidity" = "getting-started/starter/temp-humidity/index.md" },
+    ]},
+  ]},
+  { Projects = [
+    "projects/overview26.md",
+  ]},
+  { "Useful Information" = [
+    { "Build Tools" = "info/build.md" },
+    { Timers = "info/timers.md" },
+    { "Communication Protocols" = "info/communication-protocols/index.md" },
+    { "Brushed Motors" = "info/brushed.md" },
+    { "Brushless Motors" = "info/brushless.md" },
+    { Science = "info/science.md" },
+    { "Nucleo Information" = "info/nucleos.md" },
+    { "STM32 Boot" = "info/stm32-boot.md" },
+  ]},
+  { "Extra Information" = [
+    { "CMake with CubeMX" = "extra/cmake-cubemx.md" },
+    { "Building These Docs" = "extra/build-docs.md" },
+    { "Archived Docs" = "extra/archive/index.md" },
+  ]},
+]
+
+[project.theme]
+variant = "modern"
+logo = "img/logo.webp"
+favicon = "img/favicon.ico"
+features = [
+  "content.action.edit", # button on each page to edit the page on GitHub
+  "content.action.view", # button on each page to view the page on GitHub
+  "content.code.copy", # copy button on code blocks
+  "navigation.tabs" # show top-level nav items as tabs instead of a dropdown
+]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+# admonitions such as notes, warnings, etc
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.superfences]
+
+# code highlighting
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.snippets]
