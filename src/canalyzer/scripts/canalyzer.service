@@ -1,0 +1,20 @@
+[Unit]
+Description=MRover Docker Compose Stack
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# Equivalent to your SCRIPT_DIR + cd ..
+WorkingDirectory=/home/craza/Desktop/mrover/esw/mrover-esw/src/canalyzer/can_code
+
+ExecStart=/usr/bin/docker compose up -d --build --remove-orphans
+ExecStop=/usr/bin/docker compose down
+
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
