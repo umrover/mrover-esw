@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
+project(dbc_generation LANGUAGES CXX)
+
+# NOTE(eric): this exists to force the target to exist for CI
+if(NOT TARGET python_env_ready)
+    add_custom_target(python_env_ready)
+endif()
+
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 set(DBC_SOURCE_DIR "${PROJECT_ROOT}/dbc")
 set(DBC_GEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
