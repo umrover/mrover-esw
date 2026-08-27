@@ -69,8 +69,12 @@ void PostInit(void);
 #define CAN_RX_LED_GPIO_Port GPIOB
 #define CAN_TX_LED_Pin GPIO_PIN_12
 #define CAN_TX_LED_GPIO_Port GPIOB
+#define I2C_SCL_Pin GPIO_PIN_8
+#define I2C_SCL_GPIO_Port GPIOA
 #define CAN_Standby_Pin GPIO_PIN_10
 #define CAN_Standby_GPIO_Port GPIOA
+#define I2C_SDA_Pin GPIO_PIN_5
+#define I2C_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

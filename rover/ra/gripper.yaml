@@ -19,7 +19,7 @@ lim_a_use_readjust: true
 lim_b_en: true
 lim_b_active_high: false
 lim_b_is_forward: true
-lim_b_use_readjust: false
+lim_b_use_readjust: true
 
 # encoder params
 quad_cpr: 48.0
