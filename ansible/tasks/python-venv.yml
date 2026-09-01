@@ -1,0 +1,7 @@
+---
+- name: set up python venv
+  ansible.builtin.command: "{{ esw_root }}/scripts/venv.sh"
+  args:
+    chdir: "{{ esw_root }}"
+  register: venv_sync
+  changed_when: "'Installed' in (venv_sync.stdout + venv_sync.stderr)"

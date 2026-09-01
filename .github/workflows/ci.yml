@@ -38,20 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check uv.lock is up to date
-        run: cd tools && uv lock --check
+      - name: sync python env
+        run: uv sync --project tools --locked
 
-      - name: Create python venv
-        run: |
-          cmake -S ./tools -B ./tools/build
-          cmake --build ./tools/build --target python_env_ready
-          rm -rf tools/build/
-
-      - name: Run style (format and lint)
-        run: |
-          . tools/.venv/bin/activate
-          chmod +x scripts/style.sh
-          ./scripts/style.sh --format --lint
+      - name: run style (format and lint)
+        run: uv run --project tools --no-sync ./scripts/style.sh --format --lint
 
   test-build:
     needs:
@@ -68,14 +59,14 @@ jobs:
         preset: [ Debug, Release ]
 
     steps:
-      - name: Checkout repo and submodules
+      - name: checkout repo and submodules
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      - name: Set parallelism
+      - name: set parallelism
         run: echo "CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)" >> $GITHUB_ENV
 
-      - name: Build ${{ matrix.dir }} (${{ matrix.preset }})
+      - name: build ${{ matrix.dir }} (${{ matrix.preset }})
         run: ./scripts/build.sh --src ${{ matrix.dir }} --preset ${{ matrix.preset }}
 

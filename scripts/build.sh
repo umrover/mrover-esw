@@ -51,7 +51,7 @@ run_step() {
 }
 
 check_deps() {
-    local deps=("cmake" "ninja")
+    local deps=("cmake" "ninja" "uv")
     [[ "$DO_FLASH" == "true" ]] && deps+=("STM32_Programmer_CLI")
     for cmd in "${deps[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
@@ -150,22 +150,9 @@ popd > /dev/null
 
 # ensure .clangd file exists
 if [[ ! -f "$SRC_DIR/.clangd" ]]; then
-    # create venv if it does not exist
-    if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
-        mkdir -p "$BUILD_DIR"
-        if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-            cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
-        fi
-        cmake --build "${BUILD_DIR}" --target python_env_ready
-        rm -rf "$BUILD_DIR"
-    fi
-
-    # activate venv
-    # shellcheck source=/dev/null
-    source "$VENV_PATH/bin/activate"
-
-    # create the clangd
-    run_step "create .clangd" "$VENV_PATH/bin/python" "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
+    # uv run creates and syncs tools/.venv on demand
+    run_step "create .clangd" \
+        uv run --quiet --project "$TOOLS_DIR" python "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
 fi
 
 printf "%b\n" "${GREEN}====== success ======${NC}"

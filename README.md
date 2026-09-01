@@ -18,14 +18,16 @@ Information about how to start the starter projects can be found in the document
 The `scripts/` directory contains various build and utility scripts.
 
 The `tools/` directory contains our Python utilities. This includes scripts for generating new projects
-and helpful CAN utlities. Python dependencies are managed with [uv](https://docs.astral.sh/uv/); `just venv`
-sets up `tools/.venv`, or install [direnv](https://direnv.net/) and run `direnv allow` in the repo root to
-have it kept in sync automatically.
+and helpful CAN utlities. Python dependencies are managed with [uv](https://docs.astral.sh/uv/). There is
+no setup step to remember: the scripts in `scripts/` run through `uv run`, which creates and syncs
+`tools/.venv` on demand.
+
+On a fresh Ubuntu/Debian machine, run `./scripts/bootstrap.sh` to install all of the above plus the ARM
+toolchain and STM32CubeMX/CubeProgrammer/CubeCLT in one step; see
+`docs/getting-started/stm32cube/index.md` for details. Run `./scripts/doctor.sh` afterwards to verify
+the install.
 
 The `dbc/` directory contains our CAN database files.
 
 The `ci.json` file contains the paths for the continuous integration (CI) system to build and test the code.
 We use GitHub Actions for our CI system and the configuration can be found in `.github/workflows/`.
-
-The `justfile` contains various helpful commands for using the repository. You can get started with using
-`just` by checking out the [GitHub repository](https://github.com/casey/just).

@@ -3,10 +3,9 @@ from pathlib import Path
 from time import sleep
 
 from esw import esw_logger
-from esw.can.dbc import get_dbc
 from esw.can.canbus import CANBus, float2bits
-from esw.config.parser import parse_config, display_config
-
+from esw.can.dbc import get_dbc
+from esw.config.parser import display_config, parse_config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Configure a Board via CAN Configuration Interface")

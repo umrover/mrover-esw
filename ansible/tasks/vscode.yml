@@ -1,0 +1,75 @@
+---
+- name: install vs code (apt)
+  when: ansible_facts.system == "Linux"
+  become: true
+  block:
+    - name: ensure the apt keyring directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: install the microsoft apt signing key
+      ansible.builtin.get_url:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        dest: /etc/apt/keyrings/microsoft.asc
+        mode: "0644"
+
+    - name: enable the vs code apt repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/vscode.sources
+        mode: "0644"
+        content: |
+          # DO NOT EDIT
+          # Managed by ./scripts/bootstrap.sh (ansible/tasks/vscode.yml)
+          Types: deb
+          URIs: https://packages.microsoft.com/repos/code
+          Suites: stable
+          Components: main
+          Architectures: {{ 'arm64' if ansible_facts.architecture == 'aarch64' else 'amd64' }}
+          Signed-By: /etc/apt/keyrings/microsoft.asc
+          Enabled: yes
+
+    - name: install vs code
+      ansible.builtin.apt:
+        name: code
+        state: present
+        update_cache: true
+
+- name: install vs code (homebrew cask)
+  when: ansible_facts.system == "Darwin"
+  community.general.homebrew_cask:
+    name: visual-studio-code
+    state: present
+
+- name: locate the vs code binary
+  ansible.builtin.stat:
+    path: "{{ vscode_bin }}"
+  register: vscode_binary
+  vars:
+    vscode_bin: "{{ '/usr/local/bin/code' if ansible_facts.system == 'Darwin' else '/usr/bin/code' }}"
+
+- name: configure vs code extensions
+  when: vscode_binary.stat.exists
+  block:
+    - name: read the recommended extensions
+      ansible.builtin.set_fact:
+        vscode_recommended: >-
+          {{ (lookup('file', esw_root ~ '/.vscode/extensions.json')
+              | from_json).recommendations }}
+
+    - name: list the installed extensions
+      ansible.builtin.command: "{{ vscode_binary.stat.path }} --list-extensions"
+      register: vscode_installed
+      changed_when: false
+      check_mode: false
+
+    - name: install the missing extensions
+      ansible.builtin.command: >-
+        {{ vscode_binary.stat.path }} --install-extension {{ item }}
+      loop: >-
+        {{ vscode_recommended
+           | reject('in', vscode_installed.stdout_lines | map('lower') | list)
+           | list }}
+      loop_control:
+        label: "{{ item }}"

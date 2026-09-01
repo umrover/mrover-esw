@@ -8,6 +8,7 @@ on:
       - zensical.toml
       - tools/pyproject.toml
       - tools/uv.lock
+      - tools/.python-version
       - .github/workflows/site.yml
   pull_request:
     branches: [ "main" ]
@@ -16,6 +17,7 @@ on:
       - zensical.toml
       - tools/pyproject.toml
       - tools/uv.lock
+      - tools/.python-version
       - .github/workflows/site.yml
   workflow_dispatch: {}  # manual trigger for testing after merge
 
@@ -32,19 +34,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - name: resolve the pinned uv version
+        id: uv
+        run: |
+          version=$(sed -nE 's|^FROM ghcr\.io/astral-sh/uv:(\S+) .*|\1|p' Dockerfile.arm-gnu)
+          test -n "$version" || { echo "could not read the uv pin from Dockerfile.arm-gnu" >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Sync Python env
-        run: uv sync --project tools --locked
+      - name: setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ steps.uv.outputs.version }}
+          enable-cache: true
 
-      - name: Zensical build
-        run: uv run --project tools zensical build --clean
+      - name: sync python env
+        run: uv sync --project tools --locked --only-group docs
 
-      - name: Upload pages artifact
+      - name: zensical build
+        run: uv run --project tools --no-sync zensical build --clean
+
+      - name: upload pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: site
@@ -57,9 +69,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Configure pages
+      - name: configure pages
         uses: actions/configure-pages@v5
 
-      - name: Deploy to GitHub Pages
+      - name: deploy to pages
         uses: actions/deploy-pages@v4
         id: deployment

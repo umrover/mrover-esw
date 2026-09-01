@@ -9,8 +9,6 @@ ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
 SCRIPT_NAME=$(basename "$0")
 
 TOOLS_DIR="$ESW_ROOT/tools"
-VENV_PATH="$TOOLS_DIR/.venv"
-BUILD_DIR="$TOOLS_DIR/build"
 GENERATE_SCRIPT="$TOOLS_DIR/scripts/generate_project.py"
 CMAKE_SCRIPT="$TOOLS_DIR/scripts/update_cmake_cfg.py"
 
@@ -69,22 +67,8 @@ else
     TARGET="$BOARD"
 fi
 
-# create venv if it does not exist
-if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
-    mkdir -p "$BUILD_DIR"
-    if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-        cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
-    fi
-    cmake --build "${BUILD_DIR}" --target python_env_ready
-    rm -rf "$BUILD_DIR"
-fi
-
-# activate venv
-# shellcheck source=/dev/null
-source "$VENV_PATH/bin/activate"
-
-# run project generation script
-"$VENV_PATH/bin/python" "$GENERATE_SCRIPT" --mcu "$TARGET" --src "$SRC"
+# run project generation script (uv run creates and syncs tools/.venv on demand)
+uv run --quiet --project "$TOOLS_DIR" python "$GENERATE_SCRIPT" --mcu "$TARGET" --src "$SRC"
 
 # create args
 PY_LIB_ARGS=()
@@ -93,7 +77,7 @@ for lib in "${LIBS[@]}"; do
 done
 
 # run cmake configuration script
-"$VENV_PATH/bin/python" "$CMAKE_SCRIPT" \
+uv run --quiet --project "$TOOLS_DIR" python "$CMAKE_SCRIPT" \
     --src "$SRC" \
     --root "$ESW_ROOT" \
     --ctx "$ESW_ROOT/lib/stm32g4" \

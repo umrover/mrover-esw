@@ -16,7 +16,8 @@ collect_cpp_files() {
     find src lib \
         -type f \
         \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) \
-        ! -path '*/venv/*'
+        ! -path '*/venv/*' \
+        ! -path 'lib/stm32g4/STM32CubeG4/*'
 }
 CPP_FILES=()
 while IFS= read -r file; do

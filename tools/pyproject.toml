@@ -9,7 +9,6 @@ description = "utilities for mrover esw software"
 authors = [
     { name = "Michigan Mars Rover Embedded Software Team" }
 ]
-readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
@@ -18,28 +17,36 @@ dependencies = [
     "matplotlib>=3.10.8",
     "moteus>=0.3.98",
     "moteus-gui>=0.3.98",
-    "zensical>=0.0.39",
     "pyserial>=3.5",
     "python-can>=4.6.1",
+    "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.1",
     "ruff>=0.14.6",
     "ty>=0.0.11",
 ]
+# only what `zensical build` needs; CI syncs this alone with --only-group docs
+docs = [
+    "zensical>=0.0.53",
+]
+
+[tool.uv]
+# uv.lock is revision 3 and uses [dependency-groups]
+required-version = ">=0.12"   # floor only; the exact pin lives in Dockerfile.arm-gnu
+# a plain `uv sync` gives developers the full environment
+default-groups = ["dev", "docs"]
 
 [tool.setuptools.packages.find]
-include = ["esw"]
-exclude = ["fdcanusb"]
+include = ["esw*"]
 
 [tool.ruff]
 line-length = 120
 indent-width = 4
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F"]
+select = ["E4", "E7", "E9", "F", "I", "B"]
 
 [tool.ruff.format]
 indent-style = "space"

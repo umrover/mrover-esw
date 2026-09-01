@@ -13,23 +13,16 @@ else()
     set(VENV_PYTHON ${VENV_DIR}/bin/python CACHE INTERNAL "python installation")
 endif()
 
-add_custom_command(
-    OUTPUT ${VENV_DIR}/pyvenv.cfg
-    COMMAND ${UV_EXECUTABLE} venv --python 3.12 --allow-existing ${VENV_DIR}
-    COMMENT "creating venv"
-    VERBATIM
-)
-
-add_custom_target(python_venv DEPENDS ${VENV_DIR}/pyvenv.cfg)
-
 set(PYPROJECT_TOML ${TOOLS_DIR}/pyproject.toml)
 set(UV_LOCK ${TOOLS_DIR}/uv.lock)
 
+# uv sync creates the venv itself and reads the interpreter from tools/.python-version,
+# so there is no separate `uv venv` step to keep in sync with it.
 add_custom_command(
     OUTPUT ${VENV_DIR}/package.timestamp
-    DEPENDS python_venv ${PYPROJECT_TOML} ${UV_LOCK}
+    DEPENDS ${PYPROJECT_TOML} ${UV_LOCK}
     WORKING_DIRECTORY ${TOOLS_DIR}
-    COMMAND ${CMAKE_COMMAND} -E env UV_PROJECT_ENVIRONMENT=${VENV_DIR} ${UV_EXECUTABLE} sync
+    COMMAND ${CMAKE_COMMAND} -E env UV_PROJECT_ENVIRONMENT=${VENV_DIR} ${UV_EXECUTABLE} sync --quiet
     COMMAND ${CMAKE_COMMAND} -E touch ${VENV_DIR}/package.timestamp
     COMMENT "installing esw python tools"
     VERBATIM

@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Validate version tag format
+      - name: validate version tag format
         run: |
           TAG="${{ inputs.version_tag }}"
           # regex matches strict format: 'v' followed by numbers separated by dots (e.g., v1.23.0)
@@ -36,30 +36,26 @@ jobs:
             exit 1
           fi
 
-      - name: Create python venv
-        run: |
-          cmake -S ./tools -B ./tools/build
-          cmake --build ./tools/build --target python_env_ready
-          rm -rf tools/build/
+      - name: sync python env
+        run: uv sync --project tools --locked
 
-      - name: Generate DBC sources
+      - name: generate DBC sources
         run: |
-          . tools/venv/bin/activate
           # force override cmake dependencies (usually provided by STM32 cmake or scripts)
           cmake -S ./lib/dbc -B ./lib/dbc/build \
-            -DVENV_PYTHON=$(which python) \
+            -DVENV_PYTHON=$(pwd)/tools/.venv/bin/python \
             -DTOOLS_DIR=$(pwd)/tools
           # create only the DBC source files
           cmake --build ./lib/dbc/build --target dbc
 
-      - name: Package release assets
+      - name: package release assets
         run: |
           mkdir -p release_package
           cp lib/dbc/build/*.hpp release_package/
           cp lib/dbc/release.CMakeLists.txt release_package/CMakeLists.txt
           tar -czf mrover_can.tar.gz -C release_package .
 
-      - name: Create release
+      - name: create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version_tag }}
