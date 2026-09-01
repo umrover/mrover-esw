@@ -124,7 +124,8 @@ if [[ "$(uname)" == "Linux" ]]; then
     check_file STM32CubeProgrammer "$CUBEPRG_GUI"
 fi
 
-CUBEIDE=$(ls -dt "$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide 2>/dev/null | head -n 1 || true)
+CUBEIDE_CANDIDATES=("$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide)
+CUBEIDE="${CUBEIDE_CANDIDATES[-1]}"  # newest version by name
 if [[ -x "$CUBEIDE" ]]; then
     pass "$(printf '%-24s %-12s %s' "STM32CubeIDE" "$(basename "$(dirname "$CUBEIDE")" | sed 's/stm32cubeide_//')" "$CUBEIDE")"
 else
