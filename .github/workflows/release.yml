@@ -23,7 +23,7 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository }}/arm-gnu:${{ needs.docker-image.outputs.image_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -60,7 +60,7 @@ jobs:
           tar -czf mrover_can.tar.gz -C release_package .
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.version_tag }}
           name: Release ${{ inputs.version_tag }}
