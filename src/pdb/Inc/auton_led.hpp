@@ -9,9 +9,9 @@ namespace mrover {
         Pin m_green_pin;
         Pin m_blue_pin;
 
-        bool m_red{true};
+        bool m_red{false};
         bool m_green{false};
-        bool m_blue{false};
+        bool m_blue{true};
         bool m_blinking{false};
         bool m_on{true};
 
