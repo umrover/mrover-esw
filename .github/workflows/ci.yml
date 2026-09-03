@@ -17,7 +17,7 @@ jobs:
     outputs:
       dirs: ${{ steps.load.outputs.dirs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: load
         run: |
@@ -36,7 +36,7 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository }}/arm-gnu:${{ needs.docker-image.outputs.image_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: sync python env
         run: uv sync --project tools --locked
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: checkout repo and submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 

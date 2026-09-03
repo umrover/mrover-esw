@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: resolve the pinned uv version
         id: uv
@@ -57,7 +57,7 @@ jobs:
         run: uv run --project tools --no-sync zensical build --clean
 
       - name: upload pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -70,8 +70,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: configure pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: deploy to pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         id: deployment
