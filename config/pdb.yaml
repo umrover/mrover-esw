@@ -1,0 +1,13 @@
+struct_name: pdb_config_t
+chip: STM32G431CBTx
+regs:
+- name: can_id
+  type: uint8
+- name: jetson_can_id
+  type: uint8
+can_filtering:
+  id_reg: can_id
+  id_type: ext
+  delay_compensation: true
+  tdc_offset: 13
+  tdc_filter: 1
