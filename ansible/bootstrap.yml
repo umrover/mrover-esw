@@ -12,6 +12,10 @@
     arm_gnu_link: "https://developer.arm.com/-/media/Files/downloads/gnu/{{ arm_gnu_version }}/binrel/{{ arm_gnu_name }}.tar.xz"
     arm_gnu_path: /usr/local
     desktop_dir: "{{ ansible_facts.env.HOME }}/.local/share/applications"
+    vscode_extensions:
+      - stmicroelectronics.stm32-vscode-extension
+      - llvm-vs-code-extensions.vscode-clangd
+      - marus25.cortex-debug
 
   pre_tasks:
     - name: load the variables for this operating system

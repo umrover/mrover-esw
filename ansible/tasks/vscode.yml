@@ -52,12 +52,6 @@
 - name: configure vs code extensions
   when: vscode_binary.stat.exists
   block:
-    - name: read the recommended extensions
-      ansible.builtin.set_fact:
-        vscode_recommended: >-
-          {{ (lookup('file', esw_root ~ '/.vscode/extensions.json')
-              | from_json).recommendations }}
-
     - name: list the installed extensions
       ansible.builtin.command: "{{ vscode_binary.stat.path }} --list-extensions"
       register: vscode_installed
@@ -68,7 +62,7 @@
       ansible.builtin.command: >-
         {{ vscode_binary.stat.path }} --install-extension {{ item }}
       loop: >-
-        {{ vscode_recommended
+        {{ vscode_extensions
            | reject('in', vscode_installed.stdout_lines | map('lower') | list)
            | list }}
       loop_control:
