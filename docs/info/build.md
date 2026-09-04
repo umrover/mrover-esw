@@ -15,9 +15,9 @@ The `scripts/new.sh` script is designed to aid the creation of new STM32 project
 that leverage the HAL libraries provided by STM. The script can be run as follows.
 
 ```bash
-./scripts/new.sh --mcu <mcu> --src <path-to-new-project> [--lib <library>]
+./scripts/new.sh --mcu <mcu> --src <path-to-new-project> [--lib <library>] [--rtos]
 # OR
-./scripts/new.sh --board <board> --src <path-to-new-project> [--lib <library>]
+./scripts/new.sh --board <board> --src <path-to-new-project> [--lib <library>] [--rtos]
 # OR
 ./scripts/new.sh --help  # to display the options menu
 ```
@@ -66,6 +66,34 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     files will overwrite this section, so these parameters will need to be provided
     to these scripts as well.
 
+The `--rtos` (`-r`) flag creates the project with FreeRTOS (via the CMSIS-RTOS v2
+bindings) compiled in.
+
+```bash
+./scripts/new.sh --board NUCLEO-G431RB --src <path-to-new-project> --rtos
+```
+
+The RTOS is configured entirely in code, never in the `.ioc`. The kernel sources come
+from the `lib/stm32g4/STM32CubeG4` submodule, the kernel configuration lives in
+`lib/rtos/Inc/FreeRTOSConfig.h`, and the `mrover::Task`, `mrover::Mutex` and
+`mrover::Queue` wrappers live in `lib/rtos/Inc/rtos/`. This means enabling the RTOS
+requires no CubeMX changes and survives code regeneration.
+
+All the flag does is set a CMake option in the generated `<src>/CMakeLists.txt`.
+
+```cmake
+option(MROVER_USE_RTOS "Build with FreeRTOS (CMSIS-RTOS v2)" ON)
+```
+
+To turn the RTOS on or off for an existing project, edit that line, or configure with
+`-DMROVER_USE_RTOS=ON` / `-DMROVER_USE_RTOS=OFF` (`option()` honors the CMake cache, so
+the command line wins).
+
+!!! important
+    With the RTOS enabled, FreeRTOS owns `SysTick`, `PendSV` and `SVC`, so the HAL
+    timebase moves to **TIM6** (see `lib/rtos/Src/timebase.c`). Do not also configure
+    TIM6 in STM32CubeMX for an RTOS project.
+
 ### `build.sh`
 
 The build script is a wrapper around the CMake and the GCC distribution bundled with
@@ -111,9 +139,9 @@ STM32CubeProgrammer CLI to connect to an ST-LINK and flash the executable via SW
 ./scripts/build.sh --src <path-to-project> [--preset <preset>] --flash
 ```
 
-Finally, the build script will ensure the existance of a `<src>/.clangd` file for
-development environment compatability. This needs to be generated per-project as
-it contains some project-specific and system-specific parameters.
+Finally, the build script configures CMake on every invocation, not just the first.
+A warm reconfigure costs about a fifth of a second, and it is what repoints the
+editor at the project you are working on -- see [Editor Support](#editor-support).
 
 ### `style.sh`
 
@@ -171,6 +199,57 @@ on the bus will be directed to standard output.
 !!! TODO
     MJBots no longer supports the `fdcanusb_daemon` (this script currently pulls the source
     for this from an archive). This script should be updated to not depend on this binary.
+
+## Editor Support
+
+There is a single `.clangd` at the repository root, and it **is checked into version
+control**. Unlike the per-project files it replaces, it holds no paths and no
+project-specific flags, so it is identical on every machine and nothing regenerates
+it. Do not add machine-specific paths to it.
+
+Everything real -- the include paths, the defines (`STM32G431xx`, `USE_HAL_DRIVER`,
+`MROVER_USE_RTOS`, ...), the language standard and the target triple -- comes from
+`compile_commands.json`, which CMake writes for each project into
+`<src>/build/<preset>/`.
+
+clangd finds a database by walking up from the file being edited and checking each
+parent directory's `build/`. That gives two behaviors:
+
+- A project's own sources use that project's own database, so every project is
+  correct at once.
+- Headers under `lib/` belong to no project, so they fall through to
+  `<repo-root>/build/compile_commands.json`, a symlink CMake points at whichever
+  project was configured last.
+
+So the "active project" that shared library headers are interpreted against is simply
+the last one you configured. Since configuring writes `compile_commands.json` without
+compiling anything, switching costs no build:
+
+```bash
+cd src/tests/rtos && cmake --preset Debug
+```
+
+Any `./scripts/build.sh` or `just build` does this for you as a side effect.
+
+!!! note
+    Generated headers -- the DBC bindings in `lib/dbc/build/` and the
+    `<project>_config.hpp` files -- are produced at *build* time, not configure time.
+    A project that has only ever been configured will report those as missing until
+    you build it once.
+
+!!! important
+    clangd must be launched with `--query-driver` so it can ask the ARM cross
+    compiler where its system headers live. In Neovim:
+
+    ```lua
+    cmd = { "clangd", "--query-driver=**" }
+    ```
+
+    Without it, `<cstdint>` and friends will not resolve.
+
+For Python, `ty` and `ruff` both root at `tools/`. `[tool.ty.environment]` in
+`tools/pyproject.toml` points `ty` at `tools/venv`, so run `just venv` once and
+imports will resolve.
 
 ## Python Tools
 
