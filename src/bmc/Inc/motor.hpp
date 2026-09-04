@@ -18,7 +18,13 @@
 namespace mrover {
 
     class Motor {
-        typedef void (*tx_exec_t)(MRoverCANMsg_t const& msg);
+        typedef void (*tx_exec_t)(uint32_t base_id, uint8_t const* data, std::size_t len);
+
+        template<typename can_msg_t>
+            requires is_can_message<can_msg_t>
+        auto send(can_msg_t const& message) const -> void {
+            m_message_tx_f(can_msg_t::BASE_ID, message.msg_arr, sizeof(message.msg_arr));
+        }
 
         std::optional<HBridge> m_hbridge;
         std::optional<AD8418A> m_current_sensor;
@@ -245,7 +251,7 @@ namespace mrover {
 
         auto handle(ESWProbe const& msg) const -> void {
             // acknowledge probe
-            m_message_tx_f(ESWAck{msg.data});
+            send(ESWAck{msg.data});
         }
 
         auto handle(BMCModeCmd const& msg) -> void {
@@ -307,7 +313,7 @@ namespace mrover {
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
-                    m_message_tx_f(ESWAck{val});
+                    send(ESWAck{val});
                 }
             }
         }
@@ -356,7 +362,7 @@ namespace mrover {
                 return std::numeric_limits<float>::quiet_NaN();
             }();
 
-            m_message_tx_f(BMCMotorState{
+            send(BMCMotorState{
                     static_cast<uint8_t>(m_mode),  // mode
                     static_cast<uint8_t>(m_error), // fault-code
                     m_position,                    // position
