@@ -64,6 +64,7 @@ nav = [
     { "Communication Protocols" = "info/communication-protocols/index.md" },
     { "Brushed Motors" = "info/brushed.md" },
     { "Brushless Motors" = "info/brushless.md" },
+    { Cameras = "info/cameras.md" },
     { "Nucleo Information" = "info/nucleos.md" },
     { "STM32 Boot" = "info/stm32-boot.md" },
   ]},
