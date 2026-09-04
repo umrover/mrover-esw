@@ -172,8 +172,8 @@ else
         else
             warn "  extension $ext missing - re-run: ./scripts/bootstrap.sh --tags vscode"
         fi
-    done < <(sed -n '/"recommendations"/,/]/p' "$ESW_ROOT/.vscode/extensions.json" 2>/dev/null \
-        | grep -oE '"[^"]+\.[^"]+"' | tr -d '"' | tr '[:upper:]' '[:lower:]')
+    done < <(sed -n '/^ *vscode_extensions:/,/^ *[a-z_]*:[^-]/p' "$ESW_ROOT/ansible/bootstrap.yml" 2>/dev/null \
+        | grep -oE '^ *- *[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' | sed -E 's/^ *- *//' | tr '[:upper:]' '[:lower:]')
 fi
 
 section "style tools"
