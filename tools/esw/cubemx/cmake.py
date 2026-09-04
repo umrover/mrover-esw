@@ -1,5 +1,4 @@
 import os
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -31,7 +30,7 @@ def _clean_project(path: Path) -> None:
         cmakelists_stm.parent.rmdir()
 
 
-def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str]) -> dict[str, Any]:
+def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str], rtos: bool) -> dict[str, Any]:
     # find source file directory
     src_dir: Path | None = None
     possible_srcs = [path / "Src", path / "Core" / "Src"]
@@ -90,80 +89,16 @@ def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str]) 
         "mx_startup_s": driver_script,
         "lib_relative_path": lib_relative_path,
         "libs": libs,
+        "rtos": rtos,
     }
 
 
-def _version_key(name: str) -> tuple[int, ...]:
-    """Numeric sort key for dotted version names, so 13.10.0 sorts above 13.9.0.
-
-    Plain string sorting gets this backwards: "13.9.0" > "13.10.0" lexicographically.
-    """
-    return tuple(int(part) for part in re.findall(r"\d+", name))
-
-
-def _get_clangd_context() -> dict[str, Any]:
-    NUM_PATHS = 3  # gcc include directory, c++ include directory, c++ eabi include directory
-    opt_st = Path("/opt/st")
-    if not opt_st.exists():
-        return {
-            "includes": None,
-            "c_standard": _C_STANDARD,
-            "cxx_standard": _CXX_STANDARD,
-        }
-
-    # newest by mtime, matching the CubeCLT selection in ansible/tasks/path-profile.yml;
-    # sorting these by name picks "stm32cubeclt_1.9.0" over "stm32cubeclt_1.20.0"
-    base_dirs = sorted(
-        opt_st.glob("stm32cubeclt_*/GNU-tools-for-STM32/arm-none-eabi"),
-        key=lambda d: d.stat().st_mtime,
-        reverse=True,
-    )
-    if not base_dirs:
-        return {
-            "includes": None,
-            "c_standard": _C_STANDARD,
-            "cxx_standard": _CXX_STANDARD,
-        }
-
-    base_dir = base_dirs[0]
-    paths: list[Path] = []
-    c_include = base_dir / "include"
-    if c_include.exists():
-        paths.append(c_include)
-
-    cpp_root = base_dir / "include" / "c++"
-    if cpp_root.exists():
-        version_dirs = sorted(
-            [d for d in cpp_root.iterdir() if d.is_dir() and d.name != "arm-none-eabi"],
-            key=lambda d: _version_key(d.name),
-            reverse=True,
-        )
-        if version_dirs:
-            latest_cpp_version = version_dirs[0]
-            paths.append(latest_cpp_version)
-            target_path = latest_cpp_version / "arm-none-eabi"
-            if target_path.exists():
-                paths.append(target_path)
-
-    if len(paths) != NUM_PATHS:
-        esw_logger.warning(
-            f"Expected {NUM_PATHS} toolchain include directories under {base_dir}, found {len(paths)}: {paths}. "
-            "Generating .clangd without system includes - clangd will report missing headers."
-        )
-
-    return {
-        "includes": paths if len(paths) == NUM_PATHS else None,
-        "c_standard": _C_STANDARD,
-        "cxx_standard": _CXX_STANDARD,
-    }
-
-
-def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str]) -> None:
+def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str], rtos: bool = False) -> None:
     _clean_project(path)
 
     env = Environment(loader=FileSystemLoader(ctx))
 
-    cmake_context = _get_cmakelists_context(name, path, root, libs)
+    cmake_context = _get_cmakelists_context(name, path, root, libs, rtos)
     cmake_template = env.get_template("templates/CMakeLists.txt.j2")
     cmakelists = path / "CMakeLists.txt"
     esw_logger.info(f"Writing CMakeLists.txt to {cmakelists.absolute().resolve()}")
@@ -175,35 +110,3 @@ def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str
     esw_logger.info(f"Writing CMakePresets.json to {cmakepresets.absolute().resolve()}")
     with cmakepresets.open("w") as handle:
         handle.write(cmake_presets_template.render())
-
-    clangd_context = _get_clangd_context()
-    if clangd_context is not None:
-        if clangd_context.get("includes") is None:
-            esw_logger.warning(
-                "Could not validate GCC installation, there is likely something wrong with the STM32CubeCLT installation"
-            )
-            clangd_context["includes"] = []
-    clangd_template = env.get_template("templates/.clangd.j2")
-    clangd = path / ".clangd"
-    esw_logger.info(f"Writing .clangd to {clangd.absolute().resolve()}")
-    with clangd.open("w") as handle:
-        handle.write(clangd_template.render(clangd_context))
-
-
-def configure_clang(path: Path, ctx: Path) -> None:
-    clangd = path / ".clangd"
-    if clangd.exists():
-        return
-
-    env = Environment(loader=FileSystemLoader(ctx))
-    clangd_context = _get_clangd_context()
-    if clangd_context is not None:
-        if clangd_context.get("includes") is None:
-            esw_logger.warning(
-                "Could not validate GCC installation, there is likely something wrong with the STM32CubeCLT installation"
-            )
-            clangd_context["includes"] = []
-    clangd_template = env.get_template("templates/.clangd.j2")
-    esw_logger.info(f"Writing .clangd to {clangd.absolute().resolve()}")
-    with clangd.open("w") as handle:
-        handle.write(clangd_template.render(clangd_context))

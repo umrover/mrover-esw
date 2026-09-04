@@ -4,6 +4,13 @@
 #include "main.h"
 #endif // STM32
 
+#ifdef MROVER_USE_RTOS
+#include <FreeRTOS.h>
+#include <task.h>
+
+#include <cmsis_os2.h>
+#endif // MROVER_USE_RTOS
+
 namespace mrover {
 
     class System {
@@ -20,7 +27,8 @@ namespace mrover {
             MALLOC_FAILED,
             HW_INIT_FAILED,
             ASSERT_FAILED,
-            HARD_FAULT
+            HARD_FAULT,
+            STACK_OVERFLOW
         };
 
         static auto get() -> System& {
@@ -66,6 +74,11 @@ namespace mrover {
         }
 
         static auto get_ticks() -> uint32_t {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                return osKernelGetTickCount();
+            }
+#endif // MROVER_USE_RTOS
             return HAL_GetTick();
         }
 
@@ -74,6 +87,12 @@ namespace mrover {
         }
 
         static auto delay_ms(uint32_t const ms) -> void {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                osDelay(ms);
+                return;
+            }
+#endif // MROVER_USE_RTOS
             HAL_Delay(ms);
         }
 
@@ -87,8 +106,13 @@ namespace mrover {
 
         class InterruptGuard {
         public:
+#ifdef MROVER_USE_RTOS
+            InterruptGuard() { taskENTER_CRITICAL(); }
+            ~InterruptGuard() { taskEXIT_CRITICAL(); }
+#else  // MROVER_USE_RTOS
             InterruptGuard() { disable_interrupts(); }
             ~InterruptGuard() { enable_interrupts(); }
+#endif // MROVER_USE_RTOS
 
             InterruptGuard(InterruptGuard const&) = delete;
             auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;

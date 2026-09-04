@@ -16,12 +16,12 @@ PRESET="Debug"
 TARGET_NAME=""
 DO_FLASH=false
 DO_CLEAN=false
+DO_MAP=false
 
 PORT="${PORT:-swd}"
 FREQ="${FREQ:-8000}"
 RESET="${RESET:-HWrst}"
 SCRIPT_NAME=$(basename "$0")
-CLANGD_SCRIPT="$TOOLS_DIR/scripts/clangd.py"
 
 usage() {
     cat <<EOF
@@ -32,6 +32,7 @@ options:
   -p, --preset <name>   cmake preset (default: Debug)
   -t, --target <name>   cmake target name (default: folder name)
   -f, --flash           flash the device after build
+  -m, --map             print a flash size breakdown after build
   -c, --clean           clean build directory
   -h, --help            show this help message
 EOF
@@ -86,6 +87,7 @@ while [[ $# -gt 0 ]]; do
         -p|--preset)    PRESET="$2"; shift 2 ;;
         -t|--target)    TARGET_NAME="$2"; shift 2 ;;
         -f|--flash)     DO_FLASH=true; shift ;;
+        -m|--map)       DO_MAP=true; shift ;;
         -c|--clean)     DO_CLEAN=true; shift ;;
         -h|--help)      usage ;;
         *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
@@ -121,14 +123,23 @@ if [[ "$DO_CLEAN" == "true" ]]; then
     exit 0
 fi
 
-# configure cmake if preset target does not exist
-if [ ! -f "$BUILD_DIR/build.ninja" ]; then
-    mkdir -p "$BUILD_DIR"
-    run_step "configure cmake" cmake --preset "$PRESET"
-fi
+# configure cmake
+mkdir -p "$BUILD_DIR"
+run_step "configure cmake" cmake --preset "$PRESET"
 
 # execute build
 run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
+
+# print the flash size breakdown
+if [[ "$DO_MAP" == "true" ]]; then
+    LD_SCRIPT=$(find "$SRC_DIR" -maxdepth 1 -name '*.ld' | head -n 1)
+    run_step "flash breakdown" "$VENV_PATH/bin/python" "$TOOLS_DIR/scripts/flash_usage.py" \
+        --elf "$BUILD_DIR/${TARGET_NAME}.elf" \
+        --ld "$LD_SCRIPT" \
+        --inc "$SRC_DIR/Inc" \
+        --map "$BUILD_DIR/${TARGET_NAME}.map" \
+        --report
+fi
 
 # flash if parameter set
 if [[ "$DO_FLASH" == "true" ]]; then
@@ -147,12 +158,5 @@ if [[ "$DO_FLASH" == "true" ]]; then
 fi
 
 popd > /dev/null
-
-# ensure .clangd file exists
-if [[ ! -f "$SRC_DIR/.clangd" ]]; then
-    # uv run creates and syncs tools/.venv on demand
-    run_step "create .clangd" \
-        uv run --quiet --project "$TOOLS_DIR" python "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
-fi
 
 printf "%b\n" "${GREEN}====== success ======${NC}"

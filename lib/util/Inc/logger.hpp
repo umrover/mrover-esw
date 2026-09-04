@@ -10,6 +10,12 @@
 #include "main.h"
 #endif // STM32
 
+#ifdef MROVER_USE_RTOS
+#include <rtos/mutex.hpp>
+
+#include <cmsis_os2.h>
+#endif // MROVER_USE_RTOS
+
 namespace mrover {
 
     static constexpr size_t LOG_BUFFER_SIZE = 128;
@@ -68,13 +74,21 @@ namespace mrover {
         size_t m_idx{0};
         static inline UART* s_uart{nullptr};
         static inline auto s_level{Level::Info};
+#ifdef MROVER_USE_RTOS
+        static inline Mutex s_lock{"logger"};
+#endif // MROVER_USE_RTOS
 
         Logger() = default;
 
         auto vlog(Level const level, char const* prefix, char const* fmt, va_list const args) -> void {
             if (!s_uart || level < s_level || s_level == Level::None) return;
 
+#ifdef MROVER_USE_RTOS
+            bool const locked = osKernelGetState() == osKernelRunning && s_lock.lock();
+            if (!locked) __disable_irq();
+#else  // MROVER_USE_RTOS
             __disable_irq();
+#endif // MROVER_USE_RTOS
 
             m_idx = 0;
             write_str(prefix);
@@ -83,7 +97,15 @@ namespace mrover {
 
             s_uart->transmit(std::string_view{m_buf, m_idx});
 
+#ifdef MROVER_USE_RTOS
+            if (locked) {
+                s_lock.unlock();
+            } else {
+                __enable_irq();
+            }
+#else  // MROVER_USE_RTOS
             __enable_irq();
+#endif // MROVER_USE_RTOS
         }
 
         /**
