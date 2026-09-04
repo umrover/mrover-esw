@@ -15,14 +15,48 @@ nav = [
     { "Starter Projects" = [
       { LED = "getting-started/starter/led/index.md" },
       { Servo = [
-        { "Part 1 - PWM" = "getting-started/starter/servo/part1-pwm.md" },
-        { "Part 2 - CAN" = "getting-started/starter/servo/part2-can.md" },
+        { "Part 1: PWM" = "getting-started/starter/servo/part1-pwm.md" },
+        { "Part 2: CAN" = "getting-started/starter/servo/part2-can.md" },
       ]},
       { "Temp-Humidity" = "getting-started/starter/temp-humidity/index.md" },
     ]},
   ]},
   { Projects = [
-    "projects/overview26.md",
+    { Overview = "projects/overview26.md" },
+    { Boards = [
+      { Overview = "projects/boards/index.md" },
+      { ABS = "projects/boards/abs.md" },
+      { BMC = "projects/boards/bmc.md" },
+      { LIM = "projects/boards/lim.md" },
+      { PDB = "projects/boards/pdlb.md" },
+      { Science = "projects/boards/science.md" },
+    ]},
+  ]},
+  { Reference = [
+    { "Build System" = [
+      { Overview = "reference/build/index.md" },
+      { "Project Anatomy" = "reference/build/project-layout.md" },
+      { "Toolchain and Presets" = "reference/build/toolchain.md" },
+      { "Generated Libraries" = "reference/build/codegen.md" },
+      { "Build Script Internals" = "reference/build/build-script.md" },
+      { "Continuous Integration" = "reference/build/ci.md" },
+    ]},
+    { Configuration = [
+      { Overview = "reference/config/index.md" },
+      { "Register Definitions" = "reference/config/schema.md" },
+      { "Device Values" = "reference/config/devices.md" },
+      { "CAN Configuration Interface" = "reference/config/can-interface.md" },
+    ]},
+    { "Python Tools" = [
+      { Overview = "reference/python/index.md" },
+      { "esw.can" = "reference/python/can.md" },
+      { "esw.config" = "reference/python/config.md" },
+      { "esw.cubemx" = "reference/python/cubemx.md" },
+      { "esw.stlink" = "reference/python/stlink.md" },
+      { "esw.visualization" = "reference/python/visualization.md" },
+      { "Script Reference" = "reference/python/scripts.md" },
+    ]},
+    { "Maintaining Documentation" = "reference/maintaining-docs.md" },
   ]},
   { "Useful Information" = [
     { "Build Tools" = "info/build.md" },
@@ -30,14 +64,8 @@ nav = [
     { "Communication Protocols" = "info/communication-protocols/index.md" },
     { "Brushed Motors" = "info/brushed.md" },
     { "Brushless Motors" = "info/brushless.md" },
-    { Science = "info/science.md" },
     { "Nucleo Information" = "info/nucleos.md" },
     { "STM32 Boot" = "info/stm32-boot.md" },
-  ]},
-  { "Extra Information" = [
-    { "CMake with CubeMX" = "extra/cmake-cubemx.md" },
-    { "Building These Docs" = "extra/build-docs.md" },
-    { "Archived Docs" = "extra/archive/index.md" },
   ]},
 ]
 

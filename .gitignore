@@ -69,3 +69,6 @@ install/*
 
 # ansible dirs
 .ansible/
+
+# allow docs
+!docs/reference/build

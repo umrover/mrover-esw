@@ -5,7 +5,8 @@ This repository contains all relevant information for the Embedded Software (ESW
 ## Repo Structure
 
 Documentation can be found in `docs/` and can be viewed [here](https://umrover.github.io/mrover-esw/).
-Instructions for developing and building the documentation locally can be found in the `docs/README.md` file.
+Instructions for developing and building the documentation locally can be found in the
+[Maintaining Documentation](docs/reference/maintaining-docs.md) page.
 
 The `src/` directory contains the source code for the ESW subteam. As of now, only firmware should be placed here.
 All ROS2 code and device clients should go in the [mrover-ros2 repository](https://github.com/umrover/mrover-ros2).
