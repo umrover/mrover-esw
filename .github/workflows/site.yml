@@ -75,3 +75,25 @@ jobs:
       - name: deploy to pages
         uses: actions/deploy-pages@v5
         id: deployment
+
+  notify-docs:
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: mint a token for mrover-docs
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.DOCS_SYNC_APP_ID }}
+          private-key: ${{ secrets.DOCS_SYNC_APP_PRIVATE_KEY }}
+          owner: umrover
+          repositories: mrover-docs
+
+      - name: trigger the docs.mrover.org rebuild
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          gh api repos/umrover/mrover-docs/dispatches \
+            -f event_type=esw-docs-updated \
+            -F client_payload[sha]="$GITHUB_SHA"
