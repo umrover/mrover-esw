@@ -1,0 +1,6 @@
+CompileFlags:
+  Add: [-Wno-unknown-attributes, -Wno-missing-declarations]
+  Remove: [-fno-fat-lto-objects, -mno-unaligned-access, -mslow-flash-data, -fstack-usage]
+
+Index:
+  Background: Build

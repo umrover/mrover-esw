@@ -23,6 +23,7 @@ options:
   -b, --board <board>   target board for new project
   -s, --src <source>    path to project root
   -l, --lib <library>   cmake library dependency
+  -r, --rtos            build with FreeRTOS (CMSIS-RTOS v2)
   -h, --help            show this help message
 EOF
     exit 1
@@ -32,6 +33,7 @@ MCU=""
 BOARD=""
 SRC=""
 LIBS=()
+RTOS=false
 
 # parse opts
 while [[ $# -gt 0 ]]; do
@@ -40,6 +42,7 @@ while [[ $# -gt 0 ]]; do
         -b|--board)     BOARD="$2"; shift 2 ;;
         -s|--src)       SRC="$(realpath "$2")"; shift 2 ;;
         -l|--lib)       LIBS+=("$2"); shift 2 ;;
+        -r|--rtos)      RTOS=true; shift ;;
         -h|--help)      usage ;;
         *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
     esac
@@ -92,9 +95,17 @@ for lib in "${LIBS[@]}"; do
     PY_LIB_ARGS+=(--lib "$lib")
 done
 
+# the RTOS is configured entirely in cmake and lib/rtos, never in the ioc, so
+# this only affects the generated CMakeLists.txt
+PY_RTOS_ARGS=()
+if [[ "$RTOS" == "true" ]]; then
+    PY_RTOS_ARGS+=(--rtos)
+fi
+
 # run cmake configuration script
 "$VENV_PATH/bin/python" "$CMAKE_SCRIPT" \
     --src "$SRC" \
     --root "$ESW_ROOT" \
     --ctx "$ESW_ROOT/lib/stm32g4" \
-    "${PY_LIB_ARGS[@]}"
+    "${PY_LIB_ARGS[@]}" \
+    "${PY_RTOS_ARGS[@]}"

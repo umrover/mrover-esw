@@ -28,14 +28,19 @@ docs:
     zensical serve
 
 # update cmake tooling
-cmake src *libs:
+cmake src *args:
     #!/usr/bin/env zsh
     source tools/venv/bin/activate
     PY_LIB_ARGS=()
-    for lib in {{libs}}; do
-        PY_LIB_ARGS+=(--lib "$lib")
+    PY_RTOS_ARGS=()
+    for arg in {{args}}; do
+        if [[ "$arg" == "--rtos" ]]; then
+            PY_RTOS_ARGS+=(--rtos)
+        else
+            PY_LIB_ARGS+=(--lib "$arg")
+        fi
     done
-    python ./tools/scripts/update_cmake_cfg.py --src {{src}} --root . --ctx ./lib/stm32g4 "${PY_LIB_ARGS[@]}"
+    python ./tools/scripts/update_cmake_cfg.py --src {{src}} --root . --ctx ./lib/stm32g4 "${PY_LIB_ARGS[@]}" "${PY_RTOS_ARGS[@]}"
 
 # run serial monitor on stlinkv3
 monitor baud="115200" log="INFO":

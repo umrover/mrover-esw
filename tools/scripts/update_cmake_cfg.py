@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--root", "-r", type=Path, required=True, help="ESW Root Directory")
     parser.add_argument("--ctx", "-c", type=Path, required=True, help="Template Directory")
     parser.add_argument("--lib", "-l", action="append", default=[], help="Libraries to Include in Generated Project")
+    parser.add_argument("--rtos", action="store_true", help="Compile the FreeRTOS (CMSIS-RTOS v2) middleware into the Project")
     args = parser.parse_args()
 
     name = args.src.name
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     root = args.root
     ctx = args.ctx
     libs = args.lib
+    rtos = args.rtos
 
-    esw_logger.info(f"Configuring CMake Toolchain for {name} at {path}")
-    configure_cmake(name, path, root, ctx, libs)
+    esw_logger.info(f"Configuring CMake Toolchain for {name} at {path} (rtos={rtos})")
+    configure_cmake(name, path, root, ctx, libs, rtos)
