@@ -39,7 +39,7 @@ The CAN protocol has evolved over time. It has three versions, introduced in chr
 
 Each version adds more features to the protocol while maintaining backwards compatibility.
 
-There are four types of CAN messages, or “frames:” the Data Frame, Remote Frame, Error Frame and
+There are four types of CAN messages, or "frames:" the Data Frame, Remote Frame, Error Frame and
 Overload Frame. The data frame is the standard CAN message, broadcasting data from the transmitter
 to the other nodes on the bus. A remote frame is broadcast by a transmitter to request data from a
 specific node. An error frame may be transmitted by any node that detects a bus error. Overload
@@ -137,34 +137,7 @@ The tool requires three values that are properties of the hardware you are using
 
 
 The clock frequency of the FDCAN peripheral is based on the system clock. It can
-be found and modified by the user in the `Clock Configuration` tab of the .ioc in STM32CubeIDE.
-The example below shows a clock configuration where the FDCAN peripheral clock frequency is 64 MHz.
-
-![stm32cubeide fdcan clock frequency in the ioc](fdcan-clock-frequency.webp)
-
-The clock tolerance (measured in ppm) is a physical characteristic of the clock of the CAN FD hardware.
-Based on the specific clock configuration shown above, we can see that the FDCAN peripheral is using
-PCLK1 (FDCAN Clock Mux). PCLK1 is based on PLLCLK (System Clock Mux). Finally, PLLCLK is based on
-HSI16 (PLL Source Mux). We can find the characteristics in the datasheet. The table with the
-characteristics of the HSI16 oscillator for the STM32G431 is shown below.
-
-We then perform the following calculation:
-
-(16.08 - 16) / 16 = 0.005
-
-For these values, we can use an [online tool](https://www.kvaser.com/support/calculators/can-fd-bit-timing-calculator/)
-provided by Kvaser.
-
-The tool requires three values that are properties of the hardware you are using:
-
-1. Clock Frequency
-2. Clock Tolerance
-3. Node Delay
-
-We will go over finding these values for ***STM32 MCUs***.
-
-The clock frequency of the FDCAN peripheral is based on the system clock. It can
-be found and modified by the user in the `Clock Configuration` tab of the .ioc in STM32CubeIDE.
+be found and modified by the user in the `Clock Configuration` tab of the `.ioc` in STM32CubeIDE.
 The example below shows a clock configuration where the FDCAN peripheral clock frequency is 64 MHz.
 
 ![stm32cubeide fdcan clock frequency in the ioc](fdcan-clock-frequency.webp)
@@ -200,7 +173,7 @@ Then, scroll down to **2. Bitrates** and input the desired bitrate for the CAN b
 
 Now in sections **3.1** and **3.2**, you can make changes to the nominal and data sample point
 percentages. Any percentage from 50% to 90% is acceptable. Many automotive applications use a value
-around 87.5% for nominal and around 70% - 80% for data.
+around 87.5% for nominal and around 70% to 80% for data.
 
 Finally, scroll down to **4. Individual Bus Timing Parameters** and you will see the values for the
 bit timing parameters. You may also modify the prescaler (the data prescaler must be equal to 1 or
