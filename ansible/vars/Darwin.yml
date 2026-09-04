@@ -1,0 +1,20 @@
+---
+base_packages:
+  - cmake
+  - ninja
+  - wget
+  - shellcheck
+  - clang-format
+
+arm_gnu_host: "darwin-{{ 'arm64' if ansible_facts.architecture == 'arm64' else 'x86_64' }}"
+
+profile_snippet: /etc/mrover-esw.sh
+zshenv_path: /etc/zshenv
+bash_loader_path: /etc/profile
+
+st_opt_root: /opt/ST
+cubeclt_pattern: "STM32CubeCLT_*"
+
+st_gui_root: /Applications/STMicroelectronics
+cubemx_exe: "{{ st_gui_root }}/STM32CubeMX.app/Contents/MacOs/STM32CubeMX"
+cubeprg_exe: "{{ st_gui_root }}/STM32CubeProgrammer.app/Contents/MacOs/STM32CubeProgrammer"

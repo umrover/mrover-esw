@@ -14,225 +14,261 @@ a few clicks of a button, and have that code show up automatically in the main f
     so we choose to use the lighter weight STM32CubeMX and STM32CubeCLT tools in combination with CMake and your favorite
     text editor or IDE.
 
-## Downloading and Installing CubeMX
+    We do still install CubeIDE (optionally) for graphical debugging.
+    See [Debugging with STM32CubeIDE](#debugging-with-stm32cubeide).
 
-### 1. Download CubeMX
+    STM now has a suite of VS Code extensions that support debugging.
 
-1. Go to the CubeMX [download page](https://www.st.com/en/development-tools/stm32cubemx.html) and scroll down to "Get Software."
-   ![get cubemx](get-cubemx.webp)
+!!! note
+    For newer members, EECS 373 no longer uses STM32 MCUs.
 
-2. **_For this walkthrough, we will be using the Linux installer for UBUNTU USERS._**
-   Click on "Select Version", then select the **newest version** for the **_correct OS you are running!!!_**
+## Downloading and Installing the Cube Tools (Linux)
 
-3. Click on Accept for the License Agreement pop up.
-
-4. You will then be prompted to log in, create an account, or continue as a guest. You will need a
-   MyST account in the future, so it is best to create one now. You may use any email address.
-
-5. After logging in and being brought back to the download page, the download should start automatically.
-   Scroll down and select the correct version from "Get Software" if it does not.
-
-### 2. Install CubeMX
-
-**Note**: This install guide is for **Linux**. Please make sure to install the correct version
-for the OS you are running.
-
-1\. Open a new terminal ([guide](https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/)).
-
-2\. The downloaded installer zip file should be in your `Downloads` folder. You can navigate to this
-folder by entering the following command in your terminal:
+On Ubuntu/Debian, the whole toolchain (CubeMX, CubeProgrammer, CubeCLT, the ARM GNU toolchain,
+`uv`, and everything else `scripts/build.sh` needs) is set up by one script, run once from the
+repo root:
 
 ```sh
-cd ~/Downloads
+./scripts/bootstrap.sh
 ```
 
-3\. You should now be able to see the installer `.zip` file, if you run the following command:
+This installs [ansible](https://docs.ansible.com/) (if it isn't already present) and runs the
+`ansible/bootstrap.yml` playbook, which installs system packages, the ARM GNU toolchain, `uv`, the
+cube tools, initializes git submodules, writes your `PATH` and application launcher entries, and
+sets up the python virtual environment at `tools/.venv`.
+
+The cube tools can't be downloaded automatically as ST gates all of them behind a login (a free
+MyST account; you may use any email address) with no stable download URL. Partway through,
+`./scripts/bootstrap.sh` will pause and ask you to:
+
+- Go to the CubeMX [download page](https://www.st.com/en/development-tools/stm32cubemx.html),
+  select the **Linux** installer, and download it into `install/` at the repo root.
+
+   ![ST Get Software table, with the Linux CubeMX build and its version picker](get-cubemx.webp)
+
+- Go to the CubeProgrammer [download page](https://www.st.com/en/development-tools/stm32cubeprog.html),
+  select the **Linux** installer, and download it into `install/` as well.
+- Go to the CubeCLT [download page](https://www.st.com/en/development-tools/stm32cubeclt.html),
+  select the **Debian Linux** installer, and download it into `install/` as well.
+
+   ![ST Get Software table, with the Debian CubeCLT build selected](get-cubeclt.webp)
+
+- *Optionally*, if you want a graphical debugger other than VS Code, go to the CubeIDE
+  [download page](https://www.st.com/en/development-tools/stm32cubeide.html), select the
+  **Debian Linux** installer, and download it into `install/` too. It is a ~3 GB download and is
+  skipped when absent, since nothing in the build flow needs it.
+- Press `Enter` in the terminal running `bootstrap.sh` to continue.
+
+!!! note
+    `install/README.md` lists the exact filenames the playbook looks for, in case a download lands
+    under an unexpected name.
+
+The script then unpacks and installs each archive it finds. CubeMX and CubeProgrammer use graphical installers
+with no silent-install flag, so **two installer windows will open**. Click through both, accepting
+the default install location (`/usr/local/STMicroelectronics/STM32Cube/...`). CubeCLT and CubeIDE install
+without prompting, but you may see a system prompt related to licensing depending on your OS.
+
+Afterwards, the script adds the tools to your `PATH` via `/etc/profile.d/mrover-esw.sh`. Open a new
+terminal to pick it up. The script also writes launcher entries for STM32CubeMX and STM32CubeProgrammer into
+`~/.local/share/applications`, so they show up in your applications menu (STM32CubeIDE installs
+its own launcher entry system-wide).
+
+!!! note "System Profile"
+    `/etc/profile.d` is read by `sh`/`bash` login shells, and once by the graphical session when
+    you log in - but **not by zsh**: Debian and Ubuntu ship a `/etc/zsh/zprofile` that is comments
+    only and never sources `/etc/profile`. With zsh as your login shell, every terminal would
+    otherwise inherit the `PATH` frozen at your last graphical login, and no amount of opening new
+    terminals would refresh it. Bootstrap therefore also adds a one-line loader to
+    `/etc/zsh/zshenv`, which every zsh reads. If `./scripts/doctor.sh` reports that the profile
+    "exists but its directories are not on your PATH", that shell started before the profile was
+    written, simply open a new one, or `exec $SHELL -l`. If, for any reason, you need to disable
+    the STM32 tools on your system, this profile is the mechanism to do so.
+
+The ARM cross-compiler comes from CubeCLT itself; a standalone copy is installed as a fallback but
+is ordered after CubeCLT on `PATH`, so CubeCLT's is the one you get. CubeCLT also ships
+`STM32_Programmer_CLI`, which is the copy on your `PATH`; the standalone CubeProgrammer is the GUI
+you launch from the applications menu when you want to flash or inspect a board interactively.
+
+### Verifying the Install
+
+Open a new terminal and run:
+
+```bash
+./scripts/doctor.sh --build
+```
+
+This reports the version and location of every required tool, confirms `arm-none-eabi-gcc` is
+coming from CubeCLT, and then builds a small firmware project end to end. If it finishes with
+`all checks passed`, your environment is ready. See [Build Tools](../../info/build.md#doctorsh)
+for what each check means.
+
+If bootstrap fails partway through, it's safe to re-run `./scripts/bootstrap.sh`. Every step
+skips itself if it's already done, including the two graphical installers.
+
+!!! warning
+    If you run `./scripts/doctor.sh` and see any unexpected output, please check with your ESW lead.
+    There are lots of places the installation can fail silently, and we want to ensure everyone has
+    a common toolchain so we don't run into any discontinuities down the line.
+
+### Upgrading, and Installing Over an Existing Setup
+
+Bootstrap is safe to run on a machine that already has the cube tools installed by hand. It never
+removes an existing install; it installs over it and takes ownership of `PATH` and the launcher
+entries.
+
+To upgrade a cube tool, download the newer installer into `install/` and re-run
+`./scripts/bootstrap.sh`. Each installer is gated on a stamp file named after the installer itself,
+not after the directory it installs into, so a new archive always runs and an unchanged one never
+re-runs. Delete the matching `install/.installed-*` file to force a reinstall.
+
+To redo just one step, for example the `PATH` setup after a CubeCLT upgrade, run the following:
+
+```bash
+ansible-playbook ansible/bootstrap.yml --connection=local --ask-become-pass --tags path-profile
+```
+
+Valid tags are `packages`, `clang-format`, `uv`, `arm-toolchain`, `submodules`, `stm`,
+`path-profile`, `desktop-entries`, `python-venv` and `vscode`.
+
+## Debugging with STM32CubeIDE
+
+CubeIDE is installed as a **debugger only**, it does not build anything. The build stays
+with `scripts/build.sh` and CMake; CubeIDE attaches to the `.elf` that build produced. That split
+is what keeps the terminal build and CI as the build mechanism, while still giving you breakpoints,
+watch expressions, a call stack, live registers and the peripheral (SFR) view.
+
+If you skipped CubeIDE during bootstrap, drop its archive into `install/` and re-run
+`./scripts/bootstrap.sh` (see [`install/README.md`](https://github.com/umrover/mrover-esw/blob/main/install/README.md)).
+
+### 1. Build the Firmware First
+
+CubeIDE will not build for you, so produce the ELF in a terminal:
+
+```bash
+./scripts/build.sh --src src/bmc --preset Debug
+```
+
+Use the `Debug` preset. `Release` is optimized, so breakpoints land in surprising places and half
+your locals read `<optimized out>`. The ELF lands at a predictable path:
+
+```
+<src>/build/<preset>/<target>.elf     e.g.  src/bmc/build/Debug/bmc.elf
+```
+
+### 2. Create a Workspace
+
+Launch **STM32CubeIDE** from your applications menu. When it asks for a workspace directory, pick
+somewhere **outside the repository** (`~/cubeide-workspace` is fine). CubeIDE writes a large
+`.metadata/` tree into its workspace, and you do not want that inside a git checkout.
+
+### 3. Import the Project
+
+`File` -> `Import...` -> `C/C++` -> **Existing Code as Makefile Project** -> `Next`.
+
+- *Existing Code Location*: the project directory, e.g. `src/bmc`
+- *Toolchain for Indexer Settings*: **STM32 Cortex-M GCC**
+- Leave "C" and "C++" both ticked, then `Finish`.
+
+This does not set up a build - it just gives CubeIDE the source tree so it can map addresses back
+to your files and let you set breakpoints. Turn off `Project` -> `Build Automatically` so the IDE
+never tries.
+
+### 4. Create the Debug Configuration
+
+`Run` -> `Debug Configurations...` -> select **STM32 C/C++ Application** -> `New Configuration`.
+
+On the **Main** tab:
+
+- *Project*: the project you just imported
+- *C/C++ Application*: the ELF from step 1, e.g. `src/bmc/build/Debug/bmc.elf`
+- Under *Build (if required) before launching*, choose **Disable auto build**, otherwise CubeIDE
+  tries to build a project that has no build configured and refuses to launch.
+
+On the **Debugger** tab:
+
+- *Debug probe*: **ST-LINK (ST-LINK GDB server)**
+- *Interface*: **SWD**
+- *Reset behavior*: **Connect under reset**, the reliable choice if the firmware reconfigures
+  clocks or pins early in `main`.
+- *SFRs* / *Device*: point the SVD at the file for your MCU so the peripheral view is populated.
+  For the STM32G431 boards used here:
+
+  ```
+  /opt/st/stm32cubeclt_<version>/STMicroelectronics_CMSIS_SVD/STM32G431.svd
+  ```
+
+  `./scripts/doctor.sh` prints the CubeCLT version in use if you are unsure which directory that is.
+
+`Apply`, then `Debug`.
+
+### 5. The Edit-Build-Debug Loop (With CubeIDE)
+
+1. Edit code in your normal editor.
+2. `./scripts/build.sh --src <project-path> --preset Debug` in a terminal.
+3. Back in CubeIDE, hit `Debug` again. It reloads the ELF from disk and re-flashes.
+
+You do not need to re-import or re-create the configuration; only step 2 changes anything.
+
+!!! tip
+    If bouncing to a terminal gets old, you can point the imported project's build command at the
+    real build script: `Project` -> `Properties` -> `C/C++ Build`, untick *Use default build
+    command*, and set it to `${ProjDirPath}/../../scripts/build.sh --src ${ProjDirPath} --preset
+    Debug` (adjust the `../..` for how deep the project sits). Then re-enable
+    *Build before launching* in the debug configuration and the `Debug` button does both steps.
+
+### Debugging Without CubeIDE
+
+CubeIDE is not the only option, and nothing here depends on it. CubeCLT ships
+`ST-LINK_gdbserver` and `arm-none-eabi-gdb`, which any GDB front end can drive. The
+[Cortex-Debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) extension
+for VS Code and CLion's embedded GDB server configuration both work against the same ELF, and
+`./scripts/doctor.sh` already verifies the gdbserver is present and on `PATH`.
+
+## macOS
+
+`./scripts/bootstrap.sh` supports macOS as well as Ubuntu/Debian. It uses Homebrew instead of
+`apt`, and Homebrew is the one prerequisite it cannot install for you, get it from
+[brew.sh](https://brew.sh) first, then run the same command as Linux users:
 
 ```sh
-ls
+./scripts/bootstrap.sh
 ```
 
-4\. To unzip the installer, run the following command (this may take a second):
+The flow is identical: it installs ansible (via `brew`), the build tools, `uv`, the ARM toolchain
+and the cube tools, then writes your `PATH` and syncs `tools/.venv`. Download the same archives
+into `install/`, picking the **macOS** build on each ST download page rather than the Linux one.
 
-```sh
-unzip <zip_file_name>
+Two things differ under the hood:
+
+- **`PATH` setup.** macOS has no `/etc/profile.d`, so the snippet is written to `/etc/mrover-esw.sh`
+  and sourced from both `/etc/zshenv` and `/etc/profile`. As on Linux, opening a new terminal is
+  enough; you do not need to log out.
+- **Application shortcuts.** `.desktop` files are an XDG concept and are skipped. ST's macOS
+  installers register their own `.app` bundles, so CubeMX, CubeProgrammer and CubeIDE appear in
+  Launchpad on their own.
+
+ST ships its macOS tools as either a `.pkg` or a `.app` installer depending on the tool and
+release. Bootstrap detects which one an archive contains rather than matching filenames: `.pkg`
+files are installed non-interactively with `installer`, and a `.app` opens a window for you to
+click through, exactly like the Linux CubeMX and CubeProgrammer installers.
+
+!!! warning
+    The macOS support is newer and has far less mileage than the Ubuntu path. If an
+    archive unpacks to something bootstrap does not recognize it stops with a message naming the
+    directory it looked in, so you can install that one tool by hand and re-run, everything
+    already installed is skipped.
+
+### Verifying the Install on macOS
+
+Open a new terminal and run:
+
+```bash
+./scripts/doctor.sh --build
 ```
 
-For example:
-
-```sh
-unzip stm32cubemx-lin-v6-16-0.zip
-```
-
-5\. You should now be able to see the installer executable along with `Readme.html` and a Java runtime by running the following command:
-
-```sh
-ls
-```
-
-6\. Run the installer by running the following (you may be prompted to enter your password):
-
-```sh
-sudo ./SetupSTM32CubeMX-<version>
-```
-
-For example:
-
-```sh
-sudo ./SetupSTM32CubeMX-6.16.0
-```
-
-7\. In the UI that opens, select `Next` and accept the License and Terms of Use.
-
-8\. Select an appropriate installation directory (we recommend `/usr/local/STMicroelectronics/STM32Cube/STM32CubeMX`)
-
-9\. Once the installation completes, select `Done`.
-
-10\. To clean the installation, remove all files in `~/Downloads` from the installer with the following:
-
-```sh
-rm -rf jre Readme.html SetupSTM32CubeMX* stm32cubemx-lin-*.zip
-```
-
-11\. To use STM32CubeMX from the command line, it must be first added to the system path. To do this, we will use `vi` ([guide](https://opensource.com/article/19/3/getting-started-vim)). Run the following command:
-
-```sh
-sudo vi /etc/environment
-```
-
-And append your installation directory (for example, `/usr/local/STMicroelectronics/STM32Cube/STM32CubeMX`) to `PATH`, separated from the other paths by a `:`.
-
-12\. Reboot your machine, open a terminal, and verify that the following command can find STM32CubeMX (it should output the path used in step 11):
-
-```sh
-which STM32CubeMX
-```
-
-## Downloading and Installing CubeCLT
-
-### 1. Download CubeCLT
-
-1. Go to the CubeCLT [download page](https://www.st.com/en/development-tools/stm32cubeclt.html) and scroll down to "Get Software."
-   ![get cubeclt](get-cubeclt.webp)
-
-2. **_For this walkthrough, we will be using the Debian Linux installer for UBUNTU USERS._**
-   Click on "Select Version", then select the **newest version** for the **_correct OS you are running!!!_**
-
-3. Click on Accept for the License Agreement pop up.
-
-4. You will then be prompted to log in, create an account, or continue as a guest. You will need a
-   MyST account in the future, so it is best to create one now. You may use any email address.
-
-5. After logging in and being brought back to the download page, the download should start automatically.
-   Scroll down and select the correct version from "Get Software" if it does not.
-
-### 2. Install CubeCLT
-
-**Note**: This install guide is for **Debian Linux**. Please make sure to install the correct version
-for the OS you are running.
-
-1\. Open a new terminal ([guide](https://www.howtogeek.com/686955/how-to-launch-a-terminal-window-on-ubuntu-linux/)).
-
-2\. The downloaded installer zip file should be in your `Downloads` folder. You can navigate to this
-folder by entering the following command in your terminal:
-
-```sh
-cd ~/Downloads
-```
-
-3\. You should now be able to see the installer `.zip` file, if you run the following command:
-
-```sh
-ls
-```
-
-4\. To unzip the installer, run the following command (this may take a second):
-
-```sh
-unzip <zip_file_name>
-```
-
-For example:
-
-```sh
-unzip st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh.zip
-```
-
-5\. You should now be able to see the installer script by running the following command:
-
-```sh
-ls
-```
-
-6\. Run the installer by running the following (you may be prompted to enter your password):
-
-```sh
-sudo chomd +x <script>
-sudo ./<script>
-```
-
-For example:
-
-```sh
-sudo chmod +x st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh
-sudo ./st-stm32cubeclt_1.20.0_26822_20251117_1245_amd64.deb_bundle.sh
-```
-
-7\. Accept the License Agreement (`y` and then `Enter`).
-
-8\. To clean the installation, remove all files in `~/Downloads` from the installer with the following:
-
-```sh
-rm st-stm32cubeclt*
-```
-
-9\. To be able to use the various STM32CubeCLT components, add them all to path as was done with CubeMX.
-
-The install path to STM32CubeCLT is `/opt/st/`, but each tool included has its own `bin` directory that must be added
-to the path independently.
-
-The tools to be added are as follows.
-
-- GNU-tools-for-STM32
-- st-arm-clang
-- STLink-gdb-server
-- STM32CubeProgrammer
-
-## CubeMX and CubeCLT for macOS Users
-
-### 1. Download
-
-Download [STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html) and [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html)
-for macOS. By default your `Downloads` folder should now contain two [tar](<https://en.wikipedia.org/wiki/Tar_(computing)>) files,
-one for each tool.
-
-### 2. Install
-
-Double click on each tar file. One tar file will expand into a `.app` bundle: double click this item
-and follow the installation steps. The other tar file should expand into a folder with two .pkg files:
-click on each one respectively and follow the steps for installation.
-
-### 3. Update your PATH
-
-The `scripts/new.sh` script (used when [creating a new project](#creating-a-new-project)) needs to
-know where the STM32CubeMX and STM32CubeCLT binaries exist, which we can specify by adding the location
-of the binaries to our [`PATH` environment variable](<https://en.wikipedia.org/wiki/PATH_(variable)>).
-
-There are multiple ways to do this, but the way we will choose is to add the paths to the system-wide
-`/etc/paths` file:
-
-1. Run the command `sudo nano /etc/paths` to open a text editor in the terminal where we can update this file.
-
-2. Ensure that all the following paths exist in the file. If a path is missing, type it in on a new line.
-   Once you are done, make sure you write out (`^O`) and exit (`^X`).
-   ![verify macos path](./verify-paths-macos.webp)
-
-3. Restart your terminal. Ensure the paths you added have been added to your PATH environment variable
-   by running the command `echo $PATH`. You should see all the paths you added somewhere in the output.
-
-### 4. Next Steps
-
-You should now be able to create a new project following the [steps below](#creating-a-new-project).
+The checks are `PATH`-based and work the same on macOS; it knows ST's macOS install roots
+(`/opt/ST`, `/Applications/STMicroelectronics`). The `.desktop` and `/etc/profile.d` checks are
+Linux-only and are skipped rather than reported as problems.
 
 ## Creating a New Project
 
@@ -253,6 +289,12 @@ To create a new project, use the `scripts/new.sh` script. The script accepts eit
 
 When prompted to select default peripheral configurations, select "Unselect All" and "continue".
 
+![The CubeMX software component prompt, with Unselect All highlighted](board-config.webp)
+
+!!! note
+    This menu only appears for boards (e.g. `NUCLEO-*` or `EVAL-*`), and will not appear for MCU-only projects
+    as there is no other hardware packaged by ST in that instance.
+
 If this is the first time STM32CubeMX is being run on a machine, it may need to download the firmware repository. Select "Download" and continue.
 
 Once the script completes, try to build the generated project as follows.
@@ -267,4 +309,5 @@ Open the `<project>.ioc` file in STM32CubeMX to modify the project configuration
 
 **Congratulations! You have successfully created a new project with CubeMX!**
 
-For information on how to do this process manually, refer to the [CMake + CubeMX/CubeCLT Toolchain](../../extra/cmake-cubemx.md) document.
+For how the CMake build actually works (the toolchain file, the presets, and the generated
+libraries) see the [Build System](../../reference/build/index.md) reference.

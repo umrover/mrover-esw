@@ -1,0 +1,6 @@
+---
+- name: init/update git submodules
+  ansible.builtin.command: git submodule update --init --recursive
+  args:
+    chdir: "{{ esw_root }}"
+  changed_when: false

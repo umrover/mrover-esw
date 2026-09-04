@@ -6,12 +6,18 @@ on:
     paths:
       - docs/**
       - zensical.toml
+      - tools/pyproject.toml
+      - tools/uv.lock
+      - tools/.python-version
       - .github/workflows/site.yml
   pull_request:
     branches: [ "main" ]
     paths:
       - docs/**
       - zensical.toml
+      - tools/pyproject.toml
+      - tools/uv.lock
+      - tools/.python-version
       - .github/workflows/site.yml
   workflow_dispatch: {}  # manual trigger for testing after merge
 
@@ -28,21 +34,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v7
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: resolve the pinned uv version
+        id: uv
+        run: |
+          version=$(sed -nE 's|^FROM ghcr\.io/astral-sh/uv:(\S+) .*|\1|p' Dockerfile.arm-gnu)
+          test -n "$version" || { echo "could not read the uv pin from Dockerfile.arm-gnu" >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: setup uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: 3.x
+          version: ${{ steps.uv.outputs.version }}
+          enable-cache: true
 
-      - name: Install Zensical
-        run: pip install zensical==0.0.39
+      - name: sync python env
+        run: uv sync --project tools --locked --only-group docs
 
-      - name: Zensical build
-        run: zensical build --clean
+      - name: zensical build
+        run: uv run --project tools --no-sync zensical build --clean
 
-      - name: Upload pages artifact
+      - name: upload pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
@@ -55,9 +69,31 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Configure pages
+      - name: configure pages
         uses: actions/configure-pages@v6
 
-      - name: Deploy to GitHub Pages
+      - name: deploy to pages
         uses: actions/deploy-pages@v5
         id: deployment
+
+  notify-docs:
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: mint a token for mrover-docs
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.DOCS_SYNC_APP_ID }}
+          private-key: ${{ secrets.DOCS_SYNC_APP_PRIVATE_KEY }}
+          owner: umrover
+          repositories: mrover-docs
+
+      - name: trigger the docs.mrover.org rebuild
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          gh api repos/umrover/mrover-docs/dispatches \
+            -f event_type=esw-docs-updated \
+            -F client_payload[sha]="$GITHUB_SHA"

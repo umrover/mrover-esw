@@ -1,0 +1,54 @@
+---
+- name: install {{ cube.name }}
+  when:
+    - cube.archive | length > 0
+    - not cube.stamp_exists or (cube.archive_mtime | float) > (cube.stamp_mtime | float)
+  block:
+    - name: unpack the {{ cube.name }} archive
+      ansible.builtin.unarchive:
+        src: "{{ cube.archive }}"
+        dest: "{{ unpack_dir }}/{{ cube.unpack }}"
+        remote_src: true
+
+    - name: look for a {{ cube.name }} installer package
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns: "*.pkg"
+        recurse: true
+        file_type: any
+      register: cube_pkg
+
+    - name: look for a {{ cube.name }} installer app
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns: "*.app"
+        recurse: true
+        file_type: directory
+      register: cube_app
+
+    - name: fail when the archive holds neither a .pkg nor a .app
+      ansible.builtin.fail:
+        msg: >
+          {{ cube.archive | basename }} unpacked to neither a .pkg nor a .app
+          under {{ unpack_dir }}/{{ cube.unpack }}. Install this tool by hand
+          and re-run bootstrap; see install/README.md.
+      when: cube_pkg.matched == 0 and cube_app.matched == 0
+
+    - name: install the {{ cube.name }} package(s)
+      become: true
+      ansible.builtin.command: "installer -pkg {{ item.path }} -target /"
+      loop: "{{ cube_pkg.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    - name: run the graphical {{ cube.name }} installer and wait for it
+      ansible.builtin.command: "open -W {{ cube_app.files[0].path }}"
+      when: cube_pkg.matched == 0 and cube_app.matched > 0
+
+    - name: stamp {{ cube.name }} as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cube.archive | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve

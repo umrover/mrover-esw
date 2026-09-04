@@ -5,7 +5,7 @@
 This tutorial is intended to get you more familiar with a Nucleo
 (with STM32G431RB MCU) and the Cube Tool Suite.
 You will be asked to develop code such that the LED on the Nucleo
-will light up whenever the Nucleo’s button is pressed down.
+will light up whenever the Nucleo's button is pressed down.
 
 Just as a reminder, if you have any questions, feel free to reach out to any
 of the ESW leads or members. This project isn't meant to be high-stakes,
@@ -18,7 +18,7 @@ As mentioned earlier, the goal is to make sure that the button is able to activa
 As you walk through the guide, keep the following questions in mind:
 
 * Which pin is linked to the button and which pin is linked to the LED?
-* Are those pins activated on the .ioc file?
+* Are those pins activated on the `.ioc` file?
 * Have you looked through the HAL drivers to see how to read from and write to pins?
 * Do you know which pins have to be read from and which pins need to be written to?
 * Do you know what to write to the pin that needs to be written to and when?
@@ -29,6 +29,37 @@ As you walk through the guide, keep the following questions in mind:
 * STM32G431RB Nucleo (pictured below)
 
 ![stm32g431rb nucleo](./nucleo-g431.webp)
+
+## Setting Up the Repository
+
+This project builds with the ESW toolchain, so you will need a local copy of the repository before
+you start.
+
+Go to [this repository](https://github.com/umrover/mrover-esw), click the "Code" tab, and copy the
+SSH URL.
+
+![opened "Code" tab with boxes showing how to copy the SSH URL](copy-git-repo.webp)
+
+Clone the project onto your local computer by running the following command in your terminal. The
+`--recurse-submodules` flag is required, as the build needs the vendored ST driver submodule.
+
+```sh
+git clone --recurse-submodules link-copied-in-above-step
+```
+
+Enter the directory:
+
+```sh
+cd mrover-esw
+```
+
+Then create a branch for yourself:
+
+```sh
+git switch -c starter/your-first-name
+```
+
+You will run every command in this guide from the root of this repository.
 
 ## Guide
 
@@ -42,17 +73,17 @@ On this page, you will find some pinouts. Based on the pinouts, you should be ab
 
 ![g4 pinout showing led connected to pa5](g4-led-pin.webp)
 
-Head back to the CubeMX and open the .ioc file if it is not open already. You should be able to see a graphical interface with the chip on it.
+Head back to the CubeMX and open the `.ioc` file if it is not open already. You should be able to see a graphical interface with the chip on it.
 
 The first thing we want to do is set PC13 pin (which is connected to the push button) to be a GPIO input. This means that the pin will be set so that we can choose to read digital input in our code. Reading digital input means that we can read 3.3V as high (logic 1) and read 0V as low (logic 0). This is relevant because this means that we can be able to tell if the push button is pressed down or released.
 
-On the graphical interface (also called the .ioc file), locate PC13 and click on it. Then select GPIO_Input to change its configuration.
+On the graphical interface (also called the `.ioc` file), locate PC13 and click on it. Then select `GPIO_Input` to change its configuration.
 
 ![pc13](pc13.webp)
 
 The next thing we want to do is set PA5 (which is connected to the LED) to be a GPIO output. This means that we will be able to make the pin either be set to 3.3V (high) or 0V (low). By default, the pin starts off as low.
 
-On the .ioc file, locate PA5 and click on it. Select GPIO_Output to change its configuration. You may need to scroll down a bit. Note that the pin may already be set to GPIO_Output by default, so you may choose to not do anything new.
+On the `.ioc` file, locate PA5 and click on it. Select `GPIO_Output` to change its configuration. You may need to scroll down a bit. Note that the pin may already be set to `GPIO_Output` by default, so you may choose to not do anything new.
 
 ![pa5](pa5.webp)
 
@@ -60,19 +91,17 @@ Optionally, right click on PC13 and select "Enter User Label" can give it a usef
 
 Make sure to save your changes by saving the file. Either run the keyboard shortcut Ctrl + S on your keyboard or click on File -> Save.
 
-Now that you are finished modifying the .ioc file, select "GENERATE CODE" in the top right. Once generated successfully, close the confirmation window.
+Now that you are finished modifying the `.ioc` file, select "GENERATE CODE" in the top right. Once generated successfully, close the confirmation window.
 
 We have now successfully configured our pins and generated the code for it. Now it is time to write the logic to link the button and the LED together.
 
 Begin by opening up the `Src/main.c` file in an editor of your choice.
 
-
-
 When writing code, you will only want to write in specific sections. A good rule of thumb is to only put your code in between where it says
 `USER CODE BEGIN` and `USER CODE END`. This is necessary because otherwise, the automatic code generation from the CubeMX
 will overwrite and delete your code.
 
-![image](https://user-images.githubusercontent.com/71603173/187026017-329a2cf3-b442-4004-b9d0-447986f27ceb.png)
+![USER CODE BEGIN and USER CODE END guard blocks in main.c](user-code-blocks.webp)
 
 We will be using the HAL library so that we can call a single function to perform operations such as reading digital input and writing digital output.
 
@@ -80,7 +109,7 @@ The HAL functions that we are interested in are `HAL_GPIO_ReadPin(gpio-port, gpi
 
 See below for a demo on how we can access data in our case.
 
-![image](https://user-images.githubusercontent.com/71603173/187026399-f7aaea9b-1071-4b00-bc8c-94914f84419c.png)
+![Example use of HAL_GPIO_ReadPin and HAL_GPIO_WritePin](hal-gpio-demo.webp)
 
 When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high.
 In our case, the button is active high. This means that when the button is pushed down, the value returned is a 1.
@@ -102,7 +131,7 @@ Then, build your project by running the build script from the root of the reposi
 After building your project, you should also look over the warnings if you have any since those hint at potential problems in your code.
 
 Once your project has built successfully, you will now want to flash the code onto your Nucleo and let it run. Ensure the Nucleo is plugged into your machine,
-and run the build script again with the `--flash` option. This will use STM32CubeProgrammer (bundled with STM32CubeCLT) to flash the compiled binary onto the Nucleo. The command will look as follows.
+and run the build script again with the `--flash` option. This will use `STM32_Programmer_CLI` (bundled with STM32CubeCLT) to flash the compiled binary onto the Nucleo. The command will look as follows.
 
 ```bash
 ./scripts/build.sh --src <path/to/led/project> --flash

@@ -1,0 +1,36 @@
+---
+- name: install base packages (apt)
+  when: ansible_facts.system == "Linux"
+  become: true
+  block:
+    - name: update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      changed_when: false
+
+    - name: install base packages
+      ansible.builtin.apt:
+        name: "{{ base_packages }}"
+        state: present
+
+- name: install base packages (homebrew)
+  when: ansible_facts.system == "Darwin"
+  block:
+    - name: check for homebrew
+      ansible.builtin.command: brew --version
+      register: brew_check
+      changed_when: false
+      failed_when: false
+
+    - name: fail with install instructions if homebrew is missing
+      ansible.builtin.fail:
+        msg: >
+          Homebrew is required on macOS but was not found. Install it from
+          https://brew.sh and re-run ./scripts/bootstrap.sh.
+      when: brew_check.rc != 0
+
+    - name: install base packages
+      community.general.homebrew:
+        name: "{{ base_packages }}"
+        state: present

@@ -1,0 +1,294 @@
+---
+- name: ensure install/ exists
+  ansible.builtin.file:
+    path: "{{ install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: pause for manual cube tool downloads
+  ansible.builtin.pause:
+    prompt: |
+      Download the following into {{ install_dir }}:
+
+        1. STM32CubeMX (Linux installer, .zip)
+           https://www.st.com/en/development-tools/stm32cubemx.html
+        2. STM32CubeProgrammer (Linux installer, .zip)
+           https://www.st.com/en/development-tools/stm32cubeprog.html
+        3. STM32CubeCLT (Debian bundle, .deb_bundle.sh.zip)
+           https://www.st.com/en/development-tools/stm32cubeclt.html
+
+      Optionally, for graphical debugging (~3 GB, skipped if absent):
+
+        4. STM32CubeIDE (Debian bundle, .deb_bundle.sh.zip)
+           https://www.st.com/en/development-tools/stm32cubeide.html
+
+      All of them require logging in with a (free) MyST account.
+
+      CubeMX and CubeProgrammer ship graphical installers, so two installer
+      windows will open later in this run - click through both to finish.
+
+      See {{ install_dir }}/README.md for the exact filenames expected.
+
+      Press ENTER once the files are present in that directory.
+
+- name: find cubemx installer archive
+  ansible.builtin.find:
+    paths: "{{ install_dir }}"
+    use_regex: true
+    patterns: "(?i).*stm32cubemx.*\\.zip$"
+  register: cubemx_zip
+
+- name: find cubeprogrammer installer archive
+  ansible.builtin.find:
+    paths: "{{ install_dir }}"
+    use_regex: true
+    patterns: "(?i).*stm32cubepro?g.*\\.zip$"
+  register: cubeprg_zip
+
+- name: find cubeclt installer archive
+  ansible.builtin.find:
+    paths: "{{ install_dir }}"
+    use_regex: true
+    patterns: "(?i).*stm32cubeclt.*\\.zip$"
+  register: cubeclt_zip
+
+- name: find cubeide installer archive
+  ansible.builtin.find:
+    paths: "{{ install_dir }}"
+    use_regex: true
+    patterns: "(?i).*stm32cubeide.*\\.zip$"
+  register: cubeide_zip
+
+- name: report that cubeide will be skipped
+  ansible.builtin.debug:
+    msg: >
+      No STM32CubeIDE archive in {{ install_dir }} - skipping it. Everything
+      except graphical debugging works without it; see
+      {{ install_dir }}/README.md to add it later.
+  when: cubeide_zip.matched == 0
+
+- name: fail with re-run instructions if installers are missing
+  ansible.builtin.fail:
+    msg: >
+      Missing installer(s) in {{ install_dir }}. Expected one .zip each whose
+      name contains "stm32cubemx", "stm32cubeprog" (or "stm32cubeprg") and
+      "stm32cubeclt", in any case. Found: cubemx={{ cubemx_zip.matched }},
+      cubeprogrammer={{ cubeprg_zip.matched }}, cubeclt={{ cubeclt_zip.matched }}.
+      See {{ install_dir }}/README.md for download links, then re-run
+      scripts/bootstrap.sh.
+  when: cubemx_zip.matched == 0 or cubeprg_zip.matched == 0 or cubeclt_zip.matched == 0
+
+- name: create unpack directories
+  ansible.builtin.file:
+    path: "{{ unpack_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: [cubemx, cubeprg, cubeclt, cubeide]
+
+- name: check whether cubemx has already been installed
+  ansible.builtin.stat:
+    path: "{{ install_dir }}/.installed-{{ cubemx_zip.files[0].path | basename }}"
+  register: cubemx_stamp
+
+- name: check whether cubeprg has already been installed
+  ansible.builtin.stat:
+    path: "{{ install_dir }}/.installed-{{ cubeprg_zip.files[0].path | basename }}"
+  register: cubeprg_stamp
+
+- name: check whether cubeclt has already been installed
+  ansible.builtin.stat:
+    path: "{{ install_dir }}/.installed-{{ cubeclt_zip.files[0].path | basename }}"
+  register: cubeclt_stamp
+
+- name: check whether cubeide has already been installed
+  ansible.builtin.stat:
+    path: "{{ install_dir }}/.installed-{{ cubeide_zip.files[0].path | basename }}"
+  register: cubeide_stamp
+  when: cubeide_zip.matched > 0
+
+- name: install cubemx (linux)
+  when:
+    - ansible_facts.system == "Linux"
+    - not cubemx_stamp.stat.exists or cubemx_zip.files[0].mtime > cubemx_stamp.stat.mtime
+  block:
+    - name: unzip cubemx archive
+      ansible.builtin.unarchive:
+        src: "{{ cubemx_zip.files[0].path }}"
+        dest: "{{ unpack_dir }}/cubemx"
+        remote_src: true
+
+    - name: find cubemx setup binary
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/cubemx"
+        patterns: "SetupSTM32CubeMX-*"
+        recurse: true
+        file_type: file
+      register: cubemx_setup
+
+    - name: make cubemx setup binary executable
+      ansible.builtin.file:
+        path: "{{ cubemx_setup.files[0].path }}"
+        mode: "0755"
+
+    - name: run cubemx installer
+      become: true
+      ansible.builtin.command: "{{ cubemx_setup.files[0].path }}"
+      args:
+        chdir: "{{ cubemx_setup.files[0].path | dirname }}"
+      environment:
+        DISPLAY: "{{ ansible_facts.env.DISPLAY | default(':0') }}"
+        XAUTHORITY: "{{ ansible_facts.env.XAUTHORITY | default(ansible_facts.env.HOME ~ '/.Xauthority') }}"
+
+    - name: stamp cubemx installer as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cubemx_zip.files[0].path | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+- name: install cubeprg (linux)
+  when:
+    - ansible_facts.system == "Linux"
+    - not cubeprg_stamp.stat.exists or cubeprg_zip.files[0].mtime > cubeprg_stamp.stat.mtime
+  block:
+    - name: unzip cubeprg archive
+      ansible.builtin.unarchive:
+        src: "{{ cubeprg_zip.files[0].path }}"
+        dest: "{{ unpack_dir }}/cubeprg"
+        remote_src: true
+
+    - name: find cubeprg setup binary
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/cubeprg"
+        patterns: "SetupSTM32CubeProgrammer-*.linux"
+        recurse: true
+        file_type: file
+      register: cubeprg_setup
+
+    - name: make cubeprg setup binary executable
+      ansible.builtin.file:
+        path: "{{ cubeprg_setup.files[0].path }}"
+        mode: "0755"
+
+    - name: run cubeprg installer
+      become: true
+      ansible.builtin.command: "{{ cubeprg_setup.files[0].path }}"
+      args:
+        chdir: "{{ cubeprg_setup.files[0].path | dirname }}"
+      environment:
+        DISPLAY: "{{ ansible_facts.env.DISPLAY | default(':0') }}"
+        XAUTHORITY: "{{ ansible_facts.env.XAUTHORITY | default(ansible_facts.env.HOME ~ '/.Xauthority') }}"
+
+    - name: stamp cubeprg installer as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cubeprg_zip.files[0].path | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+- name: install cubeclt (linux)
+  when:
+    - ansible_facts.system == "Linux"
+    - not cubeclt_stamp.stat.exists or cubeclt_zip.files[0].mtime > cubeclt_stamp.stat.mtime
+  block:
+    - name: unzip cubeclt archive
+      ansible.builtin.unarchive:
+        src: "{{ cubeclt_zip.files[0].path }}"
+        dest: "{{ unpack_dir }}/cubeclt"
+        remote_src: true
+
+    - name: find cubeclt bundle script
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/cubeclt"
+        patterns: "stm32cubeclt_*.sh"
+        recurse: true
+        file_type: file
+      register: cubeclt_bundle
+
+    - name: make cubeclt bundle script executable
+      ansible.builtin.file:
+        path: "{{ cubeclt_bundle.files[0].path }}"
+        mode: "0755"
+
+    - name: run cubeclt installer
+      become: true
+      ansible.builtin.shell: "yes | {{ cubeclt_bundle.files[0].path }}"
+
+    - name: stamp cubeclt installer as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cubeclt_zip.files[0].path | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+- name: install cubeide (linux)
+  when:
+    - ansible_facts.system == "Linux"
+    - cubeide_zip.matched > 0
+    - not cubeide_stamp.stat.exists or cubeide_zip.files[0].mtime > cubeide_stamp.stat.mtime
+  block:
+    - name: unzip cubeide archive
+      ansible.builtin.unarchive:
+        src: "{{ cubeide_zip.files[0].path }}"
+        dest: "{{ unpack_dir }}/cubeide"
+        remote_src: true
+
+    - name: find cubeide bundle script
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/cubeide"
+        patterns: "stm32cubeide_*.sh"
+        recurse: true
+        file_type: file
+      register: cubeide_bundle
+
+    - name: make cubeide bundle script executable
+      ansible.builtin.file:
+        path: "{{ cubeide_bundle.files[0].path }}"
+        mode: "0755"
+
+    - name: run cubeide installer
+      become: true
+      ansible.builtin.shell: "yes | {{ cubeide_bundle.files[0].path }}"
+
+    - name: stamp cubeide installer as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cubeide_zip.files[0].path | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+
+- name: install the cube tools (macos)
+  when: ansible_facts.system == "Darwin"
+  ansible.builtin.include_tasks: cube-installer-darwin.yml
+  loop:
+    - name: cubemx
+      unpack: cubemx
+      archive: "{{ cubemx_zip.files[0].path | default('') }}"
+      archive_mtime: "{{ cubemx_zip.files[0].mtime | default(0) }}"
+      stamp_exists: "{{ cubemx_stamp.stat.exists }}"
+      stamp_mtime: "{{ cubemx_stamp.stat.mtime | default(0) }}"
+    - name: cubeprg
+      unpack: cubeprg
+      archive: "{{ cubeprg_zip.files[0].path | default('') }}"
+      archive_mtime: "{{ cubeprg_zip.files[0].mtime | default(0) }}"
+      stamp_exists: "{{ cubeprg_stamp.stat.exists }}"
+      stamp_mtime: "{{ cubeprg_stamp.stat.mtime | default(0) }}"
+    - name: cubeclt
+      unpack: cubeclt
+      archive: "{{ cubeclt_zip.files[0].path | default('') }}"
+      archive_mtime: "{{ cubeclt_zip.files[0].mtime | default(0) }}"
+      stamp_exists: "{{ cubeclt_stamp.stat.exists }}"
+      stamp_mtime: "{{ cubeclt_stamp.stat.mtime | default(0) }}"
+    - name: cubeide
+      unpack: cubeide
+      archive: "{{ cubeide_zip.files[0].path | default('') }}"
+      archive_mtime: "{{ cubeide_zip.files[0].mtime | default(0) }}"
+      stamp_exists: "{{ cubeide_stamp.stat.exists | default(false) }}"
+      stamp_mtime: "{{ cubeide_stamp.stat.mtime | default(0) }}"
+  loop_control:
+    loop_var: cube
+    label: "{{ cube.name }}"

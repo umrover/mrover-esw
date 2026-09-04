@@ -4,7 +4,6 @@ from pathlib import Path
 from esw import esw_logger
 from esw.cubemx.generation import generate_project
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a CubeMX Project")
     parser.add_argument(

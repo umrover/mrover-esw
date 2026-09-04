@@ -1,0 +1,26 @@
+---
+base_packages:
+  - zsh
+  - build-essential
+  - git
+  - bzip2
+  - wget
+  - cmake
+  - ninja-build
+  - software-properties-common
+  - lsb-release
+  - gnupg
+  - unzip
+
+arm_gnu_host: x86_64
+
+profile_snippet: /etc/profile.d/mrover-esw.sh
+zshenv_path: /etc/zsh/zshenv
+bash_loader_path: ""
+
+st_opt_root: /opt/st
+cubeclt_pattern: "stm32cubeclt_*"
+
+st_gui_root: /usr/local/STMicroelectronics/STM32Cube
+cubemx_exe: "{{ st_gui_root }}/STM32CubeMX/STM32CubeMX"
+cubeprg_exe: "{{ st_gui_root }}/STM32CubeProgrammer/bin/STM32CubeProgrammer"
