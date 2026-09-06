@@ -36,6 +36,14 @@ else
     readonly VSCODE_BIN="/usr/bin/code"
 fi
 
+if command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_CMD=(timeout 15)
+elif command -v gtimeout >/dev/null 2>&1; then
+    TIMEOUT_CMD=(gtimeout 15)
+else
+    TIMEOUT_CMD=(env)
+fi
+
 DO_BUILD=0
 VERBOSE_MODE=0
 FAILURES=0
@@ -86,12 +94,12 @@ check_tool() {
     fi
 
     local version_output version
-    version_output=$(timeout 15 "$path" --version 2>&1 || true)
+    version_output=$("${TIMEOUT_CMD[@]}" "$path" --version 2>&1 || true)
 
     version=$(printf '%s' "$version_output" \
         | sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g' \
         | tr -s '[:space:]' '\n' | grep -v '/' \
-        | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1)
+        | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
     [[ -n "$version" ]] || version="?"
 
     pass "$(printf '%-24s %-12s %s' "$exe" "$version" "$path")"

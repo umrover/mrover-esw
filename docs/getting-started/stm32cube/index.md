@@ -247,10 +247,17 @@ Two things differ under the hood:
   installers register their own `.app` bundles, so CubeMX, CubeProgrammer and CubeIDE appear in
   Launchpad on their own.
 
-ST ships its macOS tools as either a `.pkg` or a `.app` installer depending on the tool and
-release. Bootstrap detects which one an archive contains rather than matching filenames: `.pkg`
-files are installed non-interactively with `installer`, and a `.app` opens a window for you to
-click through, exactly like the Linux CubeMX and CubeProgrammer installers.
+ST packages its macOS tools inconsistently: each download may arrive as a `.zip`, a `.tar.gz`, a
+`.tar.gz` wrapped in a `.zip`, or a `.dmg` wrapped in a `.zip`. Bootstrap takes whatever the
+download page gives you, so do not unpack or convert anything first. It unpacks one level of
+nesting, then installs by what it finds rather than by filename:
+
+- **`.pkg`**: installed non-interactively with `installer`.
+- **`.app`**: opened with `open -W`, so a window appears for you to click through, exactly like the
+  Linux CubeMX and CubeProgrammer installers.
+- **`.dmg`**: mounted with `hdiutil`, and the `.pkg` inside is installed or the `.app` inside is
+  copied to `/Applications`. The image is unmounted again whether or not the install succeeded.
+  CubeIDE is normally the one that arrives this way.
 
 !!! warning
     The macOS support is newer and has far less mileage than the Ubuntu path. If an

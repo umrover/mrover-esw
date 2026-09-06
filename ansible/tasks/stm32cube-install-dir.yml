@@ -10,24 +10,27 @@
     prompt: |
       Download the following into {{ install_dir }}:
 
-        1. STM32CubeMX (Linux installer, .zip)
+        1. STM32CubeMX ({{ installer_os }} installer)
            https://www.st.com/en/development-tools/stm32cubemx.html
-        2. STM32CubeProgrammer (Linux installer, .zip)
+        2. STM32CubeProgrammer ({{ installer_os }} installer)
            https://www.st.com/en/development-tools/stm32cubeprog.html
-        3. STM32CubeCLT (Debian bundle, .deb_bundle.sh.zip)
+        3. STM32CubeCLT ({{ installer_bundle }})
            https://www.st.com/en/development-tools/stm32cubeclt.html
 
       Optionally, for graphical debugging (~3 GB, skipped if absent):
 
-        4. STM32CubeIDE (Debian bundle, .deb_bundle.sh.zip)
+        4. STM32CubeIDE ({{ installer_bundle }})
            https://www.st.com/en/development-tools/stm32cubeide.html
 
       All of them require logging in with a (free) MyST account.
 
-      CubeMX and CubeProgrammer ship graphical installers, so two installer
-      windows will open later in this run - click through both to finish.
+      Whatever archive format ST hands you (.zip, .tar.gz or .dmg) is fine.
+      Do not unpack or rename the downloads.
 
-      See {{ install_dir }}/README.md for the exact filenames expected.
+      CubeMX and CubeProgrammer may open a graphical installer window later
+      in this run, click through any that appear to finish.
+
+      See {{ install_dir }}/README.md for the download details.
 
       Press ENTER once the files are present in that directory.
 
@@ -35,28 +38,28 @@
   ansible.builtin.find:
     paths: "{{ install_dir }}"
     use_regex: true
-    patterns: "(?i).*stm32cubemx.*\\.zip$"
+    patterns: "(?i).*stm32cubemx.*\\.(zip|tar\\.gz|tgz|dmg)$"
   register: cubemx_zip
 
 - name: find cubeprogrammer installer archive
   ansible.builtin.find:
     paths: "{{ install_dir }}"
     use_regex: true
-    patterns: "(?i).*stm32cubepro?g.*\\.zip$"
+    patterns: "(?i).*stm32cubepro?g.*\\.(zip|tar\\.gz|tgz|dmg)$"
   register: cubeprg_zip
 
 - name: find cubeclt installer archive
   ansible.builtin.find:
     paths: "{{ install_dir }}"
     use_regex: true
-    patterns: "(?i).*stm32cubeclt.*\\.zip$"
+    patterns: "(?i).*stm32cubeclt.*\\.(zip|tar\\.gz|tgz|dmg)$"
   register: cubeclt_zip
 
 - name: find cubeide installer archive
   ansible.builtin.find:
     paths: "{{ install_dir }}"
     use_regex: true
-    patterns: "(?i).*stm32cubeide.*\\.zip$"
+    patterns: "(?i).*stm32cubeide.*\\.(zip|tar\\.gz|tgz|dmg)$"
   register: cubeide_zip
 
 - name: report that cubeide will be skipped
@@ -70,9 +73,10 @@
 - name: fail with re-run instructions if installers are missing
   ansible.builtin.fail:
     msg: >
-      Missing installer(s) in {{ install_dir }}. Expected one .zip each whose
-      name contains "stm32cubemx", "stm32cubeprog" (or "stm32cubeprg") and
-      "stm32cubeclt", in any case. Found: cubemx={{ cubemx_zip.matched }},
+      Missing installer(s) in {{ install_dir }}. Expected one archive each
+      (.zip, .tar.gz or .dmg) whose name contains "stm32cubemx",
+      "stm32cubeprog" (or "stm32cubeprg") and "stm32cubeclt", in any case.
+      Found: cubemx={{ cubemx_zip.matched }},
       cubeprogrammer={{ cubeprg_zip.matched }}, cubeclt={{ cubeclt_zip.matched }}.
       See {{ install_dir }}/README.md for download links, then re-run
       scripts/bootstrap.sh.

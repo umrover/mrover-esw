@@ -24,3 +24,6 @@ cubeclt_pattern: "stm32cubeclt_*"
 st_gui_root: /usr/local/STMicroelectronics/STM32Cube
 cubemx_exe: "{{ st_gui_root }}/STM32CubeMX/STM32CubeMX"
 cubeprg_exe: "{{ st_gui_root }}/STM32CubeProgrammer/bin/STM32CubeProgrammer"
+
+installer_os: Linux
+installer_bundle: "Debian bundle"

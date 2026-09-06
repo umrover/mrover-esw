@@ -31,9 +31,9 @@ same line the firmware build uses. See [Continuous Integration](build/ci.md).
 
 This tree is also the source for the ESW section of [docs.mrover.org](https://docs.mrover.org/esw).
 After `site` deploys on `main`, its `notify-docs` job fires a `repository_dispatch` at
-`umrover/mrover-docs`, which re-copies `docs/`, converts it to Astro Starlight, commits, and
-redeploys. Nothing is edited by hand on that side; changes made there under `esw/` are lost on the
-next sync.
+`umrover/mrover-docs`, which re-copies `docs/`, converts it to Astro Starlight, and opens a pull
+request there. Merging that PR redeploys docs.mrover.org. Nothing is edited by hand on that side;
+changes made there under `esw/` are lost on the next sync.
 
 The converter (`scripts/sync_esw.py` in mrover-docs) understands four differences:
 

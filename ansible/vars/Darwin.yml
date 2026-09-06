@@ -5,6 +5,7 @@ base_packages:
   - wget
   - shellcheck
   - clang-format
+  - coreutils
 
 arm_gnu_host: "darwin-{{ 'arm64' if ansible_facts.architecture == 'arm64' else 'x86_64' }}"
 
@@ -18,3 +19,6 @@ cubeclt_pattern: "STM32CubeCLT_*"
 st_gui_root: /Applications/STMicroelectronics
 cubemx_exe: "{{ st_gui_root }}/STM32CubeMX.app/Contents/MacOs/STM32CubeMX"
 cubeprg_exe: "{{ st_gui_root }}/STM32CubeProgrammer.app/Contents/MacOs/STM32CubeProgrammer"
+
+installer_os: macOS
+installer_bundle: "macOS bundle"

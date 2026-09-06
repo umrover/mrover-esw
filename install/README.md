@@ -10,18 +10,29 @@ Download the required three into this directory before continuing past the pause
 
 | Tool | Download page | Pick | Name must contain |
 | --- | --- | --- | --- |
-| STM32CubeMX | [stm32cubemx](https://www.st.com/en/development-tools/stm32cubemx.html) | **Linux** installer | `stm32cubemx` |
-| STM32CubeProgrammer | [stm32cubeprog](https://www.st.com/en/development-tools/stm32cubeprog.html) | **Linux** installer | `stm32cubeprog` or `stm32cubeprg` |
-| STM32CubeCLT | [stm32cubeclt](https://www.st.com/en/development-tools/stm32cubeclt.html) | **Debian Linux** bundle | `stm32cubeclt` |
-| STM32CubeIDE *(optional)* | [stm32cubeide](https://www.st.com/en/development-tools/stm32cubeide.html) | **Debian Linux** bundle | `stm32cubeide` |
+| STM32CubeMX | [stm32cubemx](https://www.st.com/en/development-tools/stm32cubemx.html) | **Linux** or **macOS** installer | `stm32cubemx` |
+| STM32CubeProgrammer | [stm32cubeprog](https://www.st.com/en/development-tools/stm32cubeprog.html) | **Linux** or **macOS** installer | `stm32cubeprog` or `stm32cubeprg` |
+| STM32CubeCLT | [stm32cubeclt](https://www.st.com/en/development-tools/stm32cubeclt.html) | **Debian Linux** or **macOS** bundle | `stm32cubeclt` |
+| STM32CubeIDE *(optional)* | [stm32cubeide](https://www.st.com/en/development-tools/stm32cubeide.html) | **Debian Linux** or **macOS** bundle | `stm32cubeide` |
 
-Leave the archives zipped and do not rename them. The names should look as follows:
+Leave the archives packed and do not rename them. Only the "name must contain" column matters; bootstrap finds each download by that substring, case-insensitively.
+
+On Ubuntu/Debian the names look like this:
 
 ```
 SetupSTM32CubeMX-6.18.1-Lin-x86_64.zip
 SetupSTM32CubeProgrammer_linux_64.zip
 stm32cubeclt_1.22-Lin-Deb-x86_64.sh.zip
 stm32cubeide_2.2.0-Lin-Deb-x86_64.sh.zip
+```
+
+On macOS ST hands out a different format per tool, and all of them work as-is. Bootstrap accepts `.zip`, `.tar.gz`, `.tgz` and `.dmg`, unpacks one level of nesting (a `.tar.gz` or `.dmg` inside a `.zip`), then runs whichever `.pkg`, `.app` or `.dmg` it finds:
+
+```
+en.stm32cubemx-mac_v6-18-1.tar.gz
+stm32cubeprg-mac.tar.gz.zip
+stm32cubeclt_1.22-Mac.zip
+stm32cubeide_2.2.0-Mac.dmg.zip
 ```
 
 On each download page the button is labelled *Get latest*, and you will be asked to log in and accept the license before the file download starts.
