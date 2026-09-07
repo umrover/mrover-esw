@@ -71,29 +71,76 @@
       when: cube_pkg.matched == 0 and cube_app.matched == 0 and cube_dmgs | length == 0
 
     - name: install {{ cube.name }} from its disk image
-      become: true
-      ansible.builtin.shell: |
-        set -euo pipefail
-        mnt=$(mktemp -d)
-        trap 'hdiutil detach -quiet "$mnt" 2>/dev/null || true; rmdir "$mnt" 2>/dev/null || true' EXIT
-        hdiutil attach -nobrowse -readonly -mountpoint "$mnt" {{ item | quote }}
-        pkg=$(find "$mnt" -maxdepth 2 -name '*.pkg' -print -quit)
-        if [ -n "$pkg" ]; then
-            installer -pkg "$pkg" -target /
-            exit 0
-        fi
-        app=$(find "$mnt" -maxdepth 2 -name '*.app' -print -quit)
-        if [ -z "$app" ]; then
-            echo "no .pkg or .app inside $(basename {{ item | quote }})" >&2
-            exit 1
-        fi
-        rm -rf "/Applications/$(basename "$app")"
-        cp -R "$app" /Applications/
-      args:
-        executable: /bin/bash
-      loop: "{{ cube_dmgs }}"
-      loop_control:
-        label: "{{ item | basename }}"
+      when: cube_dmgs | length > 0
+      block:
+        - name: make a mount point for the {{ cube.name }} disk image
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: "-{{ cube.name }}"
+          register: cube_mnt
+
+        - name: mount the {{ cube.name }} disk image
+          ansible.builtin.shell: >-
+            yes | hdiutil attach -nobrowse -readonly -noverify -quiet
+            -mountpoint {{ cube_mnt.path | quote }} {{ cube_dmgs[0] | quote }}
+          args:
+            executable: /bin/bash
+
+        - name: look for an installer package in the {{ cube.name }} disk image
+          ansible.builtin.find:
+            paths: "{{ cube_mnt.path }}"
+            patterns: "*.pkg"
+            recurse: true
+            depth: 2
+            file_type: any
+          register: cube_dmg_pkg
+
+        - name: look for an app in the {{ cube.name }} disk image
+          ansible.builtin.find:
+            paths: "{{ cube_mnt.path }}"
+            patterns: "*.app"
+            recurse: true
+            depth: 2
+            file_type: directory
+          register: cube_dmg_app
+
+        - name: fail when the disk image holds neither a .pkg nor a .app
+          ansible.builtin.fail:
+            msg: >
+              {{ cube_dmgs[0] | basename }} contains neither a .pkg nor a .app.
+              Install {{ cube.name }} by hand and re-run bootstrap.
+          when: cube_dmg_pkg.matched == 0 and cube_dmg_app.matched == 0
+
+        - name: install the {{ cube.name }} package from the disk image
+          become: true
+          ansible.builtin.command: "installer -pkg {{ item.path }} -target /"
+          loop: "{{ cube_dmg_pkg.files }}"
+          loop_control:
+            label: "{{ item.path | basename }}"
+
+        - name: copy {{ cube.name }} out of the disk image into /Applications
+          ansible.builtin.shell: |
+            set -euo pipefail
+            app={{ cube_dmg_app.files[0].path | quote }}
+            dest="/Applications/$(basename "$app")"
+            rm -rf "$dest"
+            cp -R "$app" "$dest"
+          args:
+            executable: /bin/bash
+          when: cube_dmg_pkg.matched == 0 and cube_dmg_app.matched > 0
+
+      always:
+        - name: unmount the {{ cube.name }} disk image
+          ansible.builtin.command: "hdiutil detach -quiet {{ cube_mnt.path }}"
+          when: cube_mnt is defined and "path" in cube_mnt
+          failed_when: false
+          changed_when: false
+
+        - name: remove the {{ cube.name }} mount point
+          ansible.builtin.file:
+            path: "{{ cube_mnt.path }}"
+            state: absent
+          when: cube_mnt is defined and "path" in cube_mnt
 
     - name: install the {{ cube.name }} package(s)
       become: true

@@ -22,6 +22,12 @@
       ansible.builtin.include_vars: "vars/{{ ansible_facts.system }}.yml"
       tags: always
 
+    - name: check that privilege escalation works
+      become: true
+      ansible.builtin.command: "true"
+      changed_when: false
+      tags: always
+
   tasks:
     - import_tasks: tasks/packages.yml
       tags: packages
