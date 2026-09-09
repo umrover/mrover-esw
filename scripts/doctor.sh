@@ -31,7 +31,7 @@ fi
 readonly DESKTOP_DIR="$HOME/.local/share/applications"
 
 if [[ "$(uname)" == "Darwin" ]]; then
-    readonly VSCODE_BIN="/usr/local/bin/code"
+    readonly VSCODE_BIN="$(command -v code 2>/dev/null || true)"
 else
     readonly VSCODE_BIN="/usr/bin/code"
 fi
@@ -132,8 +132,13 @@ if [[ "$(uname)" == "Linux" ]]; then
     check_file STM32CubeProgrammer "$CUBEPRG_GUI"
 fi
 
-CUBEIDE_CANDIDATES=("$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide)
-CUBEIDE="${CUBEIDE_CANDIDATES[-1]}"  # newest version by name
+if [[ "$(uname)" == "Linux" ]]; then
+    CUBEIDE_CANDIDATES=("$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide)
+    CUBEIDE="${CUBEIDE_CANDIDATES[${#CUBEIDE_CANDIDATES[@]}-1]}"  # newest version by name  
+else
+    CUBEIDE="$(find /Applications -path '*STM32CubeIDE.app/Contents/MacOS/*' -type f -perm +111 -print -quit 2>/dev/null)"
+fi
+
 if [[ -x "$CUBEIDE" ]]; then
     pass "$(printf '%-24s %-12s %s' "STM32CubeIDE" "$(basename "$(dirname "$CUBEIDE")" | sed 's/stm32cubeide_//')" "$CUBEIDE")"
 else

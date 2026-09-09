@@ -81,7 +81,7 @@
 
         - name: mount the {{ cube.name }} disk image
           ansible.builtin.shell: >-
-            yes | hdiutil attach -nobrowse -readonly -noverify -quiet
+            yes | PAGER=cat hdiutil attach -nobrowse -readonly -noverify 
             -mountpoint {{ cube_mnt.path | quote }} {{ cube_dmgs[0] | quote }}
           args:
             executable: /bin/bash
@@ -127,7 +127,7 @@
             cp -R "$app" "$dest"
           args:
             executable: /bin/bash
-          when: cube_dmg_pkg.matched == 0 and cube_dmg_app.matched > 0
+          when: cube_dmg_app.matched > 0
 
       always:
         - name: unmount the {{ cube.name }} disk image

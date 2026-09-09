@@ -38,4 +38,4 @@ esac
 
 export ANSIBLE_CONFIG="$ESW_ROOT/ansible/ansible.cfg"
 
-ansible-playbook "$ESW_ROOT/ansible/bootstrap.yml" --connection=local --ask-become-pass
+ansible-playbook "$ESW_ROOT/ansible/bootstrap.yml" --connection=local --ask-become-pass "$@"

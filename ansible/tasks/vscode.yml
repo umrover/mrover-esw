@@ -47,7 +47,7 @@
     path: "{{ vscode_bin }}"
   register: vscode_binary
   vars:
-    vscode_bin: "{{ '/usr/local/bin/code' if ansible_facts.system == 'Darwin' else '/usr/bin/code' }}"
+    vscode_bin: "{{ '/opt/homebrew/bin/code' if ansible_facts.system == 'Darwin' else '/usr/bin/code' }}"
 
 - name: configure vs code extensions
   when: vscode_binary.stat.exists
