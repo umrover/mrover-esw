@@ -1,0 +1,51 @@
+---
+- name: ensure the user applications directory exists
+  ansible.builtin.file:
+    path: "{{ desktop_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: find stale cube desktop entries
+  ansible.builtin.find:
+    paths: "{{ desktop_dir }}"
+    use_regex: true
+    patterns: "(?i).*(stm32|cube).*\\.desktop$"
+  register: stale_desktop_entries
+
+- name: remove stale cube desktop entries
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ stale_desktop_entries.files }}"
+  when: (item.path | basename) not in managed_desktop_entries
+  vars:
+    managed_desktop_entries: [STM32CubeMX.desktop, STM32CubeProgrammer.desktop]
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: write desktop entries for the cube GUIs
+  ansible.builtin.copy:
+    dest: "{{ desktop_dir }}/{{ item.name }}.desktop"
+    mode: "0644"
+    content: |
+      [Desktop Entry]
+      # Managed by ./scripts/bootstrap.sh (ansible/tasks/desktop-entries.yml) - do not edit.
+      Type=Application
+      Name={{ item.name }}
+      Comment={{ item.comment }}
+      Exec={{ item.exec }}
+      Path={{ item.exec | dirname }}
+      Icon={{ item.icon }}
+      Terminal=false
+      Categories=Development;Electronics;
+  loop:
+    - name: STM32CubeMX
+      comment: Configure STM32 peripherals and generate initialization code
+      exec: "{{ cubemx_exe }}"
+      icon: "{{ cubemx_exe | dirname }}/help/STM32CubeMX.png"
+    - name: STM32CubeProgrammer
+      comment: Flash, erase and inspect STM32 memory over ST-LINK
+      exec: "{{ cubeprg_exe }}"
+      icon: "{{ cubeprg_exe | dirname | dirname }}/util/Programmer.ico"
+  loop_control:
+    label: "{{ item.name }}"

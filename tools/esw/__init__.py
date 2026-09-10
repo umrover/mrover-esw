@@ -3,7 +3,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import time
 
-
 # logging constants
 _LOG_NAME = "esw"
 _LOG_LEVEL = logging.INFO

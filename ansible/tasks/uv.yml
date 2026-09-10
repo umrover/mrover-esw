@@ -1,0 +1,33 @@
+---
+- name: read the pinned uv version from Dockerfile.arm-gnu
+  ansible.builtin.slurp:
+    src: "{{ esw_root }}/Dockerfile.arm-gnu"
+  register: arm_dockerfile
+
+- name: record the pinned uv version
+  ansible.builtin.set_fact:
+    uv_version: >-
+      {{ (arm_dockerfile.content | b64decode
+          | regex_search('ghcr\.io/astral-sh/uv:(\S+)', '\1'))[0] }}
+
+- name: check which uv is installed
+  ansible.builtin.command: uv --version
+  register: uv_installed
+  changed_when: false
+  failed_when: false
+
+- name: pin an existing uv to the required version
+  ansible.builtin.command: "uv self update {{ uv_version }}"
+  when:
+    - uv_installed.rc == 0
+    - uv_version not in (uv_installed.stdout | default(''))
+  register: uv_pinned
+  changed_when: >-
+    'Upgraded' in (uv_pinned.stdout + uv_pinned.stderr)
+    or 'Downgraded' in (uv_pinned.stdout + uv_pinned.stderr)
+
+- name: install uv
+  ansible.builtin.shell: "curl -LsSf https://astral.sh/uv/{{ uv_version }}/install.sh | sh"
+  when: uv_installed.rc != 0
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/uv"

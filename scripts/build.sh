@@ -10,7 +10,7 @@ NC="\e[0m"
 
 ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
 TOOLS_DIR="$ESW_ROOT/tools"
-VENV_PATH="$TOOLS_DIR/venv"
+VENV_PATH="$TOOLS_DIR/.venv"
 SRC=""
 PRESET="Debug"
 TARGET_NAME=""
@@ -51,7 +51,7 @@ run_step() {
 }
 
 check_deps() {
-    local deps=("cmake" "ninja")
+    local deps=("cmake" "ninja" "uv")
     [[ "$DO_FLASH" == "true" ]] && deps+=("STM32_Programmer_CLI")
     for cmd in "${deps[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
@@ -59,6 +59,15 @@ check_deps() {
             exit 1
         fi
     done
+}
+
+check_submodules() {
+    local submodule_dir="$ESW_ROOT/lib/stm32g4/STM32CubeG4"
+    if [ ! -e "$submodule_dir/.git" ]; then
+        printf "%b\n" "${RED}✗ error: submodule not found at $submodule_dir${NC}"
+        printf "%b\n" "${RED}  run: git submodule update --init --recursive${NC}"
+        exit 1
+    fi
 }
 
 clean() {
@@ -99,6 +108,7 @@ if [[ -z "$TARGET_NAME" ]]; then
 fi
 
 check_deps
+check_submodules
 
 printf "%b\n" "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======${NC}"
 
@@ -140,22 +150,9 @@ popd > /dev/null
 
 # ensure .clangd file exists
 if [[ ! -f "$SRC_DIR/.clangd" ]]; then
-    # create venv if it does not exist
-    if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
-        mkdir -p "$BUILD_DIR"
-        if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-            cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
-        fi
-        cmake --build "${BUILD_DIR}" --target python_env_ready
-        rm -rf "$BUILD_DIR"
-    fi
-
-    # activate venv
-    # shellcheck source=/dev/null
-    source "$VENV_PATH/bin/activate"
-
-    # create the clangd
-    run_step "create .clangd" "$VENV_PATH/bin/python" "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
+    # uv run creates and syncs tools/.venv on demand
+    run_step "create .clangd" \
+        uv run --quiet --project "$TOOLS_DIR" python "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
 fi
 
 printf "%b\n" "${GREEN}====== success ======${NC}"

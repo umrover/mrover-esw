@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -6,7 +7,6 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from esw import esw_logger
-
 
 _C_STANDARD: int = 17
 _CXX_STANDARD: int = 23
@@ -93,6 +93,14 @@ def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str]) 
     }
 
 
+def _version_key(name: str) -> tuple[int, ...]:
+    """Numeric sort key for dotted version names, so 13.10.0 sorts above 13.9.0.
+
+    Plain string sorting gets this backwards: "13.9.0" > "13.10.0" lexicographically.
+    """
+    return tuple(int(part) for part in re.findall(r"\d+", name))
+
+
 def _get_clangd_context() -> dict[str, Any]:
     NUM_PATHS = 3  # gcc include directory, c++ include directory, c++ eabi include directory
     opt_st = Path("/opt/st")
@@ -103,7 +111,13 @@ def _get_clangd_context() -> dict[str, Any]:
             "cxx_standard": _CXX_STANDARD,
         }
 
-    base_dirs = sorted(opt_st.glob("stm32cubeclt_*/GNU-tools-for-STM32/arm-none-eabi"), reverse=True)
+    # newest by mtime, matching the CubeCLT selection in ansible/tasks/path-profile.yml;
+    # sorting these by name picks "stm32cubeclt_1.9.0" over "stm32cubeclt_1.20.0"
+    base_dirs = sorted(
+        opt_st.glob("stm32cubeclt_*/GNU-tools-for-STM32/arm-none-eabi"),
+        key=lambda d: d.stat().st_mtime,
+        reverse=True,
+    )
     if not base_dirs:
         return {
             "includes": None,
@@ -119,7 +133,11 @@ def _get_clangd_context() -> dict[str, Any]:
 
     cpp_root = base_dir / "include" / "c++"
     if cpp_root.exists():
-        version_dirs = sorted([d for d in cpp_root.iterdir() if d.is_dir() and d.name != "arm-none-eabi"], reverse=True)
+        version_dirs = sorted(
+            [d for d in cpp_root.iterdir() if d.is_dir() and d.name != "arm-none-eabi"],
+            key=lambda d: _version_key(d.name),
+            reverse=True,
+        )
         if version_dirs:
             latest_cpp_version = version_dirs[0]
             paths.append(latest_cpp_version)
@@ -127,8 +145,14 @@ def _get_clangd_context() -> dict[str, Any]:
             if target_path.exists():
                 paths.append(target_path)
 
+    if len(paths) != NUM_PATHS:
+        esw_logger.warning(
+            f"Expected {NUM_PATHS} toolchain include directories under {base_dir}, found {len(paths)}: {paths}. "
+            "Generating .clangd without system includes - clangd will report missing headers."
+        )
+
     return {
-        "includes": paths if paths and len(paths) == NUM_PATHS else None,
+        "includes": paths if len(paths) == NUM_PATHS else None,
         "c_standard": _C_STANDARD,
         "cxx_standard": _CXX_STANDARD,
     }

@@ -63,7 +63,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
     STM32
     $<$<CONFIG:Debug>:DEBUG>
-    $<$<CONFIG:Release>:RELEASE>
+    $<$<CONFIG:Release,RelWithDebInfo>:RELEASE>
 )
 
 # Remove wrong libob.a library dependency when using cpp files

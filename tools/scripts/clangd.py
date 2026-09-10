@@ -4,7 +4,6 @@ from pathlib import Path
 from esw import esw_logger
 from esw.cubemx.cmake import configure_clang
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a clangd Configuration for a Project")
     parser.add_argument(

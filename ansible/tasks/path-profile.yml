@@ -1,0 +1,56 @@
+---
+- name: find installed STM32CubeCLT versions
+  ansible.builtin.find:
+    paths: "{{ st_opt_root }}"
+    patterns: "{{ cubeclt_pattern }}"
+    file_type: directory
+  register: cubeclt_dirs
+
+- name: fail if no CubeCLT install was found
+  ansible.builtin.fail:
+    msg: >
+      No STM32CubeCLT install found under {{ st_opt_root }}. It is installed by
+      tasks/stm32cube-install-dir.yml earlier in this playbook - re-run
+      ./scripts/bootstrap.sh.
+  when: cubeclt_dirs.matched == 0
+
+- name: select the most recently installed CubeCLT
+  ansible.builtin.set_fact:
+    cubeclt_root: "{{ (cubeclt_dirs.files | sort(attribute='mtime') | last).path }}"
+
+- name: read CubeCLT tool locations
+  ansible.builtin.command: "{{ cubeclt_root }}/STM32CubeCLT_metadata.sh -j"
+  register: cubeclt_metadata
+  changed_when: false
+
+- name: parse CubeCLT tool locations
+  ansible.builtin.set_fact:
+    clt: "{{ cubeclt_metadata.stdout | from_json }}"
+
+- name: write mrover-esw PATH profile.d snippet
+  become: true
+  ansible.builtin.template:
+    src: path-profile-snippet.j2
+    dest: "{{ profile_snippet }}"
+    mode: "0644"
+
+- name: source the PATH profile from zsh
+  become: true
+  ansible.builtin.blockinfile:
+    path: "{{ zshenv_path }}"
+    create: true
+    mode: "0644"
+    marker: "# {mark} MANAGED BY mrover-esw scripts/bootstrap.sh"
+    block: |
+      [ -r {{ profile_snippet }} ] && . {{ profile_snippet }}
+
+- name: source the PATH profile from bash
+  become: true
+  ansible.builtin.blockinfile:
+    path: "{{ bash_loader_path }}"
+    create: true
+    mode: "0644"
+    marker: "# {mark} MANAGED BY mrover-esw scripts/bootstrap.sh"
+    block: |
+      [ -r {{ profile_snippet }} ] && . {{ profile_snippet }}
+  when: bash_loader_path | length > 0
