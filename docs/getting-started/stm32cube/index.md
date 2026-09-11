@@ -37,6 +37,14 @@ This installs [ansible](https://docs.ansible.com/) (if it isn't already present)
 cube tools, initializes git submodules, writes your `PATH` and application launcher entries, and
 sets up the python virtual environment at `tools/.venv`.
 
+!!! note
+    Right when you run the script, ansible will prompt you for the `BECOME password`. This is the same
+    password you use for `sudo`, to elevate to local administrator permissions. Ansible needs this to run
+    some commands (e.g. adding `become: true` changes `apt upgrade` to `sudo apt upgrade`, if you are
+    unfamiliar with these commands, try to run them to see what they do).
+    See [this](https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_privilege_escalation.html)
+    for more information.
+
 The cube tools can't be downloaded automatically as ST gates all of them behind a login (a free
 MyST account; you may use any email address) with no stable download URL. Partway through,
 `./scripts/bootstrap.sh` will pause and ask you to:
