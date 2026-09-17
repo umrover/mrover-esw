@@ -1,0 +1,19 @@
+[Unit]
+Description=MRover Docker Compose Stack
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/home/github/mrover-esw
+
+ExecStart=/home/craza/github/mrover-esw/scripts/start.sh
+ExecStop=/home/craza/github/mrover-esw/scripts/stop.sh
+
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
