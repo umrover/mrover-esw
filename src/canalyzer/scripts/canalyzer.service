@@ -9,8 +9,8 @@ RemainAfterExit=yes
 
 WorkingDirectory=/home/github/mrover-esw
 
-ExecStart=/usr/bin/docker compose up -d --build --remove-orphans
-ExecStop=/usr/bin/docker compose down
+ExecStart=/home/craza/github/mrover-esw/scripts/start.sh
+ExecStop=/home/craza/github/mrover-esw/scripts/stop.sh
 
 TimeoutStartSec=0
 TimeoutStopSec=30
