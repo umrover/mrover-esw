@@ -27,3 +27,5 @@ cubeprg_exe: "{{ st_gui_root }}/STM32CubeProgrammer/bin/STM32CubeProgrammer"
 
 installer_os: Linux
 installer_bundle: "Debian bundle"
+
+ansible_become_exe: "{{ '/usr/bin/sudo.ws' if '/usr/bin/sudo.ws' is exists else 'sudo' }}"
