@@ -7,10 +7,8 @@ Requires=docker.service
 Type=oneshot
 RemainAfterExit=yes
 
-WorkingDirectory=/home/github/mrover-esw
-
-ExecStart=/home/craza/github/mrover-esw/scripts/start.sh
-ExecStop=/home/craza/github/mrover-esw/scripts/stop.sh
+ExecStart=/home/mrover/github/mrover-esw/src/canalyzer/scripts/start.sh
+ExecStop=/home/mrover/github/mrover-esw/src/canalyzerscripts/stop.sh
 
 TimeoutStartSec=0
 TimeoutStopSec=30
