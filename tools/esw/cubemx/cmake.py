@@ -13,13 +13,10 @@ _CXX_STANDARD: int = 23
 
 def _clean_project(path: Path) -> None:
     esw_logger.info(f"Cleaning Existing CMake Project {path.absolute().resolve()}")
-    clangd = path / ".clangd"
     cmakelists = path / "CMakeLists.txt"
     cmakepresets = path / "CMakePresets.json"
     cmakelists_stm = path / "cmake" / "stm32cubemx" / "CMakeLists.txt"
 
-    if clangd.exists() and clangd.is_file():
-        clangd.unlink()
     if cmakelists.exists() and cmakelists.is_file():
         cmakelists.unlink()
     if cmakepresets.exists() and cmakepresets.is_file():
