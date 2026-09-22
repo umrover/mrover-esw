@@ -1,0 +1,17 @@
+[Unit]
+Description=MRover Docker Compose Stack
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/home/mrover/github/mrover-esw/src/canalyzer/scripts/start.sh
+ExecStop=/home/mrover/github/mrover-esw/src/canalyzerscripts/stop.sh
+
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
