@@ -1,0 +1,7 @@
+# Exclude everything by default
+*
+
+# Then allow only what the build needs
+!src
+!lib
+!tools

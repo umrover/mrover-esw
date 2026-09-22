@@ -13,5 +13,5 @@ if [ ! -f "$DOCKER_FILE" ]; then
 fi
 
 echo "Building CAN code image..."
-docker build -t "$IMAGE_NAME" -f "$DOCKER_FILE" "$BUILD_CONTEXT"
+docker build --network=host -t "$IMAGE_NAME" -f "$DOCKER_FILE" "$BUILD_CONTEXT"
 echo "CAN code image build complete"

@@ -4,19 +4,49 @@
 #include "influxdb.hpp"
 
 
+#include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <iomanip>
 #include <iostream>
+#include <linux/can.h>
 #include <mutex>
 #include <ostream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+
+namespace bus_load {
+    BusLoadConfig::BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate) :
+        nominal_bitrate(nominal_bitrate),
+        data_bitrate(data_bitrate) {}
+
+    auto estimate_frame_bits(canfd_frame const& can_frame, bool const is_fd) -> FrameBits {
+        constexpr double stuffing_modifier = 1.15;
+        constexpr double metadata_tail_size = 13;
+        bool const is_extended = can_frame.can_id & CAN_EFF_FLAG;
+
+        if (!is_fd) {
+            double const bits = ((is_extended ? 54 : 34) + 8.0 * can_frame.len) * stuffing_modifier + metadata_tail_size;
+            return {static_cast<uint32_t>(std::lround(bits)), 0};
+        }
+
+        double const arb = (is_extended ? 36 : 17) * stuffing_modifier + metadata_tail_size;
+        double const data = (5 + 8.0 * can_frame.len) * stuffing_modifier + (can_frame.len > 16 ? 32 : 27);
+
+        auto const a = static_cast<uint32_t>(std::lround(arb));
+        auto const d = static_cast<uint32_t>(std::lround(data));
+
+        if (can_frame.flags & CANFD_BRS) return {a, d};
+        return {a + d, 0};
+    }
+}
 
 namespace logger {
 
@@ -53,6 +83,23 @@ namespace logger {
         _ts(timestamp);
     }
 
+
+    void Logger::DynamicBuilder::post_bus_load(
+        std::string const& bus_name,
+        bus_load::BusLoadSample const& sample) {
+
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
+        }
+
+        _m("bus_load");
+        _t("bus_name", bus_name);
+        _f_f(' ', "load_percentage", sample.load_pct, 3);
+        _f_i(',', "frame_count", static_cast<long long>(sample.frames));
+        _f_i(',', "bits", static_cast<long long>(sample.bits));
+        _ts(sample.time);
+    }
+
     auto Logger::DynamicBuilder::commit(influxdb_cpp::server_info const& si) -> int {
         if (lines_.tellp() == 0) return 0;
 
@@ -87,34 +134,36 @@ namespace logger {
 
     void Logger::_committer_worker() {
 
-        std::vector<DecodedFrame> local_buffer;
+        std::vector<DecodedFrame> frames;
+        std::vector<bus_load::BusLoadSample> samples;
 
         while (true) {
             {
                 std::unique_lock<std::mutex> lock(buffer_mutex);
-                cv.wait(lock, [this] { return !buffer.empty() || !running.load(); });
+                cv.wait(lock, [this] { return !frame_buffer.empty() || !bus_loader_buffer.empty() || !running.load(); });
 
-                if (!running.load() && buffer.empty()) break;
+                if (!running.load() && frame_buffer.empty() && bus_loader_buffer.empty()) break;
 
-                while (!buffer.empty()) {
-                    local_buffer.push_back(std::move(buffer.front()));
-                    buffer.pop_front();
-                }
+                frames.assign(std::make_move_iterator(frame_buffer.begin()), std::make_move_iterator(frame_buffer.end()));
+                frame_buffer.clear();
+
+                samples.assign(bus_loader_buffer.begin(), bus_loader_buffer.end());
+                bus_loader_buffer.clear();
             }
 
-            for (auto const& can_frame: local_buffer) {
+            for (auto const& can_frame: frames) {
                 auto const desc = parser.message(can_frame.id);
-                if (desc == nullptr) throw std::runtime_error(std::format("failed to get description for {:x}", can_frame.id));
+                if (desc == nullptr) continue;  // fix later, probably should record how many are skipped
+                builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);                
+            }
 
-                builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
-                int const status = builder.commit(si);
-                if (status != 0) {
-                    {
-                        std::lock_guard<std::mutex> lock(cout_mutex);
-                        std::cout << std::format("builder commit failed with error: {}\n", status);
-                        ++influx_post_error_count;
-                    }
-                }
+            for (auto const& sample : samples) builder.post_bus_load(can_bus_name, sample);
+
+            int const status = builder.commit(si);
+            if (status != 0) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << std::format("builder commit failed with error: {}\n on bus {}\n", status, can_bus_name);
+                ++influx_post_error_count;
             }
         }
 
@@ -122,10 +171,45 @@ namespace logger {
         {
             std::lock_guard<std::mutex> lock(buffer_mutex);
 
-            for (auto const& can_frame: buffer) {
+            for (auto const& can_frame: frame_buffer) {
                 auto desc = parser.message(can_frame.id);
                 builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
                 builder.commit(si);
+            }
+        }
+    }
+
+    void Logger::_bus_load_worker() {
+        auto last = std::chrono::steady_clock::now();
+        auto next = last + bus_load_config.sample_window;
+
+        while (running.load()) {
+            std::this_thread::sleep_until(next);
+
+            auto const now = std::chrono::steady_clock::now();
+            next += bus_load_config.sample_window;
+            if (next <= now) next = now +bus_load_config.sample_window;
+
+            double const elapsed = std::chrono::duration<double>(now - last).count();
+            last = now;
+
+            uint64_t const nominal_bit_count = nominal_bits.exchange(0, std::memory_order_relaxed);
+            uint64_t const data_bit_count = data_bits.exchange(0, std::memory_order_relaxed);
+            uint64_t const frames = frame_count.exchange(0, std::memory_order_relaxed);
+
+            double const busy_seconds = static_cast<double>(nominal_bit_count) / bus_load_config.nominal_bitrate + static_cast<double>(data_bit_count) / bus_load_config.data_bitrate;
+            double const load = 100.0 * busy_seconds / elapsed;
+
+            {
+                std::lock_guard<std::mutex> lock(buffer_mutex);
+                bus_loader_buffer.push_back({now_ms(), load, frames, nominal_bit_count + data_bit_count});
+            }
+
+            cv.notify_one();
+
+            if (debug) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << std::format("{}: bus load {:.1f}%, {} frames\n", can_bus_name, load, frames);
             }
         }
     }
@@ -215,45 +299,54 @@ namespace logger {
     Logger::Logger(int id,
                    std::string& bus_name,
                    std::string& yaml_file_path,
+                   std::string& ascii_file_path,
                    std::unordered_set<uint32_t>&& log_ids,
                    std::unordered_set<std::string>&& dbc_file_paths,
                    influxdb_cpp::server_info& si,
                    log_mode mode,
-                   bool log_ascii)
+                   bool log_ascii,
+                   bus_load::BusLoadConfig& bus_config
+                )
 
         : id(id),
           can_bus_name(bus_name),
           yaml_file_path(yaml_file_path),
+          ascii_file_path(ascii_file_path),
           log_ascii(log_ascii),
           si(si),
           log_ids(log_ids),
           dbc_file_paths(std::move(dbc_file_paths)),
-          mode(mode) {}
+          mode(mode),
+          bus_load_config(bus_config) {}
 
     Logger::Logger(logger::Logger&& other) noexcept
         : id(other.id),
+          bus_socket(other.bus_socket),
           can_bus_name(std::move(other.can_bus_name)),
           yaml_file_path(std::move(other.yaml_file_path)),
+          ascii_file_path(std::move(other.ascii_file_path)),
           log_ascii(other.log_ascii),
           si(std::move(other.si)),
           log_ids(std::move(other.log_ids)),
           dbc_file_paths(std::move(other.dbc_file_paths)),
           mode(other.mode),
-          debug(other.debug) {}
+          debug(other.debug),
+          bus_load_config(other.bus_load_config) {}
 
 
     void Logger::start() {
         try {
             _init_bus();
             std::flush(std::cout);
-            // std::filesystem::path dir = std::filesystem::path(ascii_log_file_path).parent_path();
-            // if (!dir.empty() && !std::filesystem::exists(dir)) {
-            //     std::filesystem::create_directories(dir);
-            //     {
-            //         std::lock_guard<std::mutex> lock(cout_mutex);
-            //         std::cout << "Created directory: " << dir << "\n";
-            //     }
-            // }
+
+            std::filesystem::path dir = std::filesystem::path(ascii_file_path).parent_path();
+            if (!dir.empty() && !std::filesystem::exists(dir)) {
+                std::filesystem::create_directories(dir);
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "Created directory: " << dir << "\n";
+                }
+            }
 
         } catch (std::exception const& e) {
             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -267,12 +360,13 @@ namespace logger {
 
         // TODO: create a default ascii_log_file_path with log_ascii + can_bus_name, maybe optional arg
         // Open log file (ofstream will create it if it doesn't exist)
-        // std::ofstream file(ascii_log_file_path, std::ios::app); // use app to append
-        // if (!file.is_open()) {
-        //     std::lock_guard<std::mutex> lock(cout_mutex);
-        //     std::cerr << "Logger cannot open file" << ascii_log_file_path << "\n";
-        //     return;
-        // }
+
+        std::ofstream file(ascii_file_path, std::ios::app); // use app to append
+        if (!file.is_open()) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cerr << "Logger cannot open file" << ascii_file_path << "\n";
+            return;
+        }
 
         if (debug) {
             std::lock_guard<std::mutex> lock(cout_mutex);
@@ -280,6 +374,7 @@ namespace logger {
         }
 
         committer_thread = std::thread(&Logger::_committer_worker, this);
+        bus_load_thread = std::thread(&Logger::_bus_load_worker, this);
 
         struct canfd_frame cfd{};
 
@@ -311,6 +406,14 @@ namespace logger {
                 continue;
             }
 
+            bool const is_fd = (bytes_read == static_cast<ssize_t>(CANFD_MTU));
+            if (!(cfd.can_id & CAN_ERR_FLAG)) {
+                auto const frame_bits = bus_load::estimate_frame_bits(cfd, is_fd);
+                nominal_bits.fetch_add(frame_bits.nominal, std::memory_order_relaxed);
+                data_bits.fetch_add(frame_bits.data, std::memory_order_relaxed);
+                frame_count.fetch_add(1, std::memory_order_relaxed);
+            }
+
             uint32_t id = (cfd.can_id & CAN_EFF_MASK & 0xFFFF0000) | 0x80000000; //hacky fix
 
             switch (mode) {
@@ -323,19 +426,20 @@ namespace logger {
                     break;
                 }
             }
-            // TODO: Fix, need a file path
-            //logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
+            
+            logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
             DecodedFrame decoded_message = {.id = id, .time = now_ms(), .data = _decode(id, cfd)};
 
             {
                 std::lock_guard<std::mutex> lock(buffer_mutex);
-                buffer.push_back(decoded_message);
+                frame_buffer.push_back(decoded_message);
             }
             cv.notify_one();
 
         } //endwhile
 
+        if (bus_load_thread.joinable()) bus_load_thread.join();
         cv.notify_one();
 
         if (committer_thread.joinable()) committer_thread.join();
@@ -412,7 +516,7 @@ namespace logger {
         std::string user(env_user);
 
         char const* env_pass = std::getenv("INFLUXDB_PASSWORD");
-        if (!env_port) throw std::runtime_error("influxdb environment variable unset: password");
+        if (!env_pass) throw std::runtime_error("influxdb environment variable unset: password");
         std::string password(env_pass);
 
         influxdb_cpp::server_info auth(host, port, db_name, user, password);
@@ -429,6 +533,7 @@ namespace logger {
 
             auto name = loggers_node[i]["name"].As<std::string>();
             auto log_mode_str = loggers_node[i]["log_mode"].As<std::string>();
+            auto ascii_file_path = loggers_node[i]["file_path"].As<std::string>();
 
             log_mode mode;
             if (log_mode_str == "whitelist") {
@@ -481,7 +586,14 @@ namespace logger {
 
             bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
 
-            loggers.emplace_back(i, name, yaml_path, std::move(log_ids), std::move(dbc_file_paths), auth, mode, log_ascii);
+            auto nominal_bitrate = loggers_node[i]["bus_config"]["nominal_bitrate"].As<uint32_t>();
+            auto data_bitrate = loggers_node[i]["bus_config"]["data_bitrate"].As<uint32_t>();
+
+            if (nominal_bitrate == 0 || data_bitrate == 0) throw std::runtime_error(std::format("{}: bus_config bitrates missing or zero", name));
+
+            bus_load::BusLoadConfig bus_config(nominal_bitrate, data_bitrate);
+
+            loggers.emplace_back(i, name, yaml_path, ascii_file_path, std::move(log_ids), std::move(dbc_file_paths), auth, mode, log_ascii, bus_config);
             {
                 std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << "" << std::endl;

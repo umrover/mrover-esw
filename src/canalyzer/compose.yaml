@@ -63,7 +63,7 @@ services:
       influxdb:
         condition: service_healthy
     volumes:
-       - ./can_logger/logs:/app/logs
+       - ./logs:/app/logs
        - ./canalyzer_config.yaml:/app/config.yaml
        - ../../dbc/:/app/dbc/
 
