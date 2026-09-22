@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -22,6 +23,30 @@
 
 #include "dbc_runtime.hpp"
 #include "influxdb.hpp"
+
+namespace bus_load {
+    struct FrameBits {
+        uint32_t nominal;
+        uint32_t data;
+    };
+
+    auto estimate_frame_bits(canfd_frame const& can_frame, bool is_fd) -> FrameBits;
+
+    struct BusLoadConfig {
+        uint32_t nominal_bitrate = 500'000;
+        uint32_t data_bitrate = 2'000'000;
+        std::chrono::milliseconds sample_window{1000};
+
+        BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate);
+    };
+
+    struct BusLoadSample {
+        long long time;
+        double load_pct;
+        uint64_t frames;
+        uint64_t bits;
+    };
+}
 
 namespace logger {
 
@@ -48,7 +73,7 @@ namespace logger {
         struct DynamicBuilder : public influxdb_cpp::builder {
 
             /**
-             * @brief Creates a POST to InfluxDB
+             * @brief Creates a POST to InfluxDB using decoded CAN data
              *
              * @param measurement Name of specific measurement
              * @param bus_name Name of bus sourcing data
@@ -59,6 +84,15 @@ namespace logger {
                       std::string const& bus_name,
                       std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
                       long long timestamp);
+
+            /**
+             * @brief Creates a POST to InfluxDB using bus load sample
+             *
+             * @param bus_name Name of bus sourcing data
+             * @param sample Bus Load Sample taken every second
+             */
+            void post_bus_load(std::string const& bus_name, bus_load::BusLoadSample const& sample);
+                
             /**
              * @brief Commit POST request buffer to InfluxDB
              *
@@ -73,6 +107,7 @@ namespace logger {
         int bus_socket = -1;
         std::string can_bus_name;
         std::string yaml_file_path;
+        std::string ascii_file_path;
         std::string dbc_root_path;
         influxdb_cpp::server_info si;
 
@@ -82,12 +117,24 @@ namespace logger {
         mrover::dbc_runtime::CanDbcFileParser parser;
         mrover::dbc_runtime::CanFrameProcessor processor;
 
-        std::deque<DecodedFrame> buffer;
+        std::deque<DecodedFrame> frame_buffer;
         std::mutex buffer_mutex;
         std::condition_variable cv;
 
         void _committer_worker();
         std::thread committer_thread;
+
+        bus_load::BusLoadConfig bus_load_config;
+
+        std::atomic<uint64_t> nominal_bits{0};
+        std::atomic<uint64_t> data_bits{0};
+        std::atomic<uint64_t> frame_count{0};
+
+        std::deque<bus_load::BusLoadSample> bus_loader_buffer;
+
+        void _bus_load_worker();
+        std::thread bus_load_thread;
+
 
         DynamicBuilder builder;
 
@@ -115,11 +162,14 @@ namespace logger {
                 int id,
                 std::string& bus_name,
                 std::string& yaml_file_path,
+                std::string& ascii_file_path,
                 std::unordered_set<uint32_t>&& log_ids,
                 std::unordered_set<std::string>&& dbc_file_paths,
                 influxdb_cpp::server_info& si,
                 log_mode mode,
-                bool log_ascii);
+                bool log_ascii,
+                bus_load::BusLoadConfig& bus_conf
+            );
 
         Logger(Logger&& other) noexcept;
         void start();
