@@ -1,6 +1,7 @@
 [
     "src/tests/serial",
     "src/tests/logger",
+    "src/tests/rtos",
     "src/bmc",
     "src/pdlb",
     "src/abs"
