@@ -8,7 +8,6 @@ from pathlib import Path
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
-
 _FLASH_BASE = 0x08000000
 _FLASH_LIMIT = 0x09000000
 
@@ -301,4 +300,4 @@ def demangle(names: list[str]) -> dict[str, str]:
     if len(out) != len(names):
         return {name: name for name in names}
 
-    return dict(zip(names, out))
+    return dict(zip(names, out, strict=True))

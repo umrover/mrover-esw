@@ -68,7 +68,7 @@ if(MROVER_USE_RTOS)
     if(NOT EXISTS ${FREERTOS_DIR}/tasks.c)
         message(FATAL_ERROR
             "MROVER_USE_RTOS is ON but FreeRTOS was not found at ${FREERTOS_DIR}.\n"
-            "Run: git submodule update --init --recursive")
+            "Run git submodule update --init --recursive")
     endif()
 
     set(FREERTOS_SOURCES

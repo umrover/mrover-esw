@@ -305,7 +305,7 @@ STM32CubeProgrammer CLI to connect to an ST-LINK and flash the executable via SW
 
 Finally, the build script configures CMake on every invocation, not just the first.
 A warm reconfigure costs about a fifth of a second, and it is what repoints the
-editor at the project you are working on -- see [Editor Support](#editor-support).
+editor at the project you are working on.
 
 ### `style.sh`
 
@@ -375,15 +375,8 @@ ST-LINKv3's VCP-TX/VCP-RX pins. Accepts `--baud` and `--log-level`, passed strai
 
 ## Editor Support
 
-There is a single `.clangd` at the repository root, and it **is checked into version
-control**. Unlike the per-project files it replaces, it holds no paths and no
-project-specific flags, so it is identical on every machine and nothing regenerates
-it. Do not add machine-specific paths to it.
-
-Everything real -- the include paths, the defines (`STM32G431xx`, `USE_HAL_DRIVER`,
-`MROVER_USE_RTOS`, ...), the language standard and the target triple -- comes from
-`compile_commands.json`, which CMake writes for each project into
-`<src>/build/<preset>/`.
+There is a single `.clangd` at the repository root. It holds no paths and no
+project-specific flags, so do not add machine-specific paths to it.
 
 clangd finds a database by walking up from the file being edited and checking each
 parent directory's `build/`. That gives two behaviors:
@@ -405,20 +398,13 @@ cd src/tests/rtos && cmake --preset Debug
 Any `./scripts/build.sh` does this for you as a side effect.
 
 !!! note
-    Generated headers -- the DBC bindings in `lib/dbc/build/` and the
-    `<project>_config.hpp` files -- are produced at *build* time, not configure time.
-    A project that has only ever been configured will report those as missing until
-    you build it once.
+    The DBC bindings in `lib/dbc/build/` and the `<project>_config.hpp` files are
+    produced at *build* time, not configure time. A project that has only ever been
+    configured will report those as missing until you build it once.
 
 !!! important
     clangd must be launched with `--query-driver` so it can ask the ARM cross
-    compiler where its system headers live. In Neovim:
-
-    ```lua
-    cmd = { "clangd", "--query-driver=**" }
-    ```
-
-    Without it, `<cstdint>` and friends will not resolve.
+    compiler where its system headers live. Without this, `<cstdint>` and others may not resolve.
 
 For Python, `ty` and `ruff` both root at `tools/`. `[tool.ty.environment]` in
 `tools/pyproject.toml` points `ty` at the uv-managed `tools/.venv`, which any

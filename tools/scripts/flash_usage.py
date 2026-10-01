@@ -6,13 +6,13 @@ from esw.flash import (
     category_of,
     component_of,
     demangle,
-    object_extents,
-    owner_of,
-    symbol_entries,
     explain_failure,
     format_usage,
+    object_extents,
     object_sizes,
+    owner_of,
     read_usage,
+    symbol_entries,
     symbol_sizes,
 )
 
@@ -132,7 +132,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Report and enforce the flash budget of a firmware image")
     parser.add_argument("--elf", "-e", type=Path, required=True, help="Path to the linked .elf")
     parser.add_argument("--ld", "-l", type=Path, required=True, help="Path to the .ld linker script")
-    parser.add_argument("--inc", "-i", type=Path, default=None, help="Project include directory (finds the config header)")
+    parser.add_argument(
+        "--inc", "-i", type=Path, default=None, help="Project include directory (finds the config header)"
+    )
     parser.add_argument("--map", "-m", type=Path, default=None, help="Path to the .map file, for the object breakdown")
     parser.add_argument("--report", "-r", action="store_true", help="Always print the size breakdown")
     parser.add_argument("--trace", action="store_true", help="Full attribution of every symbol by what defines it")
