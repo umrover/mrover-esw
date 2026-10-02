@@ -1,0 +1,21 @@
+# InfluxDB and Grafana are owned by the canalyzer stack (src/canalyzer/compose.yaml).
+# This stack only runs the accelerometer driver and writes to canalyzer's InfluxDB,
+# which is published on host port 8086. Start canalyzer first.
+services:
+  accelerometer:
+    image: accelerometer_image
+    container_name: accelerometer_instance
+    network_mode: "host"
+    restart: unless-stopped
+    environment:
+       - INFLUXDB_HOST=127.0.0.1
+       - INFLUXDB_PORT=8086
+       - INFLUXDB_DB=accelerometer_db
+       - INFLUXDB_USER=logger
+       - INFLUXDB_PASSWORD=password
+    devices:
+       - /dev/i2c-0:/dev/i2c-0
+       - /dev/i2c-1:/dev/i2c-1
+       - /dev/i2c-2:/dev/i2c-2
+    volumes:
+       - ./accelerometer_config.yaml:/app/config.yaml:ro

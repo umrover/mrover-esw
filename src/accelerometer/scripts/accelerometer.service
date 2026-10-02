@@ -1,0 +1,28 @@
+# Piggybacks on canalyzer.service, which owns InfluxDB and Grafana.
+# Install on the Pi (after canalyzer.service is installed):
+#   sudo cp accelerometer.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now accelerometer.service
+# Paths assume the repo is cloned to /home/mrover/mrover-esw, edit if not.
+
+[Unit]
+Description=MRover Accelerometer Docker Compose Stack
+# Start after canalyzer, pull it in if it isn't running, and stop/restart with it
+Requires=canalyzer.service docker.service
+After=canalyzer.service docker.service
+PartOf=canalyzer.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/home/mrover/mrover-esw/src/accelerometer
+
+ExecStart=/home/mrover/mrover-esw/src/accelerometer/scripts/pi_start.sh
+ExecStop=/home/mrover/mrover-esw/src/accelerometer/scripts/pi_stop.sh
+
+TimeoutStartSec=0
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target canalyzer.service

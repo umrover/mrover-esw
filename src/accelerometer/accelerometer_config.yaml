@@ -1,0 +1,7 @@
+name: config1
+poll_rate_hz: 100       # per-bus MPU-6050 poll rate
+commit_period_ms: 250   # how often batched samples are POSTed to InfluxDB
+buses:                  # one MPU-6050 (AD0 low, 0x68) per bus, name is used as the bus_name tag
+  - i2c-0
+  - i2c-1
+  - i2c-2
