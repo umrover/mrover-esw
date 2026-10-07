@@ -21,7 +21,6 @@ PORT="${PORT:-swd}"
 FREQ="${FREQ:-8000}"
 RESET="${RESET:-HWrst}"
 SCRIPT_NAME=$(basename "$0")
-CLANGD_SCRIPT="$TOOLS_DIR/scripts/clangd.py"
 
 usage() {
     cat <<EOF
@@ -121,11 +120,9 @@ if [[ "$DO_CLEAN" == "true" ]]; then
     exit 0
 fi
 
-# configure cmake if preset target does not exist
-if [ ! -f "$BUILD_DIR/build.ninja" ]; then
-    mkdir -p "$BUILD_DIR"
-    run_step "configure cmake" cmake --preset "$PRESET"
-fi
+# configure cmake
+mkdir -p "$BUILD_DIR"
+run_step "configure cmake" cmake --preset "$PRESET"
 
 # execute build
 run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
@@ -147,12 +144,5 @@ if [[ "$DO_FLASH" == "true" ]]; then
 fi
 
 popd > /dev/null
-
-# ensure .clangd file exists
-if [[ ! -f "$SRC_DIR/.clangd" ]]; then
-    # uv run creates and syncs tools/.venv on demand
-    run_step "create .clangd" \
-        uv run --quiet --project "$TOOLS_DIR" python "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
-fi
 
 printf "%b\n" "${GREEN}====== success ======${NC}"

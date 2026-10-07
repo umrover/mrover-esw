@@ -30,6 +30,15 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32CubeG4/Drivers/CMSIS/Include
 )
 
+# Point the repository-root compile database at active project
+get_filename_component(ESW_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+file(MAKE_DIRECTORY ${ESW_ROOT}/build)
+file(CREATE_LINK
+    ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${ESW_ROOT}/build/compile_commands.json
+    SYMBOLIC
+)
+
 # STM32CubeMX generated application sources
 set(MX_Application_Src
     ${MX_SRC_DIR}/main.c
