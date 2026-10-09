@@ -113,8 +113,8 @@ namespace mrover {
             uint32_t const primask = __get_PRIMASK();
             __disable_irq();
             regs->CSR = CSR_COSINE;
-            regs->WDATA = static_cast<uint32_t>(angle); // ARG1: theta / pi
-            regs->WDATA = MODULUS_ONE; // ARG2: modulus m = 1
+            regs->WDATA = static_cast<uint32_t>(angle);         // ARG1: theta / pi
+            regs->WDATA = MODULUS_ONE;                          // ARG2: modulus m = 1
             auto const cos = static_cast<int32_t>(regs->RDATA); // RES1: m cos(theta)
             auto const sin = static_cast<int32_t>(regs->RDATA); // RES2: m sin(theta)
             __set_PRIMASK(primask);

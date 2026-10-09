@@ -22,15 +22,15 @@ namespace mrover {
 
     struct pipeline_request_t {
         config_t config;
-        abc_t i_abc; // measured phase currents
-        float theta; // rotor electrical angle, radians
+        abc_t i_abc;   // measured phase currents
+        float theta;   // rotor electrical angle, radians
         dq_t i_dq_ref; // current references
     };
 
     struct pipeline_response_t {
         uint32_t cycles; // DWT cycles for the step alone
-        dq_t i_dq; // Park output (measured d/q currents)
-        abc_t v_abc; // inverse Clarke output (phase voltage commands)
+        dq_t i_dq;       // Park output (measured d/q currents)
+        abc_t v_abc;     // inverse Clarke output (phase voltage commands)
     };
 
     static_assert(sizeof(pipeline_request_t) == 28 && sizeof(pipeline_response_t) == 24);
@@ -122,5 +122,4 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
 void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
     if (huart == &hlpuart1) mrover::lpuart.handle_error();
 }
-
 }

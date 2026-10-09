@@ -32,7 +32,7 @@ namespace mrover {
 
         struct Options {
             Options() {}
-            uint32_t timeout_ms{100}; // blocking transmit/receive timeout
+            uint32_t timeout_ms{100};     // blocking transmit/receive timeout
             bool use_tx_interrupt{false}; // transmit: true = queue outgoing bytes and send them in the background
             bool use_rx_interrupt{false}; // receive: true = buffer incoming bytes in the background
         };
@@ -202,12 +202,12 @@ namespace mrover {
         std::array<uint8_t, TX_BUF_SIZE> m_tx_buffer{};
         std::atomic<size_t> m_tx_head{0}; // written by transmit()
         std::atomic<size_t> m_tx_tail{0}; // written by the transmit interrupt
-        size_t m_tx_len{0}; // bytes in the transfer in flight
+        size_t m_tx_len{0};               // bytes in the transfer in flight
         bool m_tx_busy{false};
 
         std::array<uint8_t, RX_BUF_SIZE> m_rx_buffer{};
         std::atomic<size_t> m_rx_head{0}; // written by the receive interrupt
-        size_t m_rx_tail{0}; // written by receive()
+        size_t m_rx_tail{0};              // written by receive()
         uint8_t m_rx_byte{};
         bool m_rx_started{false};
 
