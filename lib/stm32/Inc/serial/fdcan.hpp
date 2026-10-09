@@ -220,10 +220,6 @@ namespace mrover {
             return 0;
         }
 
-        /**
-         * \brief  Queue a frame for transmission
-         * \return False if the frame was dropped because every tx buffer is pending (e.g. no bus)
-         */
         auto send(uint32_t const id, std::string_view const data) -> bool {
             if (HAL_FDCAN_GetTxFifoFreeLevel(m_fdcan) == 0) return false;
 

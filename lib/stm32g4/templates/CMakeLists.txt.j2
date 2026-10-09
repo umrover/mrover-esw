@@ -88,7 +88,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 {%- endfor%}
 )
 
-# Enforce the flash budget after every link.
+# Enforce the flash budget
 option(MROVER_FLASH_CHECK "Fail the build when the image does not fit in flash" ON)
 if(MROVER_FLASH_CHECK)
     file(GLOB MX_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/*.ld")

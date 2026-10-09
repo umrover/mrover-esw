@@ -136,7 +136,7 @@ def explain_failure(usage: Usage) -> str:
         )
     if usage.status == "CONFIG":
         return (
-            f"image extends {usage.extent - usage.usable:,} B into the configuration page.\n"
+            f"image extends {usage.extent - usage.usable:,} B into the configuration page\n"
             f"  image top      0x{usage.top_addr:08x}\n"
             f"  config page    0x{usage.config_origin:08x} - 0x{usage.region.origin + usage.region.length - 1:08x}\n"
             f"  flashing this would erase the board configuration."
