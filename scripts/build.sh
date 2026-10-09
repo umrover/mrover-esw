@@ -16,6 +16,7 @@ PRESET="Debug"
 TARGET_NAME=""
 DO_FLASH=false
 DO_CLEAN=false
+DO_MAP=false
 
 PORT="${PORT:-swd}"
 FREQ="${FREQ:-8000}"
@@ -31,6 +32,7 @@ options:
   -p, --preset <name>   cmake preset (default: Debug)
   -t, --target <name>   cmake target name (default: folder name)
   -f, --flash           flash the device after build
+  -m, --map             print a flash size breakdown after build
   -c, --clean           clean build directory
   -h, --help            show this help message
 EOF
@@ -85,6 +87,7 @@ while [[ $# -gt 0 ]]; do
         -p|--preset)    PRESET="$2"; shift 2 ;;
         -t|--target)    TARGET_NAME="$2"; shift 2 ;;
         -f|--flash)     DO_FLASH=true; shift ;;
+        -m|--map)       DO_MAP=true; shift ;;
         -c|--clean)     DO_CLEAN=true; shift ;;
         -h|--help)      usage ;;
         *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
@@ -126,6 +129,17 @@ run_step "configure cmake" cmake --preset "$PRESET"
 
 # execute build
 run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
+
+# print the flash size breakdown
+if [[ "$DO_MAP" == "true" ]]; then
+    LD_SCRIPT=$(find "$SRC_DIR" -maxdepth 1 -name '*.ld' | head -n 1)
+    run_step "flash breakdown" "$VENV_PATH/bin/python" "$TOOLS_DIR/scripts/flash_usage.py" \
+        --elf "$BUILD_DIR/${TARGET_NAME}.elf" \
+        --ld "$LD_SCRIPT" \
+        --inc "$SRC_DIR/Inc" \
+        --map "$BUILD_DIR/${TARGET_NAME}.map" \
+        --report
+fi
 
 # flash if parameter set
 if [[ "$DO_FLASH" == "true" ]]; then

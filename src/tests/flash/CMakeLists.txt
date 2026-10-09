@@ -36,6 +36,9 @@ project(${CMAKE_PROJECT_NAME})
 # Enable CMake support for ASM, C, and C++ languages
 enable_language(C CXX ASM)
 
+set(CMAKE_C_FLAGS_DEBUG "-Og -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g3")
+
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
@@ -81,6 +84,23 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     dbc
     util
 )
+
+# Enforce the flash budget after every link.
+option(MROVER_FLASH_CHECK "Fail the build when the image does not fit in flash" ON)
+if(MROVER_FLASH_CHECK)
+    file(GLOB MX_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/*.ld")
+    add_dependencies(${CMAKE_PROJECT_NAME} python_env_ready)
+    add_custom_command(
+        TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+        COMMAND ${VENV_PYTHON} ${TOOLS_DIR}/scripts/flash_usage.py
+            --elf $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+            --ld ${MX_LINKER_SCRIPT}
+            --inc ${MX_INC_DIR}
+            --map ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map
+        WORKING_DIRECTORY ${TOOLS_DIR}
+        VERBATIM
+    )
+endif()
 
 # Link compile commands for LSPs
 add_custom_command(

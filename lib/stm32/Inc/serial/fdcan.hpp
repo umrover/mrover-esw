@@ -220,10 +220,12 @@ namespace mrover {
             return 0;
         }
 
-        void send(uint32_t const id, std::string_view const data) {
-            if (m_last_tx_request) {
-                HAL_FDCAN_AbortTxRequest(m_fdcan, m_last_tx_request);
-            }
+        /**
+         * \brief  Queue a frame for transmission
+         * \return False if the frame was dropped because every tx buffer is pending (e.g. no bus)
+         */
+        auto send(uint32_t const id, std::string_view const data) -> bool {
+            if (HAL_FDCAN_GetTxFifoFreeLevel(m_fdcan) == 0) return false;
 
             FDCAN_TxHeaderTypeDef const header{
                     .Identifier = id,
@@ -236,11 +238,7 @@ namespace mrover {
                     .TxEventFifoControl = FDCAN_NO_TX_EVENTS,
             };
 
-            if (HAL_FDCAN_AddMessageToTxFifoQ(m_fdcan, &header, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data()))) != HAL_OK) {
-                Error_Handler();
-            }
-
-            m_last_tx_request = HAL_FDCAN_GetLatestTxFifoQRequestBuffer(m_fdcan);
+            return HAL_FDCAN_AddMessageToTxFifoQ(m_fdcan, &header, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data()))) == HAL_OK;
         }
 
         auto reset() const -> void {
@@ -251,7 +249,6 @@ namespace mrover {
     private:
         FDCAN_HandleTypeDef* m_fdcan{};
         Options m_options{};
-        uint32_t m_last_tx_request = 0;
     };
 #else  // HAL_FDCAN_MODULE_ENABLED
     class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::FDCAN"))) FDCAN {
