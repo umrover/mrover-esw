@@ -96,6 +96,12 @@ namespace mrover {
         /**
          * Count the CPU cycles `fn` takes with the DWT cycle counter (enabled in init())
          *
+         * Memory barriers keep the work inside the measurement, provided `fn` reads its inputs from and writes its
+         * outputs to memory outside it (e.g. through references): the compiler can neither start the work before the
+         * first counter read nor finish it after the second
+         * ref: Google Benchmark ClobberMemory (https://github.com/google/benchmark/blob/main/docs/user_guide.md),
+         *      C. Carruth, "Tuning C++: Benchmarks, and CPUs, and Compilers! Oh My!", CppCon 2015
+         *
          * @return elapsed cycles
          */
         template<typename F>
@@ -119,10 +125,15 @@ namespace mrover {
             __enable_irq();
         }
 
+        /**
+         * Nestable critical section: masks interrupts and restores the previous mask on exit
+         */
         class InterruptGuard {
+            uint32_t const m_primask = __get_PRIMASK();
+
         public:
             InterruptGuard() { disable_interrupts(); }
-            ~InterruptGuard() { enable_interrupts(); }
+            ~InterruptGuard() { __set_PRIMASK(m_primask); }
 
             InterruptGuard(InterruptGuard const&) = delete;
             auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;
