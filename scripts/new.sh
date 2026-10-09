@@ -14,13 +14,14 @@ CMAKE_SCRIPT="$TOOLS_DIR/scripts/update_cmake_cfg.py"
 
 usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME [--mcu <mcu> | --board <board>] --src <source> [--lib <library>]+
+Usage: $SCRIPT_NAME [--mcu <mcu> | --board <board>] --src <source> [--lib <library>]+ [--ccmsram]
 
 options:
   -m, --mcu <mcu>       target mcu for new project
   -b, --board <board>   target board for new project
   -s, --src <source>    path to project root
   -l, --lib <library>   cmake library dependency
+  -c, --ccmsram         place marked functions in CCM SRAM
   -h, --help            show this help message
 EOF
     exit 1
@@ -30,6 +31,7 @@ MCU=""
 BOARD=""
 SRC=""
 LIBS=()
+CCMSRAM_ARGS=()
 
 # parse opts
 while [[ $# -gt 0 ]]; do
@@ -38,6 +40,7 @@ while [[ $# -gt 0 ]]; do
         -b|--board)     BOARD="$2"; shift 2 ;;
         -s|--src)       SRC="$(realpath "$2")"; shift 2 ;;
         -l|--lib)       LIBS+=("$2"); shift 2 ;;
+        -c|--ccmsram)   CCMSRAM_ARGS=(--ccmsram); shift ;;
         -h|--help)      usage ;;
         *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
     esac
@@ -81,4 +84,5 @@ uv run --quiet --project "$TOOLS_DIR" python "$CMAKE_SCRIPT" \
     --src "$SRC" \
     --root "$ESW_ROOT" \
     --ctx "$ESW_ROOT/lib/stm32g4" \
-    "${PY_LIB_ARGS[@]}"
+    "${PY_LIB_ARGS[@]}" \
+    "${CCMSRAM_ARGS[@]}"

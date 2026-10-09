@@ -16,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("--root", "-r", type=Path, required=True, help="ESW Root Directory")
     parser.add_argument("--ctx", "-c", type=Path, required=True, help="Template Directory")
     parser.add_argument("--lib", "-l", action="append", default=[], help="Libraries to Include in Generated Project")
+    parser.add_argument("--ccmsram", action="store_true", help="Place marked functions in CCM SRAM")
     args = parser.parse_args()
 
     name = args.src.name
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     root = args.root
     ctx = args.ctx
     libs = args.lib
+    ccmsram = args.ccmsram
 
     esw_logger.info(f"Configuring CMake Toolchain for {name} at {path}")
-    configure_cmake(name, path, root, ctx, libs)
+    configure_cmake(name, path, root, ctx, libs, ccmsram)
