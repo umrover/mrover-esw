@@ -27,6 +27,9 @@ set(MX_SRC_DIR "${CMAKE_SOURCE_DIR}/{{ mx_src_dir }}")
 set(MX_INC_DIR "${CMAKE_SOURCE_DIR}/{{ mx_inc_dir }}")
 set(MX_STARTUP_S "${CMAKE_SOURCE_DIR}/{{ mx_startup_s }}")
 
+# Place `CCMSRAM` functions in CCM SRAM, includes linker script
+set(MX_USE_CCMSRAM {{ "ON" if ccmsram else "OFF" }})
+
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -35,6 +38,9 @@ project(${CMAKE_PROJECT_NAME})
 
 # Enable CMake support for ASM, C, and C++ languages
 enable_language(C CXX ASM)
+
+set(CMAKE_C_FLAGS_DEBUG "-Og -g3")
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g3")
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -81,6 +87,23 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     {{ lib }}
 {%- endfor%}
 )
+
+# Enforce the flash budget
+option(MROVER_FLASH_CHECK "Fail the build when the image does not fit in flash" ON)
+if(MROVER_FLASH_CHECK)
+    file(GLOB MX_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/*.ld")
+    add_dependencies(${CMAKE_PROJECT_NAME} python_env_ready)
+    add_custom_command(
+        TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+        COMMAND ${VENV_PYTHON} ${TOOLS_DIR}/scripts/flash_usage.py
+            --elf $<TARGET_FILE:${CMAKE_PROJECT_NAME}>
+            --ld ${MX_LINKER_SCRIPT}
+            --inc ${MX_INC_DIR}
+            --map ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map
+        WORKING_DIRECTORY ${TOOLS_DIR}
+        VERBATIM
+    )
+endif()
 
 # Link compile commands for LSPs
 add_custom_command(

@@ -18,6 +18,8 @@ if(NOT EXISTS ${DBC_SCRIPT})
     message(FATAL_ERROR "could not find script ${DBC_SCRIPT}")
 endif()
 
+set(DBC_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/templates/dbc_header.hpp.j2")
+
 file(MAKE_DIRECTORY ${DBC_GEN_DIR})
 
 set(GENERATED_HEADERS "")
@@ -30,7 +32,7 @@ foreach(DBC_FILE ${DBC_FILES})
     add_custom_command(
         OUTPUT ${HEADER_FILE}
         COMMAND ${VENV_PYTHON} ${DBC_SCRIPT} --dest ${DBC_GEN_DIR} --ctx ${CMAKE_CURRENT_SOURCE_DIR} ${DBC_FILE}
-        DEPENDS ${DBC_FILE} ${DBC_SCRIPT} python_env_ready
+        DEPENDS ${DBC_FILE} ${DBC_SCRIPT} ${DBC_TEMPLATE} python_env_ready
         WORKING_DIRECTORY ${TOOLS_DIR}
         COMMENT "generating header for ${FILE_NAME}.dbc"
         VERBATIM

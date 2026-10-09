@@ -1,6 +1,20 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <optional>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
+#ifdef STM32
+#include "main.h"
+#endif // STM32
 
 namespace mrover {
 
