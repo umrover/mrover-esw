@@ -592,14 +592,14 @@ void HAL_HRTIM_MspPostInit(HRTIM_HandleTypeDef* hhrtim)
     PA8     ------> HRTIM1_CHA1
     PA9     ------> HRTIM1_CHA2
     */
-    GPIO_InitStruct.Pin = PWM_CH_Pin|PWM_CL_Pin|PWM_BH_Pin|PWM_BL_Pin;
+    GPIO_InitStruct.Pin = PWM_CL_Pin|PWM_CH_Pin|PWM_BL_Pin|PWM_BH_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF13_HRTIM1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = PWM_AH_Pin|PWM_AL_Pin;
+    GPIO_InitStruct.Pin = PWM_AL_Pin|PWM_AH_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -637,9 +637,9 @@ void HAL_HRTIM_MspDeInit(HRTIM_HandleTypeDef* hhrtim)
     PA9     ------> HRTIM1_CHA2
     PA12     ------> HRTIM1_FLT1
     */
-    HAL_GPIO_DeInit(GPIOB, PWM_CH_Pin|PWM_CL_Pin|PWM_BH_Pin|PWM_BL_Pin);
+    HAL_GPIO_DeInit(GPIOB, PWM_CL_Pin|PWM_CH_Pin|PWM_BL_Pin|PWM_BH_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, PWM_AH_Pin|PWM_AL_Pin|NFAULT_Pin);
+    HAL_GPIO_DeInit(GPIOA, PWM_AL_Pin|PWM_AH_Pin|NFAULT_Pin);
 
     /* HRTIM1 interrupt DeInit */
     HAL_NVIC_DisableIRQ(HRTIM1_FLT_IRQn);
