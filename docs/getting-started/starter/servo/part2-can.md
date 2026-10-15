@@ -63,10 +63,13 @@ more information on these values.
 There is a very in depth guide to configuring these values for STM32 MCUs in the
 [CAN FD Bit Timing](../../../info/communication-protocols/index.md#can-bit-timing) section of the
 docs. However, for the purposes of this starter project, you can use [this online calculator](https://phryniszak.github.io/stm32g-fdcan/)
-designed for STM32G4 boards. Our FDCAN peripheral is clocked at 72 MHz, and the CAN bus we are
+designed for STM32G4 boards. Our FDCAN peripheral is clocked at 170 MHz, and the CAN bus we are
 trying to communicate on is running at 500 kbps. The calculator will give you the values you need
 to input into the `.ioc`. ***Ignore all CAN FD related values in the calculator.*** For `Nominal Sync
 Jump Width`, make sure to read the note at the bottom of the calculator.
+
+!!! warning  
+  Double check your clock frequency. Click on clock configuration and look for ToFDCAN, this is the clock frequency you should use in your calculation.
 
 After inputting the bit timing parameters, ensure that `Nominal Baud Rate` is 500,000 bit/s.
 You can now save the `.ioc` and generate the code.
@@ -175,9 +178,8 @@ TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
 TxHeader.MessageMarker = 0;
 ```
 
-We will need to fill out the `FDCAN_TxHeaderTypeDef` object with the correct values for the CAN
-message you are trying to send. Refer back to [2. Understanding Our CAN Bus](#2-understanding-our-can-bus)
-for this information.
+!!! warning  
+  We will need to fill out the `FDCAN_TxHeaderTypeDef` object with the correct values for the CAN message you are trying to send. Refer back to [2. Understanding Our CAN Bus](#2-understanding-our-can-bus) for this information.
 
 #### TODO 4-6: Send a CAN Message to Rotate the Servo
 Now that we have the CAN message header for all the messages we want to send, we can send the
