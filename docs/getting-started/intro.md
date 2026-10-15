@@ -9,7 +9,14 @@ There is also useful information linked below to supplement the starter projects
 Complete these setup steps before starting the starter projects!
 
 1. [Complete Software Team Setup](https://docs.mrover.org/software/setup/getting-started/)
-2. [Clone ESW Repo](https://github.com/umrover/mrover-esw)
+2. Clone the ESW repo and make a branch for starter projects:
+
+    ```sh
+    git clone --recurse-submodules git@github.com:umrover/mrover-esw.git
+    cd mrover-esw
+    git switch -c starter/your-first-name
+    ```
+
 3. [Install STM32Cube\* Tools Using ESW bootstrap.sh](stm32cube/index.md)
 
 

@@ -1,17 +1,26 @@
 # Servo Starter Project: Part 2, CAN
 
+## About
 This starter project is made up of two parts: PWM and CAN. This is Part 2, CAN.
 
 In this project, you will be using the CAN peripheral on the STM32G431RB Nucleo to send a CAN
 message to another Nucleo board. The message will contain information about the angle the servo
 should be set to. If you send a successful message, the servo on the other board should rotate to
-the specified angle. By the end of this part, you should have an understanding of the CAN
-(Controller Area Network) communication protocol.
+the specified angle.
 
-Just as a reminder, if you have any questions, feel free to reach out to any ESW lead or member.
+After this project you should understand:
+* How to configure connectivity in STM32CubeMX
+* CAN communication protocol and bit timing
+* CAN communication interface in HAL
 
-***Before starting this project***, please give the [CAN info page](../../../info/communication-protocols/index.md#can)
-a read. It will get you start on the basics of CAN communication. ***Do not read "Using the Kvaser Bit Timing Calculator."***
+!!! info 
+    Just as a reminder, if you have any questions, feel free to reach out to any
+    of the ESW leads or members. This project isn't meant to be high-stakes,
+    so please reach out if you ever get stuck!
+
+!!! warning
+    Please give the [CAN info page](../../../info/communication-protocols/index.md#can)
+    a read. It will get you started on the basics of CAN communication. ***Do not read "Using the Kvaser Bit Timing Calculator."***
 
 ## Prerequisites
 
@@ -19,15 +28,19 @@ a read. It will get you start on the basics of CAN communication. ***Do not read
 - LED Starter Project [completed](../led/index.md) and shown to an ESW lead
 - Servo Part 1 Starter Project [completed](part1-pwm.md) and shown to an ESW lead
 - STM32G431RB Nucleo
-- MCP2551 CAN transceiver
+- MCP2551 CAN transceiver (shown below)
+
+![MCP2551 Can transceiver](./can_transceiver.webp)
 
 ## Guide
 
 ### 1. Setting Up the Project
-Assuming you have already completed the Servo Part 1 Starter Project, you will not have to clone
-the project again.
+```sh
+# from mrover-esw repo root
+cd starter-projects/servo/p2-can
+```
 
-Open STM32CubeMX and open the Servo ***Part 2*** starter project (the directory named `p2-can`).
+Open the `.ioc` in STM32CubeMX.
 
 ### 2. Understanding Our CAN Bus
 
@@ -69,7 +82,7 @@ to input into the `.ioc`. ***Ignore all CAN FD related values in the calculator.
 Jump Width`, make sure to read the note at the bottom of the calculator.
 
 !!! warning  
-  Double check your clock frequency. Click on clock configuration and look for ToFDCAN, this is the clock frequency you should use in your calculation.
+    Double check your clock frequency. Click on clock configuration and look for ToFDCAN, this is the clock frequency you should use in your calculation.
 
 After inputting the bit timing parameters, ensure that `Nominal Baud Rate` is 500,000 bit/s.
 You can now save the `.ioc` and generate the code.

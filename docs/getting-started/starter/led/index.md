@@ -7,9 +7,15 @@ This tutorial is intended to get you more familiar with a Nucleo
 You will be asked to develop code such that the LED on the Nucleo
 will light up whenever the Nucleo's button is pressed down.
 
-Just as a reminder, if you have any questions, feel free to reach out to any
-of the ESW leads or members. This project isn't meant to be high-stakes,
-so please reach out if you ever get stuck!
+### After this project you should understand how to:
+- Create a project using STM32CubeMX
+- Configure pins in STM32CubeMX
+- Use `build.sh` to build and flash a project
+
+!!! note 
+    Just as a reminder, if you have any questions, feel free to reach out to any
+    of the ESW leads or members. This project isn't meant to be high-stakes,
+    so please reach out if you ever get stuck!
 
 ## Instructions
 
@@ -25,41 +31,11 @@ As you walk through the guide, keep the following questions in mind:
 
 ## Prerequisites
 
-* STM32CubeMX [installed](../../stm32cube/index.md)
-* STM32G431RB Nucleo (pictured below)
+- STM32CubeMX [installed](../../stm32cube/index.md)
+- STM32G431RB Nucleo (pictured below)
+- Completed [ESW Setup](../../intro.md#esw-setup)
 
 ![stm32g431rb nucleo](./nucleo-g431.webp)
-
-## Setting Up the Repository
-
-This project builds with the ESW toolchain, so you will need a local copy of the repository before
-you start.
-
-Go to [this repository](https://github.com/umrover/mrover-esw), click the "Code" tab, and copy the
-SSH URL.
-
-![opened "Code" tab with boxes showing how to copy the SSH URL](copy-git-repo.webp)
-
-Clone the project onto your local computer by running the following command in your terminal. The
-`--recurse-submodules` flag is required, as the build needs the vendored ST driver submodule.
-
-```sh
-git clone --recurse-submodules link-copied-in-above-step
-```
-
-Enter the directory:
-
-```sh
-cd mrover-esw
-```
-
-Then create a branch for yourself:
-
-```sh
-git switch -c starter/your-first-name
-```
-
-You will run every command in this guide from the root of this repository.
 
 ## Guide
 

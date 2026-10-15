@@ -1,26 +1,28 @@
 # Servo Starter Project: Part 1, PWM
 
-This starter project is made up of two parts: PWM and CAN. This is Part 1, PWM.
+## About
+This starter project is made up of two parts: PWM and CAN. This is Part 1, PWM. Where you will use PWM on the Nucelo to drive a servo.
 
-By the end of this part, you should have an understanding of timers and PWM (pulse width modulation)
-signals.
+After this project you should understand:
+* Timers
+* Pulse Width Modulation
+* Breadboarding
 
-Just as a reminder, if you have any questions, feel free to reach out to any
-of the ESW leads or members. This project isn't meant to be high-stakes,
-so please reach out if you ever get stuck!
+!!! info 
+    Just as a reminder, if you have any questions, feel free to reach out to any
+    of the ESW leads or members. This project isn't meant to be high-stakes,
+    so please reach out if you ever get stuck!
 
 ## Prerequisites
 
 - STM32Cube [installed](../../stm32cube/index.md)
-- LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
-- Git installed and [basic knowledge of how to use it](https://github.com/umrover/mrover-ros2/wiki/Git)
+- LED Project [completed](../led/index.md) and shown to an ESW lead
 - STM32G431RB Nucleo
 - SG90 Servo
 
 ## Intro
 
-As mentioned earlier, by the end of the project you should be able to drive a servo.
-This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
+This project will teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
 While you are working through the project, keep the following in mind:
 
 - How could you document your code so that others can easily read and understand it?
@@ -30,13 +32,14 @@ While you are working through the project, keep the following in mind:
 
 ### 1. Setting Up the Project
 
-Unlike the LED project, you will not create a project here. A premade STM32 project is already in
-the repository, so you only need to open it.
+Unlike the LED project, you will not create a project here. A premade STM32 project is already in the repository:
 
-You cloned the repository during the [LED Starter Project](../led/index.md#setting-up-the-repository).
-If you have not, do that first.
+```sh
+# from mrover-esw repo root
+cd starter-projects/servo/p1-pwm
+```
 
-Open STM32CubeMX and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`).
+Open the `.ioc` in STM32CubeMX.
 
 ### 2. PWM Timer Configuration
 
