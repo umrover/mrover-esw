@@ -57,7 +57,7 @@ Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_
 the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 170MHz.
 
 !!! warning 
-  Double check your APB clock frequency for your PWM calculation. In CubeMX, click clock configuration tab, APB clocks should be on far right.
+    Double check your APB clock frequency for your PWM calculation. In CubeMX, click clock configuration tab, APB clocks should be on far right.
 
 Once you have determined and edited the timer config, save the file and generate code. Note: you can
 always come back to the `.ioc` to make changes.

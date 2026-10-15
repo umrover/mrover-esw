@@ -179,7 +179,7 @@ TxHeader.MessageMarker = 0;
 ```
 
 !!! warning  
-  We will need to fill out the `FDCAN_TxHeaderTypeDef` object with the correct values for the CAN message you are trying to send. Refer back to [2. Understanding Our CAN Bus](#2-understanding-our-can-bus) for this information.
+    We will need to fill out the `FDCAN_TxHeaderTypeDef` object with the correct values for the CAN message you are trying to send. Refer back to [2. Understanding Our CAN Bus](#2-understanding-our-can-bus) for this information.
 
 #### TODO 4-6: Send a CAN Message to Rotate the Servo
 Now that we have the CAN message header for all the messages we want to send, we can send the
