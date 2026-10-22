@@ -3,18 +3,21 @@
 ## About
 The purpose of this starter project is to guide you through reading data from the AHT20 Temperature and Humidity Sensor using I2C with an STM32 Nucleo
 
-## Hardware
-* Nucleo STM32G431RB
+### After this project you should understand:
+- I2C protocol and interface in HAL
+- Callbacks
 
-![stm32g431rb nucleo](g431rb.webp)
-
-* AHT20 Temperature and Humidity Sensor
+## Prerequisites
+- STM32Cube [installed](../../stm32cube/index.md)
+- LED Starter Project [completed](../led/index.md) and shown to an ESW lead
+- Servo Part 1 Starter Project [completed](../servo/part1-pwm.md) and shown to an ESW lead
+- Servo Part 2 Starter Project [completed](../servo/part2-can.md) and shown to an ESW lead
+- Nucleo STM32G431RB
+- AHT20 Temperature and Humidity Sensor (shown below)
+- Lots of female-to-male, male-to-male, and female-to-female wires!
+- Breadboard
 
 ![aht20 sensor](aht20.webp)
-
-* Lots of female-to-male, male-to-male, and female-to-female wires!
-* 1 USB A to mini B cable
-* Breadboard
 
 ## Datasheets and Pinouts
 [AHT20 Sensor datasheet](https://cdn-learn.adafruit.com/assets/assets/000/123/394/original/Data_Sheet_AHT20.pdf)
@@ -56,18 +59,20 @@ The AHT20 I2C address we will need to write to and read from is found [here](htt
 A callback is a function that is called automatically when an operation finishes (like I2C read and write operations). We don't need to make these function calls ourselves, the microcontroller instead does it for us. We will use I2C transmit and receive callbacks to handle communicating with the AHT20 sensor without having to block other code from finishing while we wait for transmits/receives to finish.
 
 ## Starter Code
-The starter code lives in the `mrover-esw` repository, which you cloned during the
-[LED Starter Project](../led/index.md#setting-up-the-repository). If you have not, do that first.
+```sh
+# from mrover-esw repo root
+cd starter-projects/temp-humidity
+```
 
-Open the project in STM32CubeMX.
+Open the `.ioc` in STM32CubeMX.
 
 ## Wiring and Setup
-Notice that the AHT20 sensor has 4 pins: VIN (voltage input), GND (ground), SCL (I2C clock line), and SDA (I2C data line). We will use the jumper wires and breadboard from the hardware step to make appropriate connections to all four pins. 
+Notice that the AHT20 sensor has 4 pins: VIN (voltage input), GND (ground), SCL (I2C clock line), and SDA (I2C data line). We will use the jumper wires and breadboard to make appropriate connections to all four pins. 
 
 To wire the sensor connect the VIN pin on the AHT20 sensor to the 3.3V pin on the nucleo and the GND pin on the AHT20 sensor to the GND pin on the nucleo. To use I2C we will need to connect the clock and data pins of the AHT20 sensor to the clock and data pins on the nucleo that we configured in our `.ioc` file. To see which pins we are using for I2C on the nucleo open the `.ioc` file and search for the pins set to `I2C3_SCL` and `I2C3_SDA`. Finally, make connections to the pins corresponding to `I2C3_SCL` and `I2C3_SDA` on the nucleo using the pinout found on page 29 [here](https://www.st.com/resource/en/user_manual/um2505-stm32g4-nucleo64-boards-mb1367-stmicroelectronics.pdf).
 
 ## Getting Started
-Notice that the starter file for the project already contains multiple variable definitions. To begin set the value of the `TEMP_HUM_ADDRESS` constant to the AHT20 address found earlier. We will use this constant throughout our code when interacting with the sensor over I2C. Also notice the `init()` function which is called once, and has the job of pointing the `i2c` pointer to the `hi2c3` object and also calling the `eventLoop()` function, which is the infinite loop that we will use to constantly send and receive data from the AHT20 sensor.
+Notice that `Src/th_sensor.cpp` already contains multiple variable definitions. To begin set the value of the `TEMP_HUM_ADDRESS` constant to the AHT20 address found earlier. We will use this constant throughout our code when interacting with the sensor over I2C. Also notice the `init()` function which is called once, and has the job of pointing the `i2c` pointer to the `hi2c3` object and also calling the `eventLoop()` function, which is the infinite loop that we will use to constantly send and receive data from the AHT20 sensor.
 
 The process for receiving data from the AHT20 sensor can be broken into 3 main steps:
 - Transmit a command (found in the datasheet) to the sensor to start a measurement, using the `HAL_I2C_Master_Transmit_IT` function.
@@ -108,4 +113,4 @@ Now that you're in the debug mode, you may set breakpoints and run through your 
 
 
 ## Congratulations!
-You have completed the temperature and humidity sensor starter project! Contact one the ESW leads for further instructions. 
+You have completed the temperature and humidity sensor starter project! Contact one of the ESW leads for further instructions. 
