@@ -8,12 +8,12 @@ message to another Nucleo board. The message will contain information about the 
 should be set to. If you send a successful message, the servo on the other board should rotate to
 the specified angle.
 
-After this project you should understand:
-* How to configure connectivity in STM32CubeMX
-* CAN communication protocol and bit timing
-* CAN communication interface in HAL
+### After this project you should understand:
+- How to configure connectivity in STM32CubeMX
+- CAN communication protocol and bit timing
+- CAN communication interface in HAL
 
-!!! info 
+!!! info
     Just as a reminder, if you have any questions, feel free to reach out to any
     of the ESW leads or members. This project isn't meant to be high-stakes,
     so please reach out if you ever get stuck!
@@ -109,7 +109,7 @@ To declare a byte of data, you can use the `uint8_t` type.
 
 #### TODO 2: Start the CAN Peripheral
 
-We'll notice that there towards the top of the `main.c` file, there is the following object:
+Towards the top of the `main.c` file, there is the following object:
 
 ```c
 FDCAN_HandleTypeDef hfdcan1;

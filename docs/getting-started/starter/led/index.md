@@ -12,7 +12,7 @@ will light up whenever the Nucleo's button is pressed down.
 - Configure pins in STM32CubeMX
 - Use `build.sh` to build and flash a project
 
-!!! note 
+!!! info
     Just as a reminder, if you have any questions, feel free to reach out to any
     of the ESW leads or members. This project isn't meant to be high-stakes,
     so please reach out if you ever get stuck!
@@ -39,7 +39,7 @@ As you walk through the guide, keep the following questions in mind:
 
 ## Guide
 
-Open up CubeMX and create a new project called tutorial by following the steps in the [CubeMX New Project Guide](../../stm32cube/index.md#creating-a-new-project).
+Create a new project by following the steps in the [New Project Guide](../../stm32cube/index.md#creating-a-new-project).
 
 When creating a new project, the pins are not configured by default. This matters because on the Nucleo, the button and the LED are already connected to a particular pin so we need to change the pin's functionality if we want to use it. In order to determine which pins are connected to the button and the LED, one can visit [this](https://os.mbed.com/platforms/ST-Nucleo-G474RE/) page.
 
@@ -90,7 +90,7 @@ See below for a demo on how we can access data in our case.
 When reading in the pin state PC13, do note that the value read depends on if the button is pushed down or released AND if the button is active low or active high.
 In our case, the button is active high. This means that when the button is pushed down, the value returned is a 1.
 
-Based on this information, you should now be able to implement logic on how to link the button to the LED. If you need additional resources, you may choose to refer to [this](https://medium.com/vicara-hardware-university/stm32-guide-gpio-and-buttons-8303e6c8cb44) guide on how to GPIO pins and buttons. Also, you are always welcome to ask another member for help!
+Based on this information, you should now be able to implement logic on how to link the button to the LED. If you need additional resources, you may choose to refer to [this](https://medium.com/vicara-hardware-university/stm32-guide-gpio-and-buttons-8303e6c8cb44) guide on how to use GPIO pins and buttons. Also, you are always welcome to ask another member for help!
 
 After writing your code, you will most certainly want to build and run your program on actual hardware.
 

@@ -3,9 +3,9 @@
 ## About
 The purpose of this starter project is to guide you through reading data from the AHT20 Temperature and Humidity Sensor using I2C with an STM32 Nucleo
 
-After this project you should understand:
-* I2C protocol and interface in HAL
-* Callbacks
+### After this project you should understand:
+- I2C protocol and interface in HAL
+- Callbacks
 
 ## Prerequisites
 - STM32Cube [installed](../../stm32cube/index.md)
@@ -113,4 +113,4 @@ Now that you're in the debug mode, you may set breakpoints and run through your 
 
 
 ## Congratulations!
-You have completed the temperature and humidity sensor starter project! Contact one the ESW leads for further instructions. 
+You have completed the temperature and humidity sensor starter project! Contact one of the ESW leads for further instructions. 
