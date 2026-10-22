@@ -109,7 +109,9 @@ namespace mrover {
      * Send a CAN message defined in MRoverCAN.dbc on the bus.
      * @param msg CAN message to send
      */
-    auto send_can_message(MRoverCANMsg_t const& msg) -> void {
+    template<typename can_msg_t>
+        requires is_can_message<can_msg_t>
+    auto send_can_message(can_msg_t const& msg) -> void {
         if (!initialized) return;
         static std::optional<uint8_t> can_id = std::nullopt;
         static std::optional<uint8_t> host_can_id = std::nullopt;

@@ -3,6 +3,8 @@
 #include <array>
 #include <cstdint>
 
+#include <sys.hpp>
+
 #ifdef STM32
 #include "main.h"
 #endif // STM32
@@ -40,9 +42,10 @@ namespace mrover {
         explicit ADC(ADC_HandleTypeDef* hadc, Options const& options = Options())
             : m_hadc{hadc}, m_options{options} {
             m_values.fill(0);
-            __disable_irq();
-            s_instance = this;
-            __enable_irq();
+            {
+                System::InterruptGuard guard{};
+                s_instance = this;
+            }
             start();
         }
 
@@ -52,23 +55,21 @@ namespace mrover {
         ADC& operator=(ADC&&) noexcept = default;
 
         auto start() -> void override {
-            __disable_irq();
+            System::InterruptGuard guard{};
             if (m_options.use_dma) {
                 HAL_ADC_Start_DMA(m_hadc, m_values.data(), static_cast<uint32_t>(NumChannels));
             } else {
                 HAL_ADC_Start(m_hadc);
             }
-            __enable_irq();
         }
 
         auto stop() const -> void {
-            __disable_irq();
+            System::InterruptGuard guard{};
             if (m_options.use_dma) {
                 HAL_ADC_Stop_DMA(m_hadc);
             } else {
                 HAL_ADC_Stop(m_hadc);
             }
-            __enable_irq();
         }
 
         [[nodiscard]] auto is_data_ready() const -> bool {
@@ -76,13 +77,13 @@ namespace mrover {
         }
 
         auto clear_data_ready() -> void {
-            __disable_irq();
+            System::InterruptGuard guard{};
             m_data_ready = false;
-            __enable_irq();
         }
 
+        // a short critical section (one conversion), so tasks may share the ADC
         auto get_channel_value(size_t index) -> uint32_t override {
-            __disable_irq();
+            System::InterruptGuard guard{};
             HAL_ADC_Start(m_hadc);
             uint32_t value = 0;
             index--;
@@ -94,7 +95,6 @@ namespace mrover {
                 value = HAL_ADC_GetValue(m_hadc);
             }
             HAL_ADC_Stop(m_hadc);
-            __enable_irq();
             return value;
         }
 

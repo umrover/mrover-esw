@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
-# STM32CubeMX generated symbols (macros)
-set(MX_Defines_Syms
-    USE_HAL_DRIVER
-    STM32G431xx
-    $<$<CONFIG:Debug>:DEBUG>
-)
-
 IF(NOT DEFINED MX_SRC_DIR)
     MESSAGE(FATAL_ERROR "ERROR: Cube MX Source Directory Must Be Defined")
 ENDIF()
@@ -20,6 +13,20 @@ IF(NOT DEFINED MX_STARTUP_S)
     MESSAGE(FATAL_ERROR "ERROR: Cube MX Source Directory Must Be Defined")
 ENDIF()
 
+# Device define from the CubeMX startup file
+get_filename_component(MX_STARTUP_NAME ${MX_STARTUP_S} NAME_WE)
+string(REGEX REPLACE "^startup_stm32(g4[0-9]+)xx$" "\\1" MX_PART ${MX_STARTUP_NAME})
+if(MX_PART STREQUAL MX_STARTUP_NAME)
+    message(FATAL_ERROR "Cannot derive STM32G4 device from ${MX_STARTUP_NAME}")
+endif()
+string(TOUPPER ${MX_PART} MX_PART)
+
+# STM32CubeMX generated symbols (macros)
+set(MX_Defines_Syms
+    USE_HAL_DRIVER
+    STM32${MX_PART}xx
+    $<$<CONFIG:Debug>:DEBUG>
+)
 
 # STM32CubeMX generated include paths
 set(MX_Include_Dirs
@@ -28,6 +35,15 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Inc/Legacy
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32CubeG4/Drivers/CMSIS/Device/ST/STM32G4xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/STM32CubeG4/Drivers/CMSIS/Include
+)
+
+# Point the repository-root compile database at active project
+get_filename_component(ESW_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+file(MAKE_DIRECTORY ${ESW_ROOT}/build)
+file(CREATE_LINK
+    ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${ESW_ROOT}/build/compile_commands.json
+    SYMBOLIC
 )
 
 # STM32CubeMX generated application sources
@@ -83,6 +99,27 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE ${MX_LINK_DIRS})
 
 # Add libraries to the project
 target_link_libraries(${CMAKE_PROJECT_NAME} ${MX_LINK_LIBS})
+
+# Optional CCM SRAM code section (`CCMSRAM` functions)
+if(MX_USE_CCMSRAM)
+    # CCM SRAM size/alias address per device family
+    if(MX_PART MATCHES "^G4[78]") # G471/G473/G474/G483/G484
+        set(MX_CCMSRAM_SIZE 32K)
+        set(MX_CCMSRAM_ALIAS 0x20018000)
+    elseif(MX_PART MATCHES "^G4[9A]") # G491/G4A1
+        set(MX_CCMSRAM_SIZE 16K)
+        set(MX_CCMSRAM_ALIAS 0x20018000)
+    elseif(MX_PART MATCHES "^G4[34]") # G431/G441
+        set(MX_CCMSRAM_SIZE 10K)
+        set(MX_CCMSRAM_ALIAS 0x20005800)
+    else()
+        message(FATAL_ERROR "No CCM SRAM layout for STM32${MX_PART}xx")
+    endif()
+    set(MX_CCMSRAM_LD "${CMAKE_BINARY_DIR}/ccmsram.ld")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/ccmsram.ld.in" "${MX_CCMSRAM_LD}" @ONLY)
+    target_link_libraries(${CMAKE_PROJECT_NAME} "-T\"${MX_CCMSRAM_LD}\"")
+    set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND PROPERTY LINK_DEPENDS "${MX_CCMSRAM_LD}")
+endif()
 
 # Add the map file to the list of files to be removed with 'clean' target
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES ADDITIONAL_CLEAN_FILES ${CMAKE_PROJECT_NAME}.map)
