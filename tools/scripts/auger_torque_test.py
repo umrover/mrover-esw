@@ -6,22 +6,31 @@ from esw.can.canbus import CANBus
 
 import csv
 import argparse
-from datetime import time
+from datetime import datetime
+
+filename = "default.csv"
+
+velocity = 0.0
+motor_scaling = 1.0/64.0/2.0/131.0
 
 def main():
-    parser = argparse.ArgumentParser(description="A script run a BMC motor controller and record the retunr motor speed to the provided csv.")
+    global filename
 
-    parser.add_argument("-f", "--file", type=str, help="[csv_filename].csv")
+    parser = argparse.ArgumentParser(description="A script run a BMC motor controller and record the return motor speed to the provided csv.")
+    parser.add_argument("-f", "--file", type=str, help="[csv_filename].csv", default="output")
 
     # 3. Parse the arguments
     args = parser.parse_args()
+    filename = args.file + '.csv'
 
 def on_msg_recv(msg):
+    global velocity
     msg_name, signals, src_id, dest_id = msg
     # if msg_name != "BMCMotorState":
     #     # pass
     #     esw_logger.info(f"CAN RECV {msg_name} (src: {hex(src_id)}, dest: {hex(dest_id)}): {signals}")
     # else:
+    velocity = msg[1]["velocity"]*motor_scaling
     esw_logger.info(f"CAN RECV {msg_name} (src: {hex(src_id)}, dest: {hex(dest_id)}): {signals}")
 
 
@@ -30,8 +39,7 @@ if __name__ == "__main__":
     NUM_LOOPS = 50
     LOOP_DELAY = 0.05
     TARGET = 1.0  # -0.008  # 0.01  # m/s
-    INC = 0.1
-    CAN_ID = 54
+    CAN_ID = 65
     SRC_ID = 16
 
     with CANBus(get_dbc(dbc_name="MRoverCAN"), "can2", on_recv=on_msg_recv) as bus:
@@ -43,16 +51,17 @@ if __name__ == "__main__":
         i = 0
         bus.send("BMCModeCmd", {"mode": 5, "enable": 1}, src_id=SRC_ID, dest_id=CAN_ID)
         headers = ["Time(s)", "Motor_Velocity"]
-        with open('output.csv', 'w', newline='', encoding='utf-8') as file:
+        with open(filename, 'w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=headers)
             writer.writeheader()
-            start_time = time.now()
+            start_time = datetime.now()
             while True:
                 for _ in range(NUM_LOOPS):
                     bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
                     sleep(LOOP_DELAY)
-                    data = {"Time(s)": (time.now() - start_time).total_seconds(), "Motor_Velocity": signals.velocity}
-                    writer.writerows(data)
+                    
+                    data = {"Time(s)": (datetime.now() - start_time).total_seconds(), "Motor_Velocity": velocity}
+                    writer.writerow(data)
 
         # print("POSITION")
         # sleep(2)

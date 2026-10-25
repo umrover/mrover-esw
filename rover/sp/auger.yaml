@@ -22,9 +22,9 @@ lim_b_is_forward: false
 lim_b_use_readjust: false
 
 # encoder params
-quad_cpr: 1.0
-gear_ratio: 1.0
-rotor_output_ratio: 1.0
+quad_cpr: 64.0 # cycles/rotation
+gear_ratio: 0.5 #1:2 rotation/rotations
+rotor_output_ratio: 0.0076335 #1:131 rotation/rotations
 
 # position & velocity limits
 limit_a_position: 0.0
