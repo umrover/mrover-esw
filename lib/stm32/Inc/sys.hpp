@@ -104,15 +104,38 @@ namespace mrover {
             __enable_irq();
         }
 
+        /**
+         * Nestable critical section. With the RTOS running it is a kernel critical section (masks
+         * interrupts up to configMAX_SYSCALL_INTERRUPT_PRIORITY); otherwise it masks everything and
+         * restores the previous mask on exit. Before the scheduler starts a kernel critical section
+         * would never unmask (see rtos/util.hpp), so PRIMASK is used then too.
+         */
         class InterruptGuard {
-        public:
 #ifdef MROVER_USE_RTOS
-            InterruptGuard() { taskENTER_CRITICAL(); }
-            ~InterruptGuard() { taskEXIT_CRITICAL(); }
-#else  // MROVER_USE_RTOS
-            InterruptGuard() { disable_interrupts(); }
-            ~InterruptGuard() { enable_interrupts(); }
+            bool const m_kernel = xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
 #endif // MROVER_USE_RTOS
+            uint32_t const m_primask = __get_PRIMASK();
+
+        public:
+            InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskENTER_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                disable_interrupts();
+            }
+
+            ~InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskEXIT_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                __set_PRIMASK(m_primask);
+            }
 
             InterruptGuard(InterruptGuard const&) = delete;
             auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;

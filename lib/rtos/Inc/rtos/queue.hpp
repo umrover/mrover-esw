@@ -11,6 +11,8 @@
 #include <queue.h>
 
 #include <cmsis_os2.h>
+
+#include <rtos/util.hpp>
 #endif // MROVER_USE_RTOS
 
 namespace mrover {
@@ -35,6 +37,7 @@ namespace mrover {
                     .mq_mem = m_storage.data(),
                     .mq_size = m_storage.size(),
             };
+            CreationGuard const guard{};
             m_id = osMessageQueueNew(N, sizeof(T), &attr);
         }
 

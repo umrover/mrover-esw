@@ -8,7 +8,6 @@ from pathlib import Path
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
-
 _FLASH_BASE = 0x08000000
 _FLASH_LIMIT = 0x09000000
 

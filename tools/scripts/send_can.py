@@ -7,7 +7,7 @@ from esw.can.dbc import get_dbc
 if __name__ == "__main__":
     LOOP_DELAY = 0.05
     TARGET = 1.0
-    CAN_ID = 0x67
+    CAN_ID = 0x69
     SRC_ID = 0x10
 
     # with AsyncPlotter(max_size=200, loop_delay=LOOP_DELAY, x_label="Time (s)", y_label="Waveform") as plotter:
@@ -26,4 +26,5 @@ if __name__ == "__main__":
 
         while True:
             bus.send("BMCTargetCmd", {"target": TARGET, "target_valid": 1}, src_id=SRC_ID, dest_id=CAN_ID)
+            # bus.send("ESWProbe", {"data": 0x67}, src_id=SRC_ID, dest_id=CAN_ID)
             sleep(LOOP_DELAY)

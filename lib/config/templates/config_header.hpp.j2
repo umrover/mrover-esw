@@ -13,7 +13,7 @@
 
 namespace mrover {
 
-    struct {{project_name}}_config_t {
+    struct {{ struct_name }} {
 
         static inline void* flash_ptr = nullptr;
 
@@ -68,33 +68,29 @@ namespace mrover {
                 {% endfor %}            );
         }
 
-        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
-            bool found = false;
-
-            std::apply(
-                    [&](auto const&... reg) -> void {
-                        (
-                                [&] -> void {
-                                    if (reg.addr == address) {
-                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
-                                        reg.write(*this, from_raw<T>(raw));
-                                        found = true;
-                                    }
-                                }(),
-                                ...);
-                    },
-                    all());
-
-            return found;
+        // a switch rather than a fold over all(): a fold gives every register its own stack slot
+        auto set_raw(uint8_t const address, uint32_t const raw) -> bool {
+            switch (address) {
+                {% for reg in regs %}
+                case 0x{{ "%x" | format(reg.address) }}:
+                    {{ reg.name | upper }}.write(*this, from_raw<{{ reg.cpp_type }}>(raw));
+                    return true;
+                {% endfor %}
+                default:
+                    return false;
+            }
         }
 
-        auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
-            bool found = false;
-            std::apply([&](auto const&... reg) -> void {
-                ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
-            },
-                        all());
-            return found;
+        auto get_raw(uint8_t const address, uint32_t& raw) const -> bool {
+            switch (address) {
+                {% for reg in regs %}
+                case 0x{{ "%x" | format(reg.address) }}:
+                    raw = to_raw({{ reg.name | upper }}.value.value_or(0));
+                    return true;
+                {% endfor %}
+                default:
+                    return false;
+            }
         }
 
         struct mem_layout {
@@ -105,10 +101,10 @@ namespace mrover {
         };
 
         static consteval auto size_bytes() -> uint16_t {
-            return validated_config_t<{{ project_name }}_config_t>::size_bytes();
+            return validated_config_t<{{ struct_name }}>::size_bytes();
         }
 
-    }; // {{project_name}}_config_t
+    }; // {{ struct_name }}
 
     /**
      * Get the {{ project_name }} CAN settings.
@@ -117,7 +113,7 @@ namespace mrover {
      *
      * @return CAN options for {{ project_name }}
      */
-    inline auto get_can_options({{ project_name }}_config_t* config) -> FDCAN::Options {
+    inline auto get_can_options({{ struct_name }}* config) -> FDCAN::Options {
 
         {% if can_filtering is none %}
 
@@ -128,7 +124,7 @@ namespace mrover {
         return can_opts;
 
         {% else %}
-        config->can_node_filters[0].id1 = config->get<{{ project_name }}_config_t::{{can_filtering.id_reg }}>();
+        config->can_node_filters[0].id1 = config->get<{{ struct_name }}::{{can_filtering.id_reg }}>();
         config->can_node_filters[0].id2 = CAN_DEST_ID_MASK;
         config->can_node_filters[0].id_type = FDCAN::FilterIdType::{{ can_filtering.id_type }};
         config->can_node_filters[0].action = FDCAN::FilterAction::Accept;

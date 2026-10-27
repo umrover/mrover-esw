@@ -10,6 +10,8 @@
 #include <task.h>
 
 #include <cmsis_os2.h>
+
+#include <rtos/util.hpp>
 #endif // MROVER_USE_RTOS
 
 namespace mrover {
@@ -57,6 +59,7 @@ namespace mrover {
                     .stack_size = m_stack.size() * sizeof(StackType_t),
                     .priority = m_priority,
             };
+            CreationGuard const guard{};
             m_id = osThreadNew(m_entry, m_arg, &attr);
             return m_id != nullptr;
         }

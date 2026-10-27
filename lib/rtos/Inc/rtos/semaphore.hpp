@@ -7,6 +7,8 @@
 #include <semphr.h>
 
 #include <cmsis_os2.h>
+
+#include <rtos/util.hpp>
 #endif // MROVER_USE_RTOS
 
 namespace mrover {
@@ -24,6 +26,7 @@ namespace mrover {
                     .cb_mem = &m_cb,
                     .cb_size = sizeof(m_cb),
             };
+            CreationGuard const guard{};
             m_id = osSemaphoreNew(max_count, initial_count, &attr);
         }
 

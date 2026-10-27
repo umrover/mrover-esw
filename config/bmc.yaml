@@ -81,6 +81,8 @@ regs:
   type: float32
 - name: delta_position
   type: float32
+- name: tx_rate_hz # motor state broadcast rate; 0 or erased (0xff) selects the default
+  type: uint8
 can_filtering:
   id_reg: can_id # may not have field 
   id_type: ext
