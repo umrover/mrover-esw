@@ -19,6 +19,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--rtos", action="store_true", help="Compile the FreeRTOS (CMSIS-RTOS v2) middleware into the Project"
     )
+    parser.add_argument("--ccmsram", action="store_true", help="Place marked functions in CCM SRAM")
     args = parser.parse_args()
 
     name = args.src.name
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     ctx = args.ctx
     libs = args.lib
     rtos = args.rtos
+    ccmsram = args.ccmsram
 
-    esw_logger.info(f"Configuring CMake Toolchain for {name} at {path} (rtos={rtos})")
-    configure_cmake(name, path, root, ctx, libs, rtos)
+    esw_logger.info(f"Configuring CMake Toolchain for {name} at {path} (rtos={rtos}, ccmsram={ccmsram})")
+    configure_cmake(name, path, root, ctx, libs, rtos, ccmsram)

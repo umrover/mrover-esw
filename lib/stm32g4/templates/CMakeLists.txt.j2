@@ -27,6 +27,9 @@ set(MX_SRC_DIR "${CMAKE_SOURCE_DIR}/{{ mx_src_dir }}")
 set(MX_INC_DIR "${CMAKE_SOURCE_DIR}/{{ mx_inc_dir }}")
 set(MX_STARTUP_S "${CMAKE_SOURCE_DIR}/{{ mx_startup_s }}")
 
+# Place `CCMSRAM` functions in CCM SRAM, includes linker script
+set(MX_USE_CCMSRAM {{ "ON" if ccmsram else "OFF" }})
+
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -88,7 +91,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 {%- endfor%}
 )
 
-# Enforce the flash budget after every link.
+# Enforce the flash budget
 option(MROVER_FLASH_CHECK "Fail the build when the image does not fit in flash" ON)
 if(MROVER_FLASH_CHECK)
     file(GLOB MX_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/*.ld")

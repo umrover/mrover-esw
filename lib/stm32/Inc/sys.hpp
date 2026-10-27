@@ -11,6 +11,14 @@
 #include <cmsis_os2.h>
 #endif // MROVER_USE_RTOS
 
+#include <cstdint>
+
+// must enable CCM SRAM in project, and initialize on application start
+#define CCMSRAM [[gnu::section(".ccmsram"), gnu::noinline]]
+
+// CCM SRAM load/run addresses, defined in lib/stm32g4/ccmsram.ld.in (MX_USE_CCMSRAM)
+extern "C" uint32_t _siccmsram, _sccmsram, _eccmsram;
+
 namespace mrover {
 
     class System {
@@ -49,6 +57,18 @@ namespace mrover {
             DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
         }
 
+        /**
+         * Copy CCM SRAM `CCMSRAM`-tagged functions from flash
+         *
+         * Invoke at beginning of application, project must define MX_USE_CCMSRAM
+         */
+        static auto init_ccmsram() -> void {
+            uint32_t const* src = &_siccmsram;
+            for (uint32_t* dst = &_sccmsram; dst < &_eccmsram;) *dst++ = *src++;
+            dsb();
+            isb();
+        }
+
         static auto reset() -> void {
             HAL_DeInit();
             NVIC_SystemReset();
@@ -84,6 +104,22 @@ namespace mrover {
 
         static auto get_micros() -> uint32_t {
             return DWT->CYCCNT / (SystemCoreClock / 1000000U);
+        }
+
+        /**
+         * Count the CPU cycles `fn` takes with the DWT cycle counter
+         *
+         * Must be enabled in `init()`
+         *
+         * @return elapsed cycles
+         */
+        template<typename F>
+        static auto profile(F&& fn) -> uint32_t {
+            uint32_t const start = DWT->CYCCNT;
+            asm volatile("" : : : "memory");
+            fn();
+            asm volatile("" : : : "memory");
+            return DWT->CYCCNT - start;
         }
 
         static auto delay_ms(uint32_t const ms) -> void {
