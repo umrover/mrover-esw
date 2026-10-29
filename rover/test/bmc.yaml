@@ -1,5 +1,5 @@
 # CAN messaging
-can_id: 105
+can_id: 103
 host_can_id: 16
 
 # system configuration
@@ -7,7 +7,7 @@ motor_en: true
 motor_inv: false
 quad_en: true
 quad_phase: false
-stall_en: true
+stall_en: false
 lim_a_present: true
 lim_b_present: true
 

@@ -247,7 +247,6 @@ namespace mrover {
                 m_encoder_mode = encoder_mode_t::NONE;
             }
 
-            // LimitSwitch::init() forgot the pressed state; a switch held now won't produce an edge
             update_limits();
         }
 
@@ -400,8 +399,8 @@ namespace mrover {
             }
         }
 
-        // tx task
-        [[nodiscard]] auto state() const -> BMCMotorState {
+        // build motor state
+        [[nodiscard]] auto state(uint8_t const num_rx_dropped) const -> BMCMotorState {
             auto const current = m_current_sensor ? m_current_sensor->current() : std::numeric_limits<float>::quiet_NaN();
 
             return BMCMotorState{
@@ -412,7 +411,8 @@ namespace mrover {
                     current,                       // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
-                    m_stalled                      // is_stalled
+                    m_stalled,                     // is_stalled
+                    num_rx_dropped                 // num_rx_dropped
             };
         }
 

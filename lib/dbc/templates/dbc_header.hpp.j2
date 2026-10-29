@@ -52,6 +52,10 @@ namespace mrover {
             {%- set ns.boolIter = ns.boolIter + 1 %}
 
         {%- else %}
+            {%- if ns.boolIter > 0 %}
+            {%- set ns.boolIter = 0 %}
+            ++i;
+            {%- endif %}
             uint{{ sig_data.bit_length if sig_data.bit_length > 8 else 8 }}_t temp_{{ sig_name }} = 0;
 
             for (uint8_t j = 0; j < {{ sig_data.byte_length }}; ++j) {
@@ -98,6 +102,10 @@ namespace mrover {
             {%- set ns.boolIter = ns.boolIter + 1 %}
 
         {%- else %}
+            {%- if ns.boolIter > 0 %}
+            {%- set ns.boolIter = 0 %}
+            ++i;
+            {%- endif %}
             for (uint8_t j = 0; j < {{ sig_data.byte_length }}; ++j) {
                 msg_arr[i] = (std::bit_cast<uint{{ sig_data.bit_length if sig_data.bit_length > 8 else 8 }}_t>({{ sig_name }}) >> (8*j)) & 0xFF;
                 ++i;

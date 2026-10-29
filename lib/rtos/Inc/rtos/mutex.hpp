@@ -54,10 +54,6 @@ namespace mrover {
         }
     };
 
-    /**
-     * Scoped lock. Only locks once the scheduler runs: before that there is a single thread of
-     * execution, and a FreeRTOS mutex needs a running task to own it. Never use from an ISR.
-     */
     class MutexGuard {
         Mutex& m_mutex;
         bool const m_locked;
@@ -74,7 +70,6 @@ namespace mrover {
         auto operator=(MutexGuard const&) -> MutexGuard& = delete;
     };
 
-    // a driver's intrinsic lock: drivers lock it unconditionally, it compiles away without an RTOS
     using PeripheralMutex = Mutex;
 #else  // MROVER_USE_RTOS
     class __attribute__((unavailable("enable rtos to use mrover::Mutex"))) Mutex {
@@ -83,7 +78,6 @@ namespace mrover {
         explicit Mutex(Args&&... args) {}
     };
 
-    // without an RTOS a driver has one thread of execution, so its lock is free
     struct PeripheralMutex {
         explicit PeripheralMutex(char const* = nullptr) {}
     };

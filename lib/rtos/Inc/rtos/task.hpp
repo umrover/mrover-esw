@@ -19,8 +19,8 @@ namespace mrover {
 #ifdef MROVER_USE_RTOS
     template<std::size_t StackBytes = 512>
     class Task {
-        static_assert(StackBytes % sizeof(StackType_t) == 0, "StackBytes must be a multiple of the stack word size");
-        static_assert(StackBytes >= configMINIMAL_STACK_SIZE * sizeof(StackType_t), "StackBytes is below configMINIMAL_STACK_SIZE");
+        static_assert(StackBytes % sizeof(StackType_t) == 0, "stack size must be multiple of word size");
+        static_assert(StackBytes >= configMINIMAL_STACK_SIZE * sizeof(StackType_t), "stack size below configMINIMAL_STACK_SIZE");
 
         using entry_t = void (*)(void*);
         using simple_entry_t = void (*)();

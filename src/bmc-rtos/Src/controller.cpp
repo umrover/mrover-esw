@@ -30,11 +30,13 @@ extern TIM_HandleTypeDef htim4;
 
 namespace mrover {
 
+    // params
     static constexpr uint8_t NUM_ADC_CHANNELS = 1;
     static constexpr size_t NUM_ELAPSED_TIMER_CHANNELS = 2;
     static constexpr size_t ELAPSED_TIMER_CH_1 = 0;
     static constexpr size_t ELAPSED_TIMER_CH_2 = 1;
 
+    // peripheral handles
     static constexpr UART_HandleTypeDef* LPUART_1 = &hlpuart1;
     static constexpr ADC_HandleTypeDef* ADC_1 = &hadc1;
     static constexpr FDCAN_HandleTypeDef* FDCAN_1 = &hfdcan1;
@@ -44,91 +46,72 @@ namespace mrover {
     static constexpr TIM_HandleTypeDef* ENCODER_TIM = &htim4;
 
     /*
-     * Task set, highest priority first. All periodic releases are phased from tick 0.
-     *
-     *   control   High            periodic 40 ms @ +2 ms    stall detect, PID, h-bridge; wakes early on a limit change
-     *   limit-a/b AboveNormal2    sporadic, edge or 40 ms   EXTI both edges; >= 5 ms between edges (line masked)
-     *   can-rx    AboveNormal1    sporadic, per frame       frames are drained by the FDCAN ISR into rx_queue
-     *   encoder   AboveNormal     periodic 40 ms @ 0        sampled 2 ms ahead of control
-     *   current   AboveNormal     periodic 40 ms @ 0        sampled 2 ms ahead of control
-     *   can-tx    Normal          periodic 1 / tx_rate_hz   motor state broadcast
-     *
-     * Sensors run at the control rate: stall detection's delta_position is per encoder sample, and the
-     * velocity / current filters are sized in samples.
+     * define task periods, parameters
+     * control - High - 40ms (25Hz) - PID and hbridge driving
+     * limit-a/b - AboveNormal2 - edge/40ms (25Hz) - limit processing
+     * can-rx - AboveNormal1 - per frame off buffer - drain frames into rx_queue
+     * encoder - AboveNormal - 40ms (25Hz) - sampled 2ms ahead of control loop
+     * current - AboveNormal - 40ms (25Hz) - sampled 2ms ahead of control loop
+     * can-tx - Normal - 1 / tx_rate_hz - motor state broadcast
      */
-    static constexpr uint32_t CONTROL_PERIOD_MS = 40; // 25 Hz
-    static constexpr uint32_t SENSOR_LEAD_MS = 2;     // sensors sample this far ahead of control
+    static constexpr uint32_t CONTROL_PERIOD_MS = 40;
+    static constexpr uint32_t SENSOR_LEAD_MS = 2;
     static constexpr uint32_t LIMIT_DEBOUNCE_MS = 5;
-    static constexpr uint32_t LIMIT_POLL_MS = CONTROL_PERIOD_MS; // catches anything missed while an edge is masked
-    static constexpr uint32_t CAN_WWDG_MS = 100;                 // fault when no message has arrived for this long
+    static constexpr uint32_t LIMIT_POLL_MS = CONTROL_PERIOD_MS;
+    static constexpr uint32_t CAN_WWDG_MS = 100;
     static constexpr uint8_t DEFAULT_TX_RATE_HZ = 10;
     static constexpr uint8_t MAX_TX_RATE_HZ = 100;
     static constexpr std::size_t RX_QUEUE_DEPTH = 8;
-    static constexpr uint32_t LIMIT_CHANGED = 1U << 0; // control task thread flag
+    static constexpr uint32_t LIMIT_CHANGED = 1U << 0;
 
+    // globals
     bmc_config_t config;
     bool volatile initialized = false;
     static uint8_t can_id{};
     static uint8_t host_can_id{};
 
-    // Peripherals
+    // peripherals
     std::optional<UART> lpuart;
     std::optional<ADC<NUM_ADC_CHANNELS>> adc;
     std::optional<FDCAN> fdcan;
 
-    // Timers
+    // timers
     std::optional<ElapsedTimer<NUM_ELAPSED_TIMER_CHANNELS>> elapsed_timer;
 
-    // Hardware Units
+    // hardware units
     std::optional<Pin> can_tx;
     std::optional<Pin> can_rx;
     std::optional<MRoverCANHandler> can_receiver;
     std::optional<Motor> motor;
 
-    // Guards motor, config and last_rx_tick. Every holder only touches RAM and registers (no waits),
-    // except a config write (flash erase), which stalls the whole core anyway.
+    // motor guard (for motor, config, and tick)
     static Mutex motor_lock{"motor"};
     static uint32_t last_rx_tick{};
 
-    static Queue<std::optional<MRoverCANMsg_t>, RX_QUEUE_DEPTH> rx_queue{"can-rx"}; // optional: the variant can't be default constructed
-    static uint32_t volatile rx_dropped{};                                          // frames the rx ISR could not queue
+    // incomingg message queue
+    static Queue<std::optional<MRoverCANMsg_t>, RX_QUEUE_DEPTH> rx_queue{"can-rx"};
+    static uint8_t volatile num_rx_dropped{}; // num dropped incoming frames
 
-    struct LimitInput {
+    // limit inputs
+    struct limit_trigger_t {
         uint16_t pin;
         Semaphore edge{};
     };
-    static LimitInput limit_a_input{LIMIT_A_Pin};
-    static LimitInput limit_b_input{LIMIT_B_Pin};
+
+    static limit_trigger_t limit_a_input{LIMIT_A_Pin};
+    static limit_trigger_t limit_b_input{LIMIT_B_Pin};
 
     /**
-     * Worst observed time from a task waking to finishing its work, in CPU cycles (170 per us),
-     * including preemption and lock waits. Read with a debugger to check the timing budget.
+     * Advance to next task release, keep phase if overrun.
      */
-    static struct {
-        uint32_t control, limit, rx, encoder, current, tx;
-    } volatile worst_cycles{};
-
-    class Measure {
-        uint32_t volatile& m_worst;
-        uint32_t const m_start = DWT->CYCCNT;
-
-    public:
-        explicit Measure(uint32_t volatile& worst) : m_worst{worst} {}
-        ~Measure() {
-            uint32_t const elapsed = DWT->CYCCNT - m_start;
-            if (elapsed > m_worst) m_worst = elapsed;
-        }
-    };
-
-    // advance to the next release; after an overrun skip the missed releases (keeping phase)
-    // rather than running back-to-back
-    static auto advance(uint32_t& next, uint32_t const period) -> void {
+    static auto advance(uint32_t &next, uint32_t const period) -> void {
         next += period;
         while (static_cast<int32_t>(next - osKernelGetTickCount()) <= 0) next += period;
     }
 
     /**
-     * Send a CAN message defined in MRoverCAN.dbc on the bus. Called by tasks only.
+     * Send a CAN message defined in MRoverCAN.dbc on the bus.
+     * In RTOS application, this must be called by tasks.
      */
     auto send_can_message(uint32_t const base_id, uint8_t const* data, std::size_t const len) -> void {
         if (!initialized) return;
@@ -137,13 +120,16 @@ namespace mrover {
         can_tx->reset();
     }
 
-    // read under motor_lock: rx writes config
+    /**
+     * Determine tx period from config params.
+     */
     static auto tx_period_ms() -> uint32_t {
         uint8_t hz = config.get<bmc_config_t::tx_rate_hz>();
         if (hz == 0 || hz > MAX_TX_RATE_HZ) hz = DEFAULT_TX_RATE_HZ;
         return 1000 / hz;
     }
 
+    // task function stubs
     static void control_task();
     static void limit_task(void* arg);
     static void rx_task();
@@ -151,10 +137,11 @@ namespace mrover {
     static void current_task();
     static void tx_task();
 
+    // tasks
     static Task<1024> control{"control", control_task, osPriorityHigh};
     static Task<512> limit_a{"limit-a", limit_task, &limit_a_input, osPriorityAboveNormal2};
     static Task<512> limit_b{"limit-b", limit_task, &limit_b_input, osPriorityAboveNormal2};
-    static Task<2048> rx{"can-rx", rx_task, osPriorityAboveNormal1};
+    static Task<1024> rx{"can-rx", rx_task, osPriorityAboveNormal1};
     static Task<512> encoder{"encoder", encoder_task, osPriorityAboveNormal};
     static Task<512> current{"current", current_task, osPriorityAboveNormal};
     static Task<1024> tx{"can-tx", tx_task, osPriorityNormal};
@@ -164,15 +151,13 @@ namespace mrover {
         for (;;) {
             advance(next, CONTROL_PERIOD_MS);
 
-            // sleep until the release, waking early to stop the moment a limit is hit
+            // wake on release or limit
             for (int32_t left; (left = static_cast<int32_t>(next - osKernelGetTickCount())) > 0;) {
                 if (osThreadFlagsWait(LIMIT_CHANGED, osFlagsWaitAny, left) & osFlagsError) break;
-                Measure measure{worst_cycles.control};
                 MutexGuard lock{motor_lock};
                 motor->enforce_limits();
             }
 
-            Measure measure{worst_cycles.control};
             MutexGuard lock{motor_lock};
             if (osKernelGetTickCount() - last_rx_tick >= CAN_WWDG_MS) motor->tx_watchdog_lapsed();
             motor->drive_output();
@@ -180,10 +165,9 @@ namespace mrover {
     }
 
     static auto limit_task(void* arg) -> void {
-        auto& input = *static_cast<LimitInput*>(arg);
+        auto& input = *static_cast<limit_trigger_t*>(arg);
 
         auto const update = [] {
-            Measure measure{worst_cycles.limit};
             bool changed;
             {
                 MutexGuard lock{motor_lock};
@@ -194,10 +178,10 @@ namespace mrover {
 
         for (;;) {
             bool const edge = input.edge.acquire(LIMIT_POLL_MS);
-            update(); // the first edge of a press stops the motor immediately
+            update();
             if (!edge) continue;
 
-            // the ISR masked the line so contact bounce can't storm it; take the settled level, then unmask
+            // debounce limit pulse
             osDelay(LIMIT_DEBOUNCE_MS);
             update();
             __HAL_GPIO_EXTI_CLEAR_IT(input.pin);
@@ -210,7 +194,6 @@ namespace mrover {
             std::optional<MRoverCANMsg_t> msg;
             if (!rx_queue.get(msg) || !msg) continue;
 
-            Measure measure{worst_cycles.rx};
             can_rx->set();
             {
                 MutexGuard lock{motor_lock};
@@ -227,7 +210,6 @@ namespace mrover {
         for (;;) {
             advance(next, CONTROL_PERIOD_MS);
             osDelayUntil(next);
-            Measure measure{worst_cycles.encoder};
             MutexGuard lock{motor_lock};
             motor->update_encoder();
         }
@@ -238,7 +220,6 @@ namespace mrover {
         for (;;) {
             advance(next, CONTROL_PERIOD_MS);
             osDelayUntil(next);
-            Measure measure{worst_cycles.current};
             MutexGuard lock{motor_lock};
             motor->update_current();
         }
@@ -253,12 +234,11 @@ namespace mrover {
             }
             osDelayUntil(next);
 
-            Measure measure{worst_cycles.tx};
             auto const state = [] {
                 MutexGuard lock{motor_lock};
-                return motor->state();
+                return motor->state(num_rx_dropped);
             }();
-            send_can_message(BMCMotorState::BASE_ID, state.msg_arr, sizeof(state.msg_arr)); // outside motor_lock
+            send_can_message(BMCMotorState::BASE_ID, state.msg_arr, sizeof(state.msg_arr));
         }
     }
 
@@ -325,6 +305,7 @@ extern "C" {
 void Init() {
     mrover::init();
 
+    // init/start rtos kernel and tasks
     osKernelInitialize();
     mrover::control.start();
     mrover::limit_a.start();
@@ -336,20 +317,20 @@ void Init() {
     osKernelStart();
 }
 
-// priority 5: drain the 3-deep hardware fifo so a burst can't overrun it while can-rx is preempted
+// drain tx-fifo
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
     if (!mrover::initialized) return;
     while (mrover::fdcan->messages_to_process() > 0) {
         if (auto const msg = mrover::can_receiver->receive(); msg && !mrover::rx_queue.put_from_isr(msg)) {
-            mrover::rx_dropped = mrover::rx_dropped + 1;
+            // increment number dropped if we fail to enqueue a message
+            mrover::num_rx_dropped++;
         }
     }
 }
 
-// priority 5: mask the line until limit_task has debounced it
+// mask line until debounced
 void HAL_GPIO_EXTI_Callback(uint16_t const pin) {
-    auto* input = pin == LIMIT_A_Pin ? &mrover::limit_a_input : pin == LIMIT_B_Pin ? &mrover::limit_b_input
-                                                                                   : nullptr;
+    auto* input = pin == LIMIT_A_Pin ? &mrover::limit_a_input : pin == LIMIT_B_Pin ? &mrover::limit_b_input : nullptr;
     if (!input) return;
     CLEAR_BIT(EXTI->IMR1, pin);
     input->edge.release();

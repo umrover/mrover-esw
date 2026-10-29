@@ -370,7 +370,8 @@ namespace mrover {
                     current,                       // current
                     m_limit_a_hit,                 // limit_a_set
                     m_limit_b_hit,                 // limit_b_set
-                    m_stalled                      // is_stalled
+                    m_stalled,                     // is_stalled
+                    0                              // num_rx_dropped (not implemented here)
             });
         }
 

@@ -6,8 +6,8 @@ from esw.can.dbc import get_dbc
 
 if __name__ == "__main__":
     LOOP_DELAY = 0.05
-    TARGET = 1.0
-    CAN_ID = 0x69
+    TARGET = -0.5
+    CAN_ID = 0x67
     SRC_ID = 0x10
 
     # with AsyncPlotter(max_size=200, loop_delay=LOOP_DELAY, x_label="Time (s)", y_label="Waveform") as plotter:
