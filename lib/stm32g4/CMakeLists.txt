@@ -43,11 +43,14 @@ set(MX_Include_Dirs
 # Point the repository-root compile database at active project
 get_filename_component(ESW_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 file(MAKE_DIRECTORY ${ESW_ROOT}/build)
+string(MD5 MX_BUILD_HASH "${CMAKE_BINARY_DIR}")
+set(MX_COMPILE_DB_TMP "${ESW_ROOT}/build/.compile_commands.${MX_BUILD_HASH}.json")
 file(CREATE_LINK
     ${CMAKE_BINARY_DIR}/compile_commands.json
-    ${ESW_ROOT}/build/compile_commands.json
+    ${MX_COMPILE_DB_TMP}
     SYMBOLIC
 )
+file(RENAME ${MX_COMPILE_DB_TMP} ${ESW_ROOT}/build/compile_commands.json)
 
 # STM32CubeMX generated application sources
 set(MX_Application_Src

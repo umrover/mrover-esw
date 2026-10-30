@@ -104,7 +104,7 @@ namespace mrover {
     /**
      * Advance to next task release, keep phase if overrun.
      */
-    static auto advance(uint32_t &next, uint32_t const period) -> void {
+    static auto advance(uint32_t& next, uint32_t const period) -> void {
         next += period;
         while (static_cast<int32_t>(next - osKernelGetTickCount()) <= 0) next += period;
     }
@@ -330,7 +330,8 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
 
 // mask line until debounced
 void HAL_GPIO_EXTI_Callback(uint16_t const pin) {
-    auto* input = pin == LIMIT_A_Pin ? &mrover::limit_a_input : pin == LIMIT_B_Pin ? &mrover::limit_b_input : nullptr;
+    auto* input = pin == LIMIT_A_Pin ? &mrover::limit_a_input : pin == LIMIT_B_Pin ? &mrover::limit_b_input
+                                                                                   : nullptr;
     if (!input) return;
     CLEAR_BIT(EXTI->IMR1, pin);
     input->edge.release();
