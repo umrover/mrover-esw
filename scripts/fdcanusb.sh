@@ -1,14 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-RED="\e[1;31m"
-BLUE="\e[1;34m"
-NC="\e[0m"
+source "${0:A:h}/common.sh"
 
-ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
-SCRIPT_NAME=$(basename "$0")
-CACHE_DIR="$ESW_ROOT/tools/fdcanusb"
+CACHE_DIR="$TOOLS_DIR/fdcanusb"
 SOURCE_URL="https://raw.githubusercontent.com/mjbots/fdcanusb/4361dc321262693fa2548d8d4245fe1161b65f39/sw/fdcanusb_daemon.cc"
 UDEV_SOURCE_URL="https://raw.githubusercontent.com/mjbots/fdcanusb/refs/heads/master/70-fdcanusb.rules"
 SOURCE_FILE="${CACHE_DIR}/fdcanusb_daemon.cc"
@@ -19,84 +15,69 @@ usage() {
     cat <<EOF
 Usage: sudo $SCRIPT_NAME --net <vcan-network>
 
+Run FDCANUSB daemon and vcan network. Installs and manages FDCANUSB tooling.
+
 options:
   -n, --net <vcan-network>      set vcan interface
   -h, --help                    show this help message
 EOF
-    exit 1
+    exit "${1:-0}"
 }
-
-# enforce sudo
-if [ "$EUID" -ne 0 ]; then
-    printf "%b\n" "${RED}✗ error: run this script as root${NC}"
-    usage
-fi
 
 # parse parameters
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -n|--net)       IFACE="$2"; shift 2 ;;
+        -n|--net)       need_value "$1" $#; IFACE="$2"; shift 2 ;;
         -h|--help)      usage ;;
-        *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
+        *)              unknown_option "$1" ;;
     esac
 done
 
 # verify network interface provided
-if [ -z "$IFACE" ]; then
-    usage
-fi
+[[ -n "$IFACE" ]] || usage_error "\`--net\` required"
 
-# verify curl is installed
-if ! command -v curl >/dev/null 2>&1; then
-    printf "%b\n" "${RED}✗ error: curl not installed${NC}"
-    exit 1
-fi
+# enforce sudo
+((EUID == 0)) || usage_error "run this script as root"
+
+require curl ip udevadm
 
 # create cache directory
-if [ ! -d "$CACHE_DIR" ]; then
+if [[ ! -d "$CACHE_DIR" ]]; then
     mkdir -p "$CACHE_DIR"
-    printf "%b\n" "${BLUE}created cache directory at ${CACHE_DIR}${NC}"
+    info "created cache directory at ${CACHE_DIR}"
 fi
 
 # download fdcanusb daemon
-if [ ! -f "$SOURCE_FILE" ]; then
-    curl -L "$SOURCE_URL" -o "$SOURCE_FILE" || {
-        printf "%b\n" "${RED}$✗ error: could not download source from $SOURCE_URL${NC}"
-        exit 1
-    }
-    printf "%b\n" "${BLUE}downloaded fdcanusb daemon source to $SOURCE_FILE${NC}"
+if [[ ! -f "$SOURCE_FILE" ]]; then
+    curl -L "$SOURCE_URL" -o "$SOURCE_FILE" || die "could not download source from $SOURCE_URL"
+    info "downloaded fdcanusb daemon source to $SOURCE_FILE"
 fi
 
 # build fdcanusb daemon
-if [ ! -f "$BINARY" ]; then
+if [[ ! -f "$BINARY" ]]; then
+    require g++
     g++ -Wall -g -O2 "$SOURCE_FILE" -o "$BINARY"
-    printf "%b\n" "${BLUE}built fdcanusb daemon${NC}"
+    info "built fdcanusb daemon"
 fi
 
 # install and load udev rules
-if [ ! -f "/etc/udev/rules.d/70-fdcanusb.rules" ] && [ ! -f "/lib/udev/rules.d/70-fdcanusb.rules" ]; then
-    curl -L "$UDEV_SOURCE_URL" -o "/etc/udev/rules.d/70-fdcanusb.rules" || {
-        printf "%b\n" "${RED}✗ error: could not download source from $UDEV_SOURCE_URL${NC}"
-        exit 1
-    }
-    printf "%b\n" "${BLUE}installing udev rules${NC}"
+if [[ ! -f "/etc/udev/rules.d/70-fdcanusb.rules" ]] && [[ ! -f "/lib/udev/rules.d/70-fdcanusb.rules" ]]; then
+    curl -L "$UDEV_SOURCE_URL" -o "/etc/udev/rules.d/70-fdcanusb.rules" || die "could not download source from $UDEV_SOURCE_URL"
+    info "installing udev rules"
     udevadm control --reload-rules
     udevadm trigger --subsystem-match=tty
     sleep 1
-    printf "%b\n" "${BLUE}installed udev rules for fdcanusb${NC}"
+    info "installed udev rules for fdcanusb"
 fi
 
 # verify fdcanusb exists
-if [ ! -e "/dev/fdcanusb" ]; then
-    printf "%b\n" "${RED}✗ error: fdcanusb device not found${NC}"
-    usage
-fi
+[[ -e "/dev/fdcanusb" ]] || die "fdcanusb device not found at /dev/fdcanusb"
 
 # setup virtual CAN network interface
-if ! ip link show "$IFACE" >/dev/null 2>&1; then
-    printf "%b\n" "${BLUE}creating vcan interface, you may be prompted for your password $IFACE${NC}"
+if ! ip link show "$IFACE" > /dev/null 2>&1; then
+    info "creating vcan interface $IFACE"
     ip link add name "$IFACE" type vcan || true
-    printf "%b\n" "${BLUE}created $IFACE${NC}"
+    info "created $IFACE"
 fi
 
 # start vcan network
@@ -104,4 +85,3 @@ ip link set "$IFACE" up
 
 # run fdcanusb daemon in foreground
 "${BINARY}" -F -v "/dev/fdcanusb" "$IFACE"
-

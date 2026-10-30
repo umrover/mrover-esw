@@ -1,33 +1,40 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-RED="\e[1;31m"
-BLUE="\e[1;34m"
-NC="\e[0m"
+source "${0:A:h}/common.sh"
 
-ESW_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+usage() {
+    cat <<EOF
+Usage: $SCRIPT_NAME [ansible-playbook options]
 
-die() {
-    printf "%b\n" "${RED}✗ error: $1${NC}" >&2
-    exit 1
+Install and configure ESW development environment via ansible.
+
+options:
+  -h, --help            show this help message
+EOF
+    exit "${1:-0}"
 }
+
+case "${1:-}" in
+    -h|--help) usage ;;
+esac
 
 case "$(uname -s)" in
     Linux)
         command -v apt-get > /dev/null 2>&1 \
-            || die "on Linux this script supports Debian/Ubuntu only (apt-get not found)"
+            || die "on Linux this script supports Debian/Ubuntu only (\`apt-get\` not found)"
         if ! command -v ansible-playbook > /dev/null 2>&1; then
-            printf "%b\n" "${BLUE}installing ansible...${NC}"
+            info "installing ansible..."
             sudo apt-get update
             sudo apt-get install -y ansible
         fi
         ;;
     Darwin)
         command -v brew > /dev/null 2>&1 \
-            || die "Homebrew is required on macOS. Install it from https://brew.sh and re-run this script"
+            || die "\`brew\` is required on macOS, install from https://brew.sh and re-run"
         if ! command -v ansible-playbook > /dev/null 2>&1; then
-            printf "%b\n" "${BLUE}installing ansible...${NC}"
+            info "installing ansible..."
             brew install ansible
         fi
         ;;
@@ -35,6 +42,8 @@ case "$(uname -s)" in
         die "unsupported operating system: $(uname -s) (Linux and macOS only)"
         ;;
 esac
+
+require ansible-playbook
 
 export ANSIBLE_CONFIG="$ESW_ROOT/ansible/ansible.cfg"
 
