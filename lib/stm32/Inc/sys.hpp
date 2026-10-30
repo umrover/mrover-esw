@@ -141,10 +141,7 @@ namespace mrover {
         }
 
         /**
-         * Nestable critical section. With the RTOS running it is a kernel critical section (masks
-         * interrupts up to configMAX_SYSCALL_INTERRUPT_PRIORITY); otherwise it masks everything and
-         * restores the previous mask on exit. Before the scheduler starts a kernel critical section
-         * would never unmask (see rtos/util.hpp), so PRIMASK is used then too.
+         * Nestable critical section.
          */
         class InterruptGuard {
 #ifdef MROVER_USE_RTOS

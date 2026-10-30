@@ -68,7 +68,6 @@ namespace mrover {
                 {% endfor %}            );
         }
 
-        // a switch rather than a fold over all(): a fold gives every register its own stack slot
         auto set_raw(uint8_t const address, uint32_t const raw) -> bool {
             switch (address) {
                 {% for reg in regs %}

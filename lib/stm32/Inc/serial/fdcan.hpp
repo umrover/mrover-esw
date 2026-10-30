@@ -18,11 +18,6 @@ namespace mrover {
     constexpr static std::size_t FDCAN_MAX_FRAME_SIZE = 64;
 
 #ifdef HAL_FDCAN_MODULE_ENABLED
-    /**
-     * Thread safety: send(), init() and reset() lock an intrinsic mutex, so any task may call them
-     * (never an ISR). receive() and messages_to_process() are unlocked so the rx ISR can drain the
-     * fifo; there must be exactly one receiver.
-     */
     class FDCAN {
     public:
         enum class FilterIdType {
