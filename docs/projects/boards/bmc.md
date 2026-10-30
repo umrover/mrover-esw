@@ -99,11 +99,6 @@ mode, velocity in velocity mode. `target_valid` must be set for the command to t
 Definition: `config/bmc.yaml`, the largest in the tree at 84 bytes. Device values live under
 `rover/ra/`, `rover/sp/`, `rover/cm/` and `rover/test/`.
 
-`bmc-rtos` only applies a config write (`ESWConfigCmd` with `apply` set) in `STOPPED` or `FAULT`
-mode; otherwise the write is dropped and a warning is logged. Erasing the config page stalls the
-core for tens of milliseconds, so the motor must not be driven while it happens. Reads are always
-answered.
-
 | Register | Type | Meaning |
 | --- | --- | --- |
 | `can_id` | `uint8` | this board's CAN node ID |
@@ -122,7 +117,6 @@ answered.
 | `vel_k_p`, `vel_k_i`, `vel_k_d`, `vel_k_f` | `float32` | velocity loop PIDF gains |
 | `stall_current` | `float32` | current above which `is_stalled` is asserted |
 | `delta_position` | `float32` | position change threshold used in stall detection |
-| `tx_rate_hz` | `uint8` | `BMCMotorState` broadcast rate, 1-100 Hz (`bmc-rtos` only); 0 or unset uses 10 Hz |
 
 See [Register Definitions](../../reference/config/schema.md) and
 [CAN Configuration Interface](../../reference/config/can-interface.md).
