@@ -68,33 +68,28 @@ namespace mrover {
                 {% endfor %}            );
         }
 
-        auto set_raw(uint8_t address, uint32_t const raw) -> bool {
-            bool found = false;
-
-            std::apply(
-                    [&](auto const&... reg) -> void {
-                        (
-                                [&] -> void {
-                                    if (reg.addr == address) {
-                                        using T = std::remove_reference_t<decltype(reg)>::value_t;
-                                        reg.write(*this, from_raw<T>(raw));
-                                        found = true;
-                                    }
-                                }(),
-                                ...);
-                    },
-                    all());
-
-            return found;
+        auto set_raw(uint8_t const address, uint32_t const raw) -> bool {
+            switch (address) {
+                {% for reg in regs %}
+                case 0x{{ "%x" | format(reg.address) }}:
+                    {{ reg.name | upper }}.write(*this, from_raw<{{ reg.cpp_type }}>(raw));
+                    return true;
+                {% endfor %}
+                default:
+                    return false;
+            }
         }
 
-        auto get_raw(uint8_t address, uint32_t& raw) const -> bool {
-            bool found = false;
-            std::apply([&](auto const&... reg) -> void {
-                ((reg.addr == address ? (raw = to_raw(reg.value.value_or(0)), found = true) : false), ...);
-            },
-                        all());
-            return found;
+        auto get_raw(uint8_t const address, uint32_t& raw) const -> bool {
+            switch (address) {
+                {% for reg in regs %}
+                case 0x{{ "%x" | format(reg.address) }}:
+                    raw = to_raw({{ reg.name | upper }}.value.value_or(0));
+                    return true;
+                {% endfor %}
+                default:
+                    return false;
+            }
         }
 
         struct mem_layout {
