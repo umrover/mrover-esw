@@ -1,7 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
+source "${0:A:h}/common.sh"
 
-exec uv run --quiet --project "$ESW_ROOT/tools" python "$ESW_ROOT/tools/scripts/monitor.py" "$@"
+# all args pass to python
+esw_uv python "$TOOLS_DIR/scripts/monitor.py" "$@"

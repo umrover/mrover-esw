@@ -1,15 +1,46 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-BOLD="\033[1m"
-RED="\033[1;31m"
-GREEN="\033[1;32m"
-BLUE="\033[1;34m"
-YELLOW="\033[1;33m"
-NC="\033[0m"
+source "${0:A:h}/common.sh"
 
-shopt -s nullglob
+FORMAT_MODE=0
+LINT_MODE=0
+FIX_MODE=0
+VERBOSE_MODE=0
+EXIT_CODE=0
+
+usage() {
+    cat <<EOF
+Usage: $SCRIPT_NAME [--format] [--lint] [--fix] [--verbose]
+
+Checks formatting and lints C/C++, python and shell sources (format only by default).
+
+options:
+  -f, --format          check formatting (\`clang-format\`, \`ruff format\`)
+  -l, --lint            lint (\`ruff check\`, \`ty\`, \`zsh -n\`, \`shellcheck\` for any bash scripts)
+  -x, --fix             apply fixes instead of only reporting them
+  -v, --verbose         verbose tool output
+  -h, --help            show this help message
+EOF
+    exit "${1:-0}"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -f|--format)    FORMAT_MODE=1; shift ;;
+        -l|--lint)      LINT_MODE=1; shift ;;
+        -x|--fix)       FIX_MODE=1; shift ;;
+        -v|--verbose)   VERBOSE_MODE=1; shift ;;
+        -h|--help)      usage ;;
+        *)              unknown_option "$1" ;;
+    esac
+done
+
+# paths relative to repository root
+cd "$ESW_ROOT"
+
+setopt null_glob
 
 collect_cpp_files() {
     # skips symlinks
@@ -32,6 +63,16 @@ readonly SHELL_FILES=(
     scripts/*.sh
 )
 
+BASH_FILES=()
+ZSH_FILES=()
+for file in "${SHELL_FILES[@]}"; do
+    case "$(head -n 1 "$file")" in
+        *zsh) ZSH_FILES+=("$file") ;;
+        *)    BASH_FILES+=("$file") ;;
+    esac
+done
+readonly BASH_FILES ZSH_FILES
+
 if (( ${#CPP_FILES[@]} == 0 )); then
     printf "%b\n\n" "${YELLOW}warning:${NC} no C/C++ files found!"
 fi
@@ -44,40 +85,8 @@ if (( ${#SHELL_FILES[@]} == 0 )); then
     printf "%b\n\n" "${YELLOW}warning:${NC} no shell script files found!"
 fi
 
-
-# =========================
-# Argument parsing
-# =========================
-FORMAT_MODE=0
-LINT_MODE=0
-FIX_MODE=0
-VERBOSE_MODE=0
-EXIT_CODE=0
-
-for arg in "$@"; do
-    case "$arg" in
-    --format)
-        FORMAT_MODE=1
-        ;;
-    --lint)
-        LINT_MODE=1
-        ;;
-    --fix)
-        FIX_MODE=1
-        ;;
-    --verbose)
-        VERBOSE_MODE=1
-        ;;
-    *)
-        printf "%b\n" "${RED}[Error] Unknown argument: ${arg}${NC}" >&2
-        printf "%s\n" "Usage: ${0##*/} [--format] [--lint] [--fix] [--verbose]" >&2
-        exit 1
-        ;;
-    esac
-done
-
 if ((!FIX_MODE)); then
-    printf "%b\n\n" "${YELLOW}note:${NC} running in check-only mode (use --fix to apply fixes)" >&2
+    printf "%b\n\n" "${YELLOW}note:${NC} running in check-only mode (use \`--fix\` to apply fixes)" >&2
 fi
 
 # default behavior: if neither format nor lint is specified, run format
@@ -85,38 +94,40 @@ if ((FORMAT_MODE == 0 && LINT_MODE == 0)); then
     FORMAT_MODE=1
 fi
 
-find_executable() {
-    local -r executable="$1"
-
-    local path
-    if ! path=$(command -v "$executable" 2>/dev/null); then
-        printf "%b\n" "${RED}error: could not find ${executable}${NC}" >&2
-        exit 1
-    fi
+# print a tool's version to stderr
+print_version() {
+    local -r name="$1"
+    shift
 
     local version_output
-    version_output=$("$path" --version 2>&1)
+    version_output=$("$@" --version 2>&1) || die "could not run \`${name}\`"
 
-    if [[ -n "$version_output" ]]; then
-        local version
-        version=$(echo "$version_output" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1)
-        if [[ -n "$version" ]]; then
-            printf "%b\n" "${GREEN}${executable} version: ${version}${NC}" >&2
-        else
-            printf "%b\n" "${YELLOW}${executable} version: found, but version string hidden${NC}" >&2
-        fi
+    local version
+    version=$(printf '%s\n' "$version_output" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
+    if [[ -n "$version" ]]; then
+        printf "%b\n" "${GREEN}${name} version: ${version}${NC}" >&2
     else
-        printf "%b\n" "${YELLOW}${executable} version: unavailable${NC}" >&2
+        printf "%b\n" "${YELLOW}${name} version: found, but version string hidden${NC}" >&2
     fi
-
-    printf '%s\n' "$path"
 }
 
+require clang-format
+readonly CLANG_FORMAT=(clang-format)
+readonly RUFF=(esw_uv ruff)
+readonly TY=(esw_uv ty)
+SHELLCHECK=()
+if ((${#BASH_FILES[@]})); then
+    require shellcheck
+    SHELLCHECK=(shellcheck)
+fi
+readonly SHELLCHECK
 
-readonly CLANG_FORMAT_PATH=$(find_executable clang-format)
-readonly RUFF_PATH=$(find_executable ruff)
-readonly TY_PATH=$(find_executable ty)
-readonly SHELLCHECK_PATH=$(find_executable shellcheck)
+print_version clang-format "${CLANG_FORMAT[@]}"
+print_version ruff "${RUFF[@]}"
+print_version ty "${TY[@]}"
+if ((${#SHELLCHECK[@]})); then
+    print_version shellcheck "${SHELLCHECK[@]}"
+fi
 
 RUFF_ARGS=("--respect-gitignore")
 if ((VERBOSE_MODE)); then
@@ -143,7 +154,7 @@ if ((FORMAT_MODE)); then
         fi
 
         printf "%b\n" "${BOLD}formatting with ${BLUE}clang-format${NC}..."
-        if "${CLANG_FORMAT_PATH}" "${CLANG_FORMAT_ARGS[@]}" "${CPP_FILES[@]}"; then
+        if "${CLANG_FORMAT[@]}" "${CLANG_FORMAT_ARGS[@]}" "${CPP_FILES[@]}"; then
             printf "%b\n" "${GREEN}done!${NC}"
         else
             EXIT_CODE=1
@@ -160,7 +171,7 @@ if ((FORMAT_MODE)); then
 
         printf "\n"
         printf "%b\n" "${BOLD}formatting with ${BLUE}ruff${NC}..."
-        if "${RUFF_PATH}" format "${RUFF_ARGS[@]}" "${RUFF_FORMAT_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+        if "${RUFF[@]}" format "${RUFF_ARGS[@]}" "${RUFF_FORMAT_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
             printf "%b\n" "${GREEN}done!${NC}"
         else
             EXIT_CODE=1
@@ -184,7 +195,7 @@ if ((LINT_MODE)); then
 
         printf "\n"
         printf "%b\n" "${BOLD}linting with ${BLUE}ruff${NC}..."
-        if "${RUFF_PATH}" check "${RUFF_ARGS[@]}" "${RUFF_CHECK_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+        if "${RUFF[@]}" check "${RUFF_ARGS[@]}" "${RUFF_CHECK_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
             printf "%b\n" "${GREEN}done!${NC}"
         else
             EXIT_CODE=1
@@ -201,7 +212,7 @@ if ((LINT_MODE)); then
 
         printf "\n"
         printf "%b\n" "${BOLD}type checking with ${BLUE}ty${NC}..."
-        if "${TY_PATH}" check "${TY_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
+        if "${TY[@]}" check "${TY_ARGS[@]}" "${PYTHON_DIRS[@]}"; then
             printf "%b\n" "${GREEN}done!${NC}"
         else
             EXIT_CODE=1
@@ -210,18 +221,37 @@ if ((LINT_MODE)); then
     fi
 
     # ===== shellcheck (Bash) =====
-    if ((${#SHELL_FILES[@]})); then
+    if ((${#BASH_FILES[@]})); then
         printf "\n"
         printf "%b\n" "${BOLD}linting with ${BLUE}shellcheck${NC}..."
         if ((VERBOSE_MODE)); then
-            printf "%s\n" "${SHELL_FILES[@]}"
+            printf "%s\n" "${BASH_FILES[@]}"
         fi
         # SC2155 is separate declaration and command.
-        if "${SHELLCHECK_PATH}" --exclude=SC2155 "${SHELL_FILES[@]}"; then
+        if "${SHELLCHECK[@]}" --exclude=SC2155 "${BASH_FILES[@]}"; then
             printf "%b\n" "${GREEN}done!${NC}"
         else
             EXIT_CODE=1
             printf "%b\n" "${RED}shellcheck found issues${NC}"
+        fi
+    fi
+
+    # ===== zsh -n (Zsh, syntax only) =====
+    if ((${#ZSH_FILES[@]})); then
+        printf "\n"
+        printf "%b\n" "${BOLD}checking syntax with ${BLUE}\`zsh -n\`${NC}..."
+        ZSH_OK=1
+        for file in "${ZSH_FILES[@]}"; do
+            if ((VERBOSE_MODE)); then
+                printf "%s\n" "$file"
+            fi
+            zsh -n "$file" || ZSH_OK=0
+        done
+        if ((ZSH_OK)); then
+            printf "%b\n" "${GREEN}done!${NC}"
+        else
+            EXIT_CODE=1
+            printf "%b\n" "${RED}zsh found syntax errors${NC}"
         fi
     fi
 fi

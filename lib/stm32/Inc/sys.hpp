@@ -4,6 +4,13 @@
 #include "main.h"
 #endif // STM32
 
+#ifdef MROVER_USE_RTOS
+#include <FreeRTOS.h>
+#include <task.h>
+
+#include <cmsis_os2.h>
+#endif // MROVER_USE_RTOS
+
 #include <cstdint>
 
 // must enable CCM SRAM in project, and initialize on application start
@@ -28,7 +35,8 @@ namespace mrover {
             MALLOC_FAILED,
             HW_INIT_FAILED,
             ASSERT_FAILED,
-            HARD_FAULT
+            HARD_FAULT,
+            STACK_OVERFLOW
         };
 
         static auto get() -> System& {
@@ -86,6 +94,11 @@ namespace mrover {
         }
 
         static auto get_ticks() -> uint32_t {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                return osKernelGetTickCount();
+            }
+#endif // MROVER_USE_RTOS
             return HAL_GetTick();
         }
 
@@ -110,6 +123,12 @@ namespace mrover {
         }
 
         static auto delay_ms(uint32_t const ms) -> void {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                osDelay(ms);
+                return;
+            }
+#endif // MROVER_USE_RTOS
             HAL_Delay(ms);
         }
 
@@ -121,12 +140,35 @@ namespace mrover {
             __enable_irq();
         }
 
+        /**
+         * Nestable critical section.
+         */
         class InterruptGuard {
+#ifdef MROVER_USE_RTOS
+            bool const m_kernel = xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
+#endif // MROVER_USE_RTOS
             uint32_t const m_primask = __get_PRIMASK();
 
         public:
-            InterruptGuard() { disable_interrupts(); }
-            ~InterruptGuard() { __set_PRIMASK(m_primask); }
+            InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskENTER_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                disable_interrupts();
+            }
+
+            ~InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskEXIT_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                __set_PRIMASK(m_primask);
+            }
 
             InterruptGuard(InterruptGuard const&) = delete;
             auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;

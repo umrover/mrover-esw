@@ -7,6 +7,8 @@
 #include <string_view>
 #include <util.hpp>
 
+#include <rtos/mutex.hpp>
+
 #ifdef STM32
 #include "main.h"
 #endif // STM32
@@ -72,6 +74,7 @@ namespace mrover {
         }
 
         auto init() -> void {
+            MutexGuard lock{m_lock};
             if (m_options.delay_compensation) {
                 check(HAL_FDCAN_ConfigTxDelayCompensation(m_fdcan, m_options.tdc_offset, m_options.tdc_filter) == HAL_OK, Error_Handler);
                 check(HAL_FDCAN_EnableTxDelayCompensation(m_fdcan) == HAL_OK, Error_Handler);
@@ -220,7 +223,12 @@ namespace mrover {
             return 0;
         }
 
+        /**
+         * \brief  Queue a frame for transmission
+         * \return False if the frame was dropped because every tx buffer is pending (e.g. no bus)
+         */
         auto send(uint32_t const id, std::string_view const data) -> bool {
+            MutexGuard lock{m_lock};
             if (HAL_FDCAN_GetTxFifoFreeLevel(m_fdcan) == 0) return false;
 
             FDCAN_TxHeaderTypeDef const header{
@@ -237,7 +245,8 @@ namespace mrover {
             return HAL_FDCAN_AddMessageToTxFifoQ(m_fdcan, &header, const_cast<uint8_t*>(reinterpret_cast<uint8_t const*>(data.data()))) == HAL_OK;
         }
 
-        auto reset() const -> void {
+        auto reset() -> void {
+            MutexGuard lock{m_lock};
             HAL_FDCAN_Stop(m_fdcan);
             HAL_FDCAN_Start(m_fdcan);
         }
@@ -245,6 +254,7 @@ namespace mrover {
     private:
         FDCAN_HandleTypeDef* m_fdcan{};
         Options m_options{};
+        PeripheralMutex m_lock{"fdcan"};
     };
 #else  // HAL_FDCAN_MODULE_ENABLED
     class __attribute__((unavailable("enable 'FDCAN' in STM32CubeMX to use mrover::FDCAN"))) FDCAN {

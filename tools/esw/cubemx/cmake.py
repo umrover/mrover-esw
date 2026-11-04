@@ -27,7 +27,9 @@ def _clean_project(path: Path) -> None:
         cmakelists_stm.parent.rmdir()
 
 
-def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str], ccmsram: bool) -> dict[str, Any]:
+def _get_cmakelists_context(
+    name: str, path: Path, root: Path, libs: list[str], rtos: bool, ccmsram: bool
+) -> dict[str, Any]:
     # find source file directory
     src_dir: Path | None = None
     possible_srcs = [path / "Src", path / "Core" / "Src"]
@@ -86,16 +88,19 @@ def _get_cmakelists_context(name: str, path: Path, root: Path, libs: list[str], 
         "mx_startup_s": driver_script,
         "lib_relative_path": lib_relative_path,
         "libs": libs,
+        "rtos": rtos,
         "ccmsram": ccmsram,
     }
 
 
-def configure_cmake(name: str, path: Path, root: Path, ctx: Path, libs: list[str], ccmsram: bool = False) -> None:
+def configure_cmake(
+    name: str, path: Path, root: Path, ctx: Path, libs: list[str], rtos: bool = False, ccmsram: bool = False
+) -> None:
     _clean_project(path)
 
     env = Environment(loader=FileSystemLoader(ctx))
 
-    cmake_context = _get_cmakelists_context(name, path, root, libs, ccmsram)
+    cmake_context = _get_cmakelists_context(name, path, root, libs, rtos, ccmsram)
     cmake_template = env.get_template("templates/CMakeLists.txt.j2")
     cmakelists = path / "CMakeLists.txt"
     esw_logger.info(f"Writing CMakeLists.txt to {cmakelists.absolute().resolve()}")
