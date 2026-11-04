@@ -66,6 +66,8 @@ namespace logger {
     private:
         struct DecodedFrame {
             uint32_t id;
+            uint8_t src_id;
+            uint8_t dest_id;
             long long time;
             std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> data;
         };
@@ -77,11 +79,15 @@ namespace logger {
              *
              * @param measurement Name of specific measurement
              * @param bus_name Name of bus sourcing data
+             * @param src_id Source node ID (bits 15:8 of the CAN ID)
+             * @param dest_id Destination node ID (bits 7:0 of the CAN ID)
              * @param data Map of signal names and signal values
              * @param timestamp Time in microseconds econds data was taken
              */
             void post(std::string const& measurement,
                       std::string const& bus_name,
+                      uint8_t src_id,
+                      uint8_t dest_id,
                       std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
                       long long timestamp);
 

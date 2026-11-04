@@ -53,6 +53,8 @@ namespace logger {
     void Logger::DynamicBuilder::post(
             std::string const& measurement,
             std::string const& bus_name,
+            uint8_t const src_id,
+            uint8_t const dest_id,
             std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
             long long const timestamp) {
 
@@ -62,6 +64,8 @@ namespace logger {
 
         _m(measurement);
         _t("bus_name", bus_name);
+        _t("src_id", std::to_string(src_id));
+        _t("dest_id", std::to_string(dest_id));
 
         bool is_first_field = true;
 
@@ -154,7 +158,7 @@ namespace logger {
             for (auto const& can_frame: frames) {
                 auto const desc = parser.message(can_frame.id);
                 if (desc == nullptr) continue;  // fix later, probably should record how many are skipped
-                builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);                
+                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);                
             }
 
             for (auto const& sample : samples) builder.post_bus_load(can_bus_name, sample);
@@ -173,7 +177,7 @@ namespace logger {
 
             for (auto const& can_frame: frame_buffer) {
                 auto desc = parser.message(can_frame.id);
-                builder.post(desc->name(), can_bus_name, can_frame.data, can_frame.time);
+                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);
                 builder.commit(si);
             }
         }
@@ -429,7 +433,12 @@ namespace logger {
             
             logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
-            DecodedFrame decoded_message = {.id = id, .time = now_ms(), .data = _decode(id, cfd)};
+            DecodedFrame decoded_message = {
+                    .id = id,
+                    .src_id = static_cast<uint8_t>((cfd.can_id >> 8) & 0xFF),
+                    .dest_id = static_cast<uint8_t>(cfd.can_id & 0xFF),
+                    .time = now_ms(),
+                    .data = _decode(id, cfd)};
 
             {
                 std::lock_guard<std::mutex> lock(buffer_mutex);
