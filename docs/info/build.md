@@ -313,28 +313,48 @@ resolve.
 
 This flag runs the script with verbose output.
 
-### `fdcanusb.sh`
+### `can.sh`
 
-This script is a wrapper over MJBot's `fdcanusb_daemon`. It is designed to run with
-the MJBots FDCANUSB to allow connectivity to CAN networks over USB. The script is run
-as follows.
+Brings up an mjbots FDCAN adapter as a native SocketCAN interface.
+Adapters running new mjbots' gs_usb firmware are handled by the kernel's
+`gs_usb` driver, so no daemon or virtual CAN network is needed.
 
 ```bash
-sudo ./scripts/fdcanusb.sh --net <vcan-network>
+./scripts/can.sh --list
+sudo ./scripts/can.sh --net can0
+sudo ./scripts/can.sh --net can1 --serial <usb-serial>
+sudo ./scripts/can.sh --net can0 --term on --dump --watch
+./scripts/can.sh --flash-fw <firmware.elf>
 ```
 
-!!! important
-    This script must be run as `sudo` on linux systems to allow the virtual CAN
-    network interface to be created and started.
+`--list` shows each adapter's interface, USB serial and state, and flags adapters still running
+the old serial-only firmware (these need to be updated with new firmware).
 
-The `--net` flag specifies the virtual CAN network the fdcanusb should use. To work
-with the ROS2 stack, this should be something like `can[0-3]`. The script runs the
-underlying `fdcanusb_daemon` in verbose mode, so the full CAN frame of all messages
-on the bus will be directed to standard output.
+!!! note
+    To update firmware, use the `--flash-fw` option and the firmware
+    [here](https://github.com/mjbots/fdcanusb/releases/latest).
 
-!!! TODO
-    MJBots no longer supports the `fdcanusb_daemon` (this script currently pulls the source
-    for this from an archive). This script should be updated to not depend on this binary.
+`--net` names the adapter's interface (`can[0-3]`) and brings it up at the board timing:
+1 Mbit/s nominal and 5 Mbit/s data with bit rate switching (BRS), at the same sample points as
+the boards. This flag requires `sudo`. If more than one adapter is plugged in, specific adapters
+must be selected with `--serial <serial>`. The interface stays up after the script exits.
+The gs_usb firmware cannot restart after bus-off, so if the bus state ever reads `BUS-OFF`, run
+the script with `--net` again.
+
+Options for `--net`:
+
+- `--term on|off` enables/disables the built-in 120 ohm termination. If not provided, the current
+  setting is kept.
+- `--dump` shows the most recent frames (and error frames) as they arrive, using `candump` from
+  `can-utils`.
+- `--watch` shows the bus state (`ERROR-ACTIVE`, `ERROR-PASSIVE` or `BUS-OFF`), the error counters
+  and the frame statistics.
+
+With `--dump` and/or `--watch`, the script stays open in a full-screen view after bringing the
+interface up, with the bus state on top and the frames below, until `ctrl-c`.
+
+`--flash-fw` flashes an adapter over SWD with an ST-LINK (use the ST-LINK v2), which is needed
+once for adapters on the old firmware.
 
 ### `monitor.sh`
 

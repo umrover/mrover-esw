@@ -8,7 +8,7 @@ commissioned after it has been flashed.
 A CAN interface must be up. With an mjbots FDCANUSB:
 
 ```bash
-sudo ./scripts/fdcanusb.sh --net can0
+sudo ./scripts/can.sh --net can0
 ```
 
 You also need the board's **current** CAN ID. A freshly flashed board has whatever its firmware
