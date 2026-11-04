@@ -20,10 +20,10 @@ PartOf=canalyzer.service
 Type=oneshot
 RemainAfterExit=yes
 
-WorkingDirectory=/home/mrover/mrover-esw/src/accelerometer
+WorkingDirectory=/home/mrover/github/mrover-esw/src/accelerometer
 
-ExecStart=/home/mrover/mrover-esw/src/accelerometer/scripts/pi_start.sh
-ExecStop=/home/mrover/mrover-esw/src/accelerometer/scripts/pi_stop.sh
+ExecStart=/home/mrover/github/mrover-esw/src/accelerometer/scripts/pi_start.sh
+ExecStop=/home/mrover/github/mrover-esw/src/accelerometer/scripts/pi_stop.sh
 
 # init_influx.sh bounds the wait on influxdb (120s), leave headroom for compose up
 TimeoutStartSec=180
