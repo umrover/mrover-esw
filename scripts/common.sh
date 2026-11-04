@@ -56,3 +56,17 @@ pass()    { printf "  %b %s\n" "${GREEN}✓${NC}" "$1"; PASSES=$((PASSES + 1)); 
 note()    { printf "  %b %s\n" "${BLUE}·${NC}" "$1"; }
 warn()    { printf "  %b %s\n" "${YELLOW}!${NC}" "$1"; WARNINGS=$((WARNINGS + 1)); }
 fail()    { printf "  %b %s\n" "${RED}✗${NC}" "$1"; FAILURES=$((FAILURES + 1)); }
+
+# full-screen live view
+screen_open()  { printf "\033[?1049h\033[?25l"; }
+screen_close() { printf "\033[?25h\033[?1049l"; }
+# draw live screen: screen_draw <width> <line>
+screen_draw() {
+    local -r width="$1"
+    shift
+    local line frame=$'\033[H'
+    for line in "$@"; do
+        frame+="${line[1,width]}"$'\033[K\n'
+    done
+    printf "%s\033[J" "$frame"
+}

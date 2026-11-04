@@ -58,9 +58,6 @@ src/**/.gitignore
 starter-projects/**/.gitignore
 lib/**/.gitignore
 
-# cache dirs
-tools/fdcanusb
-
 # auto-generated config headers
 **/*_config.hpp
 
