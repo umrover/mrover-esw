@@ -24,6 +24,8 @@
 #include "dbc_runtime.hpp"
 #include "influxdb.hpp"
 
+#include <moteus/moteus_protocol.h>
+
 namespace bus_load {
     struct FrameBits {
         uint32_t nominal;
@@ -72,6 +74,13 @@ namespace logger {
             std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> data;
         };
 
+        struct MoteusReply {
+            uint8_t motor_id; // source of the reply (bits 14:8 of the CAN ID)
+            uint8_t dest_id;  // usually the host (bits 7:0 of the CAN ID)
+            long long time;
+            mjbots::moteus::GenericQuery::Result result;
+        };
+
         struct DynamicBuilder : public influxdb_cpp::builder {
 
             /**
@@ -98,6 +107,17 @@ namespace logger {
              * @param sample Bus Load Sample taken every second
              */
             void post_bus_load(std::string const& bus_name, bus_load::BusLoadSample const& sample);
+
+            /**
+             * @brief Creates a POST to InfluxDB from a parsed moteus reply
+             *
+             * Only registers present in the reply are written, as fields
+             * named after the moteus register (e.g. position, velocity).
+             *
+             * @param bus_name Name of bus sourcing data
+             * @param reply Parsed moteus reply
+             */
+            void post_moteus(std::string const& bus_name, MoteusReply const& reply);
                 
             /**
              * @brief Commit POST request buffer to InfluxDB
@@ -124,6 +144,7 @@ namespace logger {
         mrover::dbc_runtime::CanFrameProcessor processor;
 
         std::deque<DecodedFrame> frame_buffer;
+        std::deque<MoteusReply> moteus_buffer;
         std::mutex buffer_mutex;
         std::condition_variable cv;
 

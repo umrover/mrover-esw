@@ -36,4 +36,5 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     yaml
     influxdb
     dbc_runtime
+    moteus
 )

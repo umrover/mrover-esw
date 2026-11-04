@@ -48,7 +48,79 @@ namespace bus_load {
     }
 }
 
+namespace {
+    // moteus ID: |can_prefix(13bits)|reply(1bit)|source(7bits)|destination(8bits)|
+    constexpr uint32_t kMoteusCanPrefix = 0;
+
+    auto raw_can_id(canfd_frame const& f) -> uint32_t {
+        return f.can_id & ((f.can_id & CAN_EFF_FLAG) ? CAN_EFF_MASK : CAN_SFF_MASK);
+    }
+
+    auto is_moteus_frame(canfd_frame const& f) -> bool {
+        if (f.can_id & (CAN_ERR_FLAG | CAN_RTR_FLAG)) return false;
+        return (raw_can_id(f) >> 16) == kMoteusCanPrefix;
+    }
+
+    // it is a reply if first non-NOP subframe is 0x20-0x2F
+    auto is_moteus_reply(canfd_frame const& f) -> bool {
+        for (uint8_t i = 0; i < f.len; ++i) {
+            uint8_t const op = f.data[i];
+            if (op == mjbots::moteus::Multiplex::kNop) continue;
+            return op >= 0x20 && op < 0x30;
+        }
+        return false;
+    }
+
+    auto moteus_register_name(int16_t const reg) -> std::string {
+        switch (reg) {
+            case 0x000: return "mode";
+            case 0x001: return "position";          // rev
+            case 0x002: return "velocity";          // rev/s
+            case 0x003: return "torque";            // Nm
+            case 0x004: return "q_current";         // A
+            case 0x005: return "d_current";         // A
+            case 0x006: return "abs_position";      // rev
+            case 0x007: return "power";             // W
+            case 0x00a: return "motor_temperature"; // C
+            case 0x00b: return "trajectory_complete";
+            case 0x00c: return "home_state";
+            case 0x00d: return "voltage";           // V
+            case 0x00e: return "temperature";       // C (board)
+            case 0x00f: return "fault";
+            default: return std::format("reg_0x{:03x}", reg);
+        }
+    }
+} // namespace
+
 namespace logger {
+
+    void Logger::DynamicBuilder::post_moteus(std::string const& bus_name, MoteusReply const& reply) {
+        
+        std::vector<std::pair<std::string, double>> fields;
+        for (auto const& item: reply.result.values) {
+            if (item.register_number < 0) break;
+            if (!std::isfinite(item.value)) continue;
+            fields.emplace_back(moteus_register_name(item.register_number), item.value);
+        }
+        if (fields.empty()) return;
+
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
+        }
+
+        _m("moteus_state");
+        _t("bus_name", bus_name);
+        _t("motor_id", std::to_string(reply.motor_id));
+        _t("dest_id", std::to_string(reply.dest_id));
+
+        char delim = ' ';
+        for (auto const& [name, value]: fields) {
+            _f_f(delim, name, value, 8);
+            delim = ',';
+        }
+
+        _ts(reply.time);
+    }
 
     void Logger::DynamicBuilder::post(
             std::string const& measurement,
@@ -140,16 +212,20 @@ namespace logger {
 
         std::vector<DecodedFrame> frames;
         std::vector<bus_load::BusLoadSample> samples;
+        std::vector<MoteusReply> moteus_replies;
 
         while (true) {
             {
                 std::unique_lock<std::mutex> lock(buffer_mutex);
-                cv.wait(lock, [this] { return !frame_buffer.empty() || !bus_loader_buffer.empty() || !running.load(); });
+                cv.wait(lock, [this] { return !frame_buffer.empty() || !moteus_buffer.empty() || !bus_loader_buffer.empty() || !running.load(); });
 
-                if (!running.load() && frame_buffer.empty() && bus_loader_buffer.empty()) break;
+                if (!running.load() && frame_buffer.empty() && moteus_buffer.empty() && bus_loader_buffer.empty()) break;
 
                 frames.assign(std::make_move_iterator(frame_buffer.begin()), std::make_move_iterator(frame_buffer.end()));
                 frame_buffer.clear();
+
+                moteus_replies.assign(moteus_buffer.begin(), moteus_buffer.end());
+                moteus_buffer.clear();
 
                 samples.assign(bus_loader_buffer.begin(), bus_loader_buffer.end());
                 bus_loader_buffer.clear();
@@ -160,6 +236,8 @@ namespace logger {
                 if (desc == nullptr) continue;  // fix later, probably should record how many are skipped
                 builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);                
             }
+
+            for (auto const& reply: moteus_replies) builder.post_moteus(can_bus_name, reply);
 
             for (auto const& sample : samples) builder.post_bus_load(can_bus_name, sample);
 
@@ -180,6 +258,9 @@ namespace logger {
                 builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);
                 builder.commit(si);
             }
+
+            for (auto const& reply: moteus_buffer) builder.post_moteus(can_bus_name, reply);
+            builder.commit(si);
         }
     }
 
@@ -416,6 +497,26 @@ namespace logger {
                 nominal_bits.fetch_add(frame_bits.nominal, std::memory_order_relaxed);
                 data_bits.fetch_add(frame_bits.data, std::memory_order_relaxed);
                 frame_count.fetch_add(1, std::memory_order_relaxed);
+            }
+
+            if (is_moteus_frame(cfd)) {
+                uint32_t const raw_id = raw_can_id(cfd);
+                logger::Logger::_log_ascii(cfd.data, can_bus_name, file, raw_id);
+
+                if (!is_moteus_reply(cfd)) continue; // fix later, we only log responses TODO: log commands
+
+                MoteusReply reply{
+                        .motor_id = static_cast<uint8_t>((raw_id >> 8) & 0x7F),
+                        .dest_id = static_cast<uint8_t>(raw_id & 0xFF),
+                        .time = now_ms(),
+                        .result = mjbots::moteus::GenericQuery::Parse(cfd.data, cfd.len)};
+
+                {
+                    std::lock_guard<std::mutex> lock(buffer_mutex);
+                    moteus_buffer.push_back(reply);
+                }
+                cv.notify_one();
+                continue;
             }
 
             uint32_t id = (cfd.can_id & CAN_EFF_MASK & 0xFFFF0000) | 0x80000000; //hacky fix
