@@ -1,26 +1,28 @@
 # Servo Starter Project: Part 1, PWM
 
-This starter project is made up of two parts: PWM and CAN. This is Part 1, PWM.
+## About
+This starter project is made up of two parts: PWM and CAN. This is Part 1, PWM, where you will use PWM on the Nucleo to drive a servo.
 
-By the end of this part, you should have an understanding of timers and PWM (pulse width modulation)
-signals.
+### After this project you should understand:
+- Timers
+- Pulse Width Modulation
+- Breadboarding
 
-Just as a reminder, if you have any questions, feel free to reach out to any
-of the ESW leads or members. This project isn't meant to be high-stakes,
-so please reach out if you ever get stuck!
+!!! info
+    Just as a reminder, if you have any questions, feel free to reach out to any
+    of the ESW leads or members. This project isn't meant to be high-stakes,
+    so please reach out if you ever get stuck!
 
 ## Prerequisites
 
 - STM32Cube [installed](../../stm32cube/index.md)
-- LED Project [completed](https://github.com/umrover/embedded-testbench/wiki/Nucleo-LED-Starter-Project) and shown to an ESW lead
-- Git installed and [basic knowledge of how to use it](https://github.com/umrover/mrover-ros2/wiki/Git)
+- LED Project [completed](../led/index.md) and shown to an ESW lead
 - STM32G431RB Nucleo
 - SG90 Servo
 
 ## Intro
 
-As mentioned earlier, by the end of the project you should be able to drive a servo.
-This project will also teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
+This project will teach some coding practices used for STM32 code. Similar to our real code, this starter project will be in C++.
 While you are working through the project, keep the following in mind:
 
 - How could you document your code so that others can easily read and understand it?
@@ -30,13 +32,14 @@ While you are working through the project, keep the following in mind:
 
 ### 1. Setting Up the Project
 
-Unlike the LED project, you will not create a project here. A premade STM32 project is already in
-the repository, so you only need to open it.
+Unlike the LED project, you will not create a project here. A premade STM32 project is already in the repository:
 
-You cloned the repository during the [LED Starter Project](../led/index.md#setting-up-the-repository).
-If you have not, do that first.
+```sh
+# from mrover-esw repo root
+cd starter-projects/servo/p1-pwm
+```
 
-Open STM32CubeMX and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`).
+Open the `.ioc` in STM32CubeMX.
 
 ### 2. PWM Timer Configuration
 
@@ -54,14 +57,17 @@ calculated. Refer to the timer [reference guide](../../../info/timers.md) for in
 calculating these values.
 
 Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf) for
-the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.
+the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 170MHz.
+
+!!! warning 
+    Double check your APB clock frequency for your PWM calculation. In CubeMX, click clock configuration tab, APB clocks should be on far right.
 
 Once you have determined and edited the timer config, save the file and generate code. Note: you can
 always come back to the `.ioc` to make changes.
 
 ### 3. Opening the Header File
 
-Having a servo object will make it easier to adjust the number servos or where the servos are
+Having a servo object will make it easier to adjust the number of servos or where the servos are
 in the future, so for good practice, we will create a Servo class and declare any member variables
 and member functions in a header file.
 
@@ -71,8 +77,8 @@ Here, we can see the interface for the Servo class that we will be implementing.
 
 The Servo class has 2 member variables:
 
-- `TIM_HandleTypeDef *timer`: this tells the STM which timer is being used to generate the PWM signal
-- `uint32_t channel`: this tells the STM which channel is being used for the PWM signal
+- `TIM_HandleTypeDef *m_tim_handle`: this tells the STM which timer is being used to generate the PWM signal
+- `uint32_t m_channel`: this tells the STM which channel is being used for the PWM signal
 
 It also has 3 member functions:
 
@@ -120,7 +126,7 @@ Now that we have implemented our Servo class, it's time to test it out.
 Since this is a C++ project, we will not be using the `main.c`. Instead, navigate to `Src`
 and open `driver.cpp`.
 
-In the `new_main()` function, create a new Servo using the constructor. The timer parameter for
+In the `new_main()` function, create a new Servo using the constructor. The timer parameter
 should be a `TIM_HandleTypeDef*`. The name for the Timer Handle that is being used is at the top of
 `driver.cpp`. The channel parameter should correspond with which timer channel you are using
 (remember we set our pin to `TIM1_CH1`).
@@ -140,7 +146,7 @@ your code on a servo. If you are unsure, just ask for help!
 
 The simplest method for debugging a digital signal is often to use a logic analyzer. Please install [Logic](https://www.saleae.com/downloads/) on your laptop.
 
-To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main while loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
+To use Logic, connect PC0 to one of the pins of the logic analyzer and make sure the logic analyzer is grounded to the Nucleo. Then, flash the code and press the play button. If you wrote code in the main loop to change the servo angle a few times (which you should), you'll notice the signal in Logic changing.
 Play around with Logic:
 
 - Zoom in and out
