@@ -57,24 +57,26 @@ void PostInit(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define UV_Sensor_Pin GPIO_PIN_0
-#define UV_Sensor_GPIO_Port GPIOA
+#define VCP_TX_Pin GPIO_PIN_2
+#define VCP_TX_GPIO_Port GPIOA
+#define VCP_RX_Pin GPIO_PIN_3
+#define VCP_RX_GPIO_Port GPIOA
 #define Debug_LED1_Pin GPIO_PIN_5
 #define Debug_LED1_GPIO_Port GPIOA
 #define Debug_LED2_Pin GPIO_PIN_6
 #define Debug_LED2_GPIO_Port GPIOA
 #define Debug_LED3_Pin GPIO_PIN_7
 #define Debug_LED3_GPIO_Port GPIOA
+#define Debug_LED4_Pin GPIO_PIN_0
+#define Debug_LED4_GPIO_Port GPIOB
+#define Debug_LED5_Pin GPIO_PIN_1
+#define Debug_LED5_GPIO_Port GPIOB
 #define CAN_RX_LED_Pin GPIO_PIN_11
 #define CAN_RX_LED_GPIO_Port GPIOB
 #define CAN_TX_LED_Pin GPIO_PIN_12
 #define CAN_TX_LED_GPIO_Port GPIOB
-#define I2C_SCL_Pin GPIO_PIN_8
-#define I2C_SCL_GPIO_Port GPIOA
 #define CAN_Standby_Pin GPIO_PIN_10
 #define CAN_Standby_GPIO_Port GPIOA
-#define I2C_SDA_Pin GPIO_PIN_5
-#define I2C_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
