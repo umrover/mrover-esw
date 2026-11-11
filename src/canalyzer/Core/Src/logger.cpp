@@ -4,6 +4,7 @@
 #include "influxdb.hpp"
 
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <csignal>
@@ -27,24 +28,131 @@ namespace bus_load {
         nominal_bitrate(nominal_bitrate),
         data_bitrate(data_bitrate) {}
 
-    auto estimate_frame_bits(canfd_frame const& can_frame, bool const is_fd) -> FrameBits {
-        constexpr double stuffing_modifier = 1.15;
-        constexpr double metadata_tail_size = 13;
-        bool const is_extended = can_frame.can_id & CAN_EFF_FLAG;
+    namespace {
+        // CRC delimiter, ACK slot, ACK delimiter, EOF (7) and intermission (3).
+        // Never stuffed, always sent at the nominal bitrate.
+        constexpr uint32_t kFrameTailBits = 13;
 
-        if (!is_fd) {
-            double const bits = ((is_extended ? 54 : 34) + 8.0 * can_frame.len) * stuffing_modifier + metadata_tail_size;
-            return {static_cast<uint32_t>(std::lround(bits)), 0};
+        // FD stuff count (4) + CRC-17 or CRC-21, each with its fixed stuff bits.
+        constexpr uint32_t kFdCrcFieldBits17 = 27;
+        constexpr uint32_t kFdCrcFieldBits21 = 32;
+
+        /**
+         * Counts bits as they appear on the wire, inserting a complementary
+         * stuff bit after every run of five identical bits. Also runs the
+         * classic CAN CRC-15 over the unstuffed bits, which classic frames
+         * need because their CRC sequence is part of the stuffed region.
+         */
+        class StuffedBitCounter {
+        public:
+            void push_bit(bool const bit) {
+                if (run_ == 5) {
+                    ++bits_;
+                    last_ = !last_;
+                    run_ = 1;
+                }
+                run_ = (run_ != 0 && bit == last_) ? run_ + 1 : 1;
+                last_ = bit;
+                ++bits_;
+
+                bool const crc_next = bit != (((crc15_ >> 14) & 1) != 0);
+                crc15_ = static_cast<uint16_t>((crc15_ << 1) & 0x7FFF);
+                if (crc_next) crc15_ ^= 0x4599;
+            }
+
+            // MSB first, matching CAN transmit order
+            void push(uint32_t const value, int const width) {
+                for (int i = width - 1; i >= 0; --i) push_bit((value >> i) & 1);
+            }
+
+            [[nodiscard]] auto bits() const -> uint32_t { return bits_; }
+            [[nodiscard]] auto crc15() const -> uint16_t { return crc15_; }
+            [[nodiscard]] auto stuff_bit_pending() const -> bool { return run_ == 5; }
+
+        private:
+            uint32_t bits_ = 0;
+            uint16_t crc15_ = 0;
+            int run_ = 0;
+            bool last_ = false;
+        };
+
+        auto fd_len_to_dlc(uint8_t const len) -> uint8_t {
+            if (len <= 8) return len;
+            if (len <= 12) return 9;
+            if (len <= 16) return 10;
+            if (len <= 20) return 11;
+            if (len <= 24) return 12;
+            if (len <= 32) return 13;
+            if (len <= 48) return 14;
+            return 15;
         }
 
-        double const arb = (is_extended ? 36 : 17) * stuffing_modifier + metadata_tail_size;
-        double const data = (5 + 8.0 * can_frame.len) * stuffing_modifier + (can_frame.len > 16 ? 32 : 27);
+        // SOF through RTR/RRS. Base and extended formats share this layout in
+        // classic CAN and CAN FD; only the meaning of the final bit differs.
+        void push_header(StuffedBitCounter& s, uint32_t const id, bool const is_extended, bool const rtr_or_rrs) {
+            s.push_bit(false); // SOF
+            if (is_extended) {
+                s.push(id >> 18, 11);  // base ID
+                s.push_bit(true);      // SRR
+                s.push_bit(true);      // IDE
+                s.push(id & 0x3FFFF, 18);
+                s.push_bit(rtr_or_rrs);
+            } else {
+                s.push(id, 11);
+                s.push_bit(rtr_or_rrs);
+                s.push_bit(false);     // IDE
+            }
+        }
+    } // namespace
 
-        auto const a = static_cast<uint32_t>(std::lround(arb));
-        auto const d = static_cast<uint32_t>(std::lround(data));
+    auto estimate_frame_bits(canfd_frame const& can_frame, bool const is_fd) -> FrameBits {
+        bool const is_extended = can_frame.can_id & CAN_EFF_FLAG;
+        uint32_t const id = can_frame.can_id & (is_extended ? CAN_EFF_MASK : CAN_SFF_MASK);
 
-        if (can_frame.flags & CANFD_BRS) return {a, d};
-        return {a + d, 0};
+        StuffedBitCounter s;
+
+        if (!is_fd) {
+            bool const is_rtr = can_frame.can_id & CAN_RTR_FLAG;
+            uint8_t const dlc = std::min<uint8_t>(can_frame.len, CAN_MAX_DLEN);
+
+            push_header(s, id, is_extended, is_rtr);
+            if (is_extended) s.push_bit(false); // r1
+            s.push_bit(false);                  // r0
+            s.push(dlc, 4);
+            if (!is_rtr) {
+                for (uint8_t i = 0; i < dlc; ++i) s.push(can_frame.data[i], 8);
+            }
+            uint16_t const crc = s.crc15();
+            s.push(crc, 15);
+            // stuffing covers the whole CRC sequence, so a run ending on its
+            // last bit still gets a stuff bit before the CRC delimiter
+            uint32_t const stuffed = s.bits() + (s.stuff_bit_pending() ? 1 : 0);
+
+            return {stuffed + kFrameTailBits, 0};
+        }
+
+        bool const brs = can_frame.flags & CANFD_BRS;
+        bool const esi = can_frame.flags & CANFD_ESI;
+        uint8_t const len = std::min<uint8_t>(can_frame.len, CANFD_MAX_DLEN);
+
+        push_header(s, id, is_extended, false); // RRS
+        s.push_bit(true);                       // FDF
+        s.push_bit(false);                      // res
+        s.push_bit(brs);
+        uint32_t const arbitration_bits = s.bits();
+
+        // A stuff bit owed after BRS lands in the data phase: push_bit only
+        // emits it once the next bit (ESI) arrives.
+        s.push_bit(esi);
+        s.push(fd_len_to_dlc(len), 4);
+        for (uint8_t i = 0; i < len; ++i) s.push(can_frame.data[i], 8);
+        // A stuff bit owed after the last data bit is not sent: the fixed
+        // stuff bit that opens the stuff count field takes its place.
+        uint32_t const data_bits = s.bits() - arbitration_bits + (len > 16 ? kFdCrcFieldBits21 : kFdCrcFieldBits17);
+
+        uint32_t const nominal_bits = arbitration_bits + kFrameTailBits;
+        if (brs) return {nominal_bits, data_bits};
+        return {nominal_bits + data_bits, 0};
     }
 }
 
@@ -214,12 +322,15 @@ namespace logger {
         std::vector<bus_load::BusLoadSample> samples;
         std::vector<MoteusReply> moteus_replies;
 
-        while (true) {
+        bool stopping = false;
+        while (!stopping) {
             {
                 std::unique_lock<std::mutex> lock(buffer_mutex);
-                cv.wait(lock, [this] { return !frame_buffer.empty() || !moteus_buffer.empty() || !bus_loader_buffer.empty() || !running.load(); });
+                cv.wait(lock, [this] { return stop_committer || !frame_buffer.empty() || !moteus_buffer.empty() || !bus_loader_buffer.empty(); });
 
-                if (!running.load() && frame_buffer.empty() && moteus_buffer.empty() && bus_loader_buffer.empty()) break;
+                // start() only sets stop_committer after every producer has
+                // exited, so this pass drains everything that will ever arrive
+                stopping = stop_committer;
 
                 frames.assign(std::make_move_iterator(frame_buffer.begin()), std::make_move_iterator(frame_buffer.end()));
                 frame_buffer.clear();
@@ -247,20 +358,6 @@ namespace logger {
                 std::cout << std::format("builder commit failed with error: {}\n on bus {}\n", status, can_bus_name);
                 ++influx_post_error_count;
             }
-        }
-
-        // flush the buffer before returning
-        {
-            std::lock_guard<std::mutex> lock(buffer_mutex);
-
-            for (auto const& can_frame: frame_buffer) {
-                auto desc = parser.message(can_frame.id);
-                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);
-                builder.commit(si);
-            }
-
-            for (auto const& reply: moteus_buffer) builder.post_moteus(can_bus_name, reply);
-            builder.commit(si);
         }
     }
 
@@ -549,7 +646,13 @@ namespace logger {
 
         } //endwhile
 
+        // the bus load thread posts one last partial-window sample on its way
+        // out, so it must finish before the committer is told to drain and stop
         if (bus_load_thread.joinable()) bus_load_thread.join();
+        {
+            std::lock_guard<std::mutex> lock(buffer_mutex);
+            stop_committer = true;
+        }
         cv.notify_one();
 
         if (committer_thread.joinable()) committer_thread.join();

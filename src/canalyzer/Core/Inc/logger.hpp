@@ -32,6 +32,17 @@ namespace bus_load {
         uint32_t data;
     };
 
+    /**
+     * @brief Bits a frame occupies on the bus, split by bitrate
+     *
+     * Counts the actual dynamic stuff bits for this frame's ID and payload
+     * (and, for classic CAN, its CRC-15), plus the frame tail and the
+     * 3-bit intermission. For CAN FD with BRS, `data` holds the bits sent at
+     * the data bitrate (ESI through the CRC field); otherwise `data` is 0.
+     *
+     * @param can_frame Frame as received from SocketCAN
+     * @param is_fd True when the frame was read as a CANFD_MTU frame
+     */
     auto estimate_frame_bits(canfd_frame const& can_frame, bool is_fd) -> FrameBits;
 
     struct BusLoadConfig {
@@ -167,7 +178,7 @@ namespace logger {
 
         log_mode mode;
         bool debug = false;
-        bool done = false;
+        bool stop_committer = false; // guarded by buffer_mutex
         bool log_ascii;
 
         int read_error_count = 0;            //read error on the can bus
