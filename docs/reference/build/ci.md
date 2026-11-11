@@ -12,7 +12,7 @@ developers run, inside a container built from `Dockerfile.arm-gnu`.
     "src/tests/serial",
     "src/tests/logger",
     "src/bmc",
-    "src/pdlb",
+    "src/pdb",
     "src/abs"
 ]
 ```

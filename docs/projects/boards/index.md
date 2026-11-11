@@ -8,7 +8,7 @@ what each board does and the CAN messages it speaks.
 | [ABS](abs.md) | `src/abs` | absolute encoder | `config/abs.yaml` |
 | [BMC](bmc.md) | `src/bmc` | brushed motor controller | `config/bmc.yaml` |
 | [LIM](lim.md) | `src/lim` | standalone limit switch reporter | `config/lim.yaml` |
-| [PDB](pdlb.md) | `src/pdlb` | power distribution and autonomy status LED | none |
+| [PDB](pdb.md) | `src/pdb` | power distribution and autonomy status LED | `config/pdb.yaml` |
 | [SCI](science.md) | `src/science` | atmospheric sensor suite | none |
 
 `src/tests/*` are firmware test fixtures rather than boards, and
