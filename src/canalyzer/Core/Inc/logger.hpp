@@ -59,7 +59,7 @@ namespace bus_load {
         uint64_t frames;
         uint64_t bits;
     };
-}
+} // namespace bus_load
 
 namespace logger {
 
@@ -129,7 +129,7 @@ namespace logger {
              * @param reply Parsed moteus reply
              */
             void post_moteus(std::string const& bus_name, MoteusReply const& reply);
-                
+
             /**
              * @brief Commit POST request buffer to InfluxDB
              *
@@ -206,8 +206,7 @@ namespace logger {
                 influxdb_cpp::server_info& si,
                 log_mode mode,
                 bool log_ascii,
-                bus_load::BusLoadConfig& bus_conf
-            );
+                bus_load::BusLoadConfig& bus_conf);
 
         Logger(Logger&& other) noexcept;
         void start();

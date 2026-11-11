@@ -7,26 +7,25 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <csignal>
 #include <cmath>
+#include <csignal>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <linux/can.h>
 #include <mutex>
 #include <ostream>
-#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
 namespace bus_load {
-    BusLoadConfig::BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate) :
-        nominal_bitrate(nominal_bitrate),
-        data_bitrate(data_bitrate) {}
+    BusLoadConfig::BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate) : nominal_bitrate(nominal_bitrate),
+                                                                                    data_bitrate(data_bitrate) {}
 
     namespace {
         // CRC delimiter, ACK slot, ACK delimiter, EOF (7) and intermission (3).
@@ -92,15 +91,15 @@ namespace bus_load {
         void push_header(StuffedBitCounter& s, uint32_t const id, bool const is_extended, bool const rtr_or_rrs) {
             s.push_bit(false); // SOF
             if (is_extended) {
-                s.push(id >> 18, 11);  // base ID
-                s.push_bit(true);      // SRR
-                s.push_bit(true);      // IDE
+                s.push(id >> 18, 11); // base ID
+                s.push_bit(true);     // SRR
+                s.push_bit(true);     // IDE
                 s.push(id & 0x3FFFF, 18);
                 s.push_bit(rtr_or_rrs);
             } else {
                 s.push(id, 11);
                 s.push_bit(rtr_or_rrs);
-                s.push_bit(false);     // IDE
+                s.push_bit(false); // IDE
             }
         }
     } // namespace
@@ -154,7 +153,7 @@ namespace bus_load {
         if (brs) return {nominal_bits, data_bits};
         return {nominal_bits + data_bits, 0};
     }
-}
+} // namespace bus_load
 
 namespace {
     // moteus ID: |can_prefix(13bits)|reply(1bit)|source(7bits)|destination(8bits)|
@@ -181,21 +180,36 @@ namespace {
 
     auto moteus_register_name(int16_t const reg) -> std::string {
         switch (reg) {
-            case 0x000: return "mode";
-            case 0x001: return "position";          // rev
-            case 0x002: return "velocity";          // rev/s
-            case 0x003: return "torque";            // Nm
-            case 0x004: return "q_current";         // A
-            case 0x005: return "d_current";         // A
-            case 0x006: return "abs_position";      // rev
-            case 0x007: return "power";             // W
-            case 0x00a: return "motor_temperature"; // C
-            case 0x00b: return "trajectory_complete";
-            case 0x00c: return "home_state";
-            case 0x00d: return "voltage";           // V
-            case 0x00e: return "temperature";       // C (board)
-            case 0x00f: return "fault";
-            default: return std::format("reg_0x{:03x}", reg);
+            case 0x000:
+                return "mode";
+            case 0x001:
+                return "position"; // rev
+            case 0x002:
+                return "velocity"; // rev/s
+            case 0x003:
+                return "torque"; // Nm
+            case 0x004:
+                return "q_current"; // A
+            case 0x005:
+                return "d_current"; // A
+            case 0x006:
+                return "abs_position"; // rev
+            case 0x007:
+                return "power"; // W
+            case 0x00a:
+                return "motor_temperature"; // C
+            case 0x00b:
+                return "trajectory_complete";
+            case 0x00c:
+                return "home_state";
+            case 0x00d:
+                return "voltage"; // V
+            case 0x00e:
+                return "temperature"; // C (board)
+            case 0x00f:
+                return "fault";
+            default:
+                return std::format("reg_0x{:03x}", reg);
         }
     }
 } // namespace
@@ -203,7 +217,7 @@ namespace {
 namespace logger {
 
     void Logger::DynamicBuilder::post_moteus(std::string const& bus_name, MoteusReply const& reply) {
-        
+
         std::vector<std::pair<std::string, double>> fields;
         for (auto const& item: reply.result.values) {
             if (item.register_number < 0) break;
@@ -269,8 +283,8 @@ namespace logger {
 
 
     void Logger::DynamicBuilder::post_bus_load(
-        std::string const& bus_name,
-        bus_load::BusLoadSample const& sample) {
+            std::string const& bus_name,
+            bus_load::BusLoadSample const& sample) {
 
         if (lines_.tellp() > 0) {
             lines_ << '\n';
@@ -344,13 +358,13 @@ namespace logger {
 
             for (auto const& can_frame: frames) {
                 auto const desc = parser.message(can_frame.id);
-                if (desc == nullptr) continue;  // fix later, probably should record how many are skipped
-                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);                
+                if (desc == nullptr) continue; // fix later, probably should record how many are skipped
+                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);
             }
 
             for (auto const& reply: moteus_replies) builder.post_moteus(can_bus_name, reply);
 
-            for (auto const& sample : samples) builder.post_bus_load(can_bus_name, sample);
+            for (auto const& sample: samples) builder.post_bus_load(can_bus_name, sample);
 
             int const status = builder.commit(si);
             if (status != 0) {
@@ -370,7 +384,7 @@ namespace logger {
 
             auto const now = std::chrono::steady_clock::now();
             next += bus_load_config.sample_window;
-            if (next <= now) next = now +bus_load_config.sample_window;
+            if (next <= now) next = now + bus_load_config.sample_window;
 
             double const elapsed = std::chrono::duration<double>(now - last).count();
             last = now;
@@ -487,8 +501,7 @@ namespace logger {
                    influxdb_cpp::server_info& si,
                    log_mode mode,
                    bool log_ascii,
-                   bus_load::BusLoadConfig& bus_config
-                )
+                   bus_load::BusLoadConfig& bus_config)
 
         : id(id),
           can_bus_name(bus_name),
@@ -628,7 +641,7 @@ namespace logger {
                     break;
                 }
             }
-            
+
             logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
 
             DecodedFrame decoded_message = {
