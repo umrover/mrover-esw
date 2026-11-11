@@ -28,7 +28,7 @@ nav = [
       { ABS = "projects/boards/abs.md" },
       { BMC = "projects/boards/bmc.md" },
       { LIM = "projects/boards/lim.md" },
-      { PDB = "projects/boards/pdlb.md" },
+      { PDB = "projects/boards/pdb.md" },
       { Science = "projects/boards/science.md" },
     ]},
   ]},

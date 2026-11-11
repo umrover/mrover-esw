@@ -4,6 +4,6 @@
     "src/tests/rtos",
     "src/bmc",
     "src/bmc-rtos",
-    "src/pdlb",
+    "src/pdb",
     "src/abs"
 ]
