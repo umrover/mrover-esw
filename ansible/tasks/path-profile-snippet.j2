@@ -1,0 +1,29 @@
+# DO NOT EDIT
+# Managed by ./scripts/bootstrap.sh (ansible/tasks/path-profile.yml)
+
+_mrover_esw_prepend() {
+    [ -d "$1" ] || return 0
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) PATH="$1:$PATH" ;;
+    esac
+}
+_mrover_esw_append() {
+    [ -d "$1" ] || return 0
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) PATH="$PATH:$1" ;;
+    esac
+}
+
+_mrover_esw_prepend "{{ cubemx_exe | dirname }}"
+_mrover_esw_prepend "{{ clt['st-arm-clang'] }}"
+_mrover_esw_prepend "{{ clt.STLinkGDBServer }}"
+_mrover_esw_prepend "{{ clt.STM32CubeProgrammer }}"
+_mrover_esw_prepend "{{ clt.CMake }}"
+_mrover_esw_prepend "{{ clt.GNUToolsForSTM32 }}"
+
+_mrover_esw_append "{{ arm_gnu_path }}/{{ arm_gnu_name }}/bin"
+
+export PATH
+unset -f _mrover_esw_prepend _mrover_esw_append

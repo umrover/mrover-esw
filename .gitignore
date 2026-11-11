@@ -45,6 +45,7 @@ CMakeUserPresets.json
 
 # clangd
 .clangd
+!/.clangd
 .cache
 
 # Editors
@@ -63,3 +64,12 @@ tools/fdcanusb
 # auto-generated config headers
 **/*_config.hpp
 
+# ansible bootstrap installer drop-in (manually downloaded, login-gated by ST)
+install/*
+!install/README.md
+
+# ansible dirs
+.ansible/
+
+# allow docs
+!docs/reference/build

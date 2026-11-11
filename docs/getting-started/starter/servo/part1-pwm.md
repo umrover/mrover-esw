@@ -1,6 +1,6 @@
-# Servo Starter Project - Part 1 - PWM
+# Servo Starter Project: Part 1, PWM
 
-This starter project is made up of two parts: PWM and CAN. This is Part 1 - PWM.
+This starter project is made up of two parts: PWM and CAN. This is Part 1, PWM.
 
 By the end of this part, you should have an understanding of timers and PWM (pulse width modulation)
 signals.
@@ -28,48 +28,28 @@ While you are working through the project, keep the following in mind:
 
 ## Guide
 
-### 1. Setting up the project
+### 1. Setting Up the Project
 
-Since you already have practice creating a project, you will only need to clone and open the
-premade STM32 project for this starter project.
+Unlike the LED project, you will not create a project here. A premade STM32 project is already in
+the repository, so you only need to open it.
 
-Go to [this repository](https://github.com/umrover/mrover-esw), click the "Code" tab, and copy the SSH URL.
-![opened "Code" tab with boxes showing how to copy the SSH URL](copy-git-repo.webp)
-
-You now have the URL you need to clone the project.
-
-Clone the project onto your local computer by running the following command in your terminal:
-
-```sh
-git clone --recurse-submodules link-copied-in-above-step
-```
-
-Enter the directory:
-
-```sh
-cd mrover-esw
-```
-
-Then, create a new branch for yourself
-
-```sh
-git switch -c starter/your-first-name
-```
+You cloned the repository during the [LED Starter Project](../led/index.md#setting-up-the-repository).
+If you have not, do that first.
 
 Open STM32CubeMX and open the Servo **_Part 1_** starter project (the directory named `p1-pwm`).
 
-### 2. PWM timer configuration
+### 2. PWM Timer Configuration
 
-Once the .ioc is open, configure the pins for PWM.
+Once the `.ioc` is open, configure the pins for PWM.
 
-1. Select the PC0 pin on the chip in the .ioc and change it to TIM1_CH1.
-2. On the left side of the .ioc file, under Timers, select TIM1 (shown below).
-3. Change Channel1 from "Disable" to "PWM Generation CH1" (shown below).
+1. Select the PC0 pin on the chip in the `.ioc` and change it to `TIM1_CH1`.
+2. On the left side of the `.ioc` file, under `Timers`, select `TIM1` (shown below).
+3. Change `Channel1` from `Disable` to `PWM Generation CH1` (shown below).
 
 ![timer 1 configuration in stm32cubeide](servo-timer-config.webp)
 
-We will now have to configure two values&mdash;Prescaler and Counter Period&mdash;in order to
-correctly set up this PWM timer. These values are located in the "Parameter Settings" and must be
+We will now have to configure two values (`Prescaler` and `Counter Period`) in order to
+correctly set up this PWM timer. These values are located in `Parameter Settings` and must be
 calculated. Refer to the timer [reference guide](../../../info/timers.md) for information on
 calculating these values.
 
@@ -77,9 +57,9 @@ Read the [datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_
 the servo and determine what PSC and ARR should be given that the clock frequency of the Nucleo is 72MHz.
 
 Once you have determined and edited the timer config, save the file and generate code. Note: you can
-always come back to the .ioc to make changes.
+always come back to the `.ioc` to make changes.
 
-### 3. Opening the header file
+### 3. Opening the Header File
 
 Having a servo object will make it easier to adjust the number servos or where the servos are
 in the future, so for good practice, we will create a Servo class and declare any member variables
@@ -91,8 +71,8 @@ Here, we can see the interface for the Servo class that we will be implementing.
 
 The Servo class has 2 member variables:
 
-- `TIM_HandleTypeDef *timer` : this tells the STM which timer is being used to generate the PWM signal
-- `uint32_t channel` : this tells the STM which channel is being used for the PWM signal
+- `TIM_HandleTypeDef *timer`: this tells the STM which timer is being used to generate the PWM signal
+- `uint32_t channel`: this tells the STM which channel is being used for the PWM signal
 
 It also has 3 member functions:
 
@@ -100,7 +80,7 @@ It also has 3 member functions:
 - A function `start_servo()` that starts the PWM generation
 - A function `set_servo_angle(int angle)` that moves the servo to the specified angle
 
-### 4. Implementing Servo functions
+### 4. Implementing Servo Functions
 
 Now that we know the interface for the Servo class, it's time to implement the functions.
 
@@ -110,7 +90,7 @@ To start the servo, you must initialize the timer used to generate the PWM signa
 use `HAL_TIM_PWM_Start(TIM_HandleTypeDef *htim, uint32_t Channel)`. Find more information about this
 built-in HAL function [here](http://www.disca.upv.es/aperles/arm_cortex_m3/llibre/st/STM32F439xx_User_Manual/group__tim__exported__functions__group3.html).
 
-When implementing set_servo_angle, keep in mind what PWM signal corresponds to what angle.
+When implementing `set_servo_angle()`, keep in mind what PWM signal corresponds to what angle.
 Check back on the [servo datasheet](http://www.ee.ic.ac.uk/pcheung/teaching/DE1_EE/stores/sg90_datasheet.pdf)
 to determine this. In order to set the CCR register to change the PWM signal, you can use
 `__HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)`. Below is information on this function:
@@ -133,7 +113,7 @@ to determine this. In order to set the CCR register to change the PWM signal, yo
 #define __HAL_TIM_SET_COMPARE(__HANDLE__, __CHANNEL__, __COMPARE__)
 ```
 
-### 5. Testing your servo functions
+### 5. Testing Your Servo Functions
 
 Now that we have implemented our Servo class, it's time to test it out.
 
@@ -143,12 +123,12 @@ and open `driver.cpp`.
 In the `new_main()` function, create a new Servo using the constructor. The timer parameter for
 should be a `TIM_HandleTypeDef*`. The name for the Timer Handle that is being used is at the top of
 `driver.cpp`. The channel parameter should correspond with which timer channel you are using
-(remember we set our pin to TIM1_CH1).
+(remember we set our pin to `TIM1_CH1`).
 
 Now, we can start the servo using the `start_servo()` function we created.
 
 Then, in the `for ( ;; )` loop, change the angle of the servo a few times to make sure your
-`set_servo_angle()` function works and that the PSC and ARR you selected in the .ioc are correct.
+`set_servo_angle()` function works and that the PSC and ARR you selected in the `.ioc` are correct.
 Between each function call make sure to add a delay (Hint: there is a built in HAL function for delays).
 
 When you are satisfied with your code, make sure it builds and then get a Nucleo, a logic analyzer,

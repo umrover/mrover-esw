@@ -1,9 +1,10 @@
-from pathlib import Path
-import yaml
 from datetime import datetime
+from pathlib import Path
+
+import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from esw.config.types import ChipInfo, TypeInfo, chips, types, can_id_types
+from esw.config.types import ChipInfo, TypeInfo, can_id_types, chips, types
 
 
 class ConfigGen:

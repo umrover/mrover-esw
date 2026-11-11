@@ -4,7 +4,7 @@ Brushless DC motors (BLDC) are electric motors that operate without the use of b
 They provide higher efficiency and better performance compared to brushed motors, making them ideal for applications
 requiring precision and power. They are, however, more complex to control, requiring us to use specialized controllers.
 
-BLDC motors are used troughout the rover, such as:
+BLDC motors are used throughout the rover, such as:
 
 - All drive wheels
 - Joint A

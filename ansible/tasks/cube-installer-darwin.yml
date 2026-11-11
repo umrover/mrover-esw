@@ -1,0 +1,162 @@
+---
+- name: install {{ cube.name }}
+  when:
+    - cube.archive | length > 0
+    - not cube.stamp_exists or (cube.archive_mtime | float) > (cube.stamp_mtime | float)
+  block:
+    - name: unpack the {{ cube.name }} archive
+      ansible.builtin.unarchive:
+        src: "{{ cube.archive }}"
+        dest: "{{ unpack_dir }}/{{ cube.unpack }}"
+        remote_src: true
+      when: not cube.archive.endswith('.dmg')
+
+    - name: look for archives nested inside the {{ cube.name }} archive
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns:
+          - "*.zip"
+          - "*.tar.gz"
+          - "*.tgz"
+          - "*.tar.xz"
+        recurse: true
+        file_type: file
+      register: cube_nested
+
+    - name: unpack the nested {{ cube.name }} archives
+      ansible.builtin.unarchive:
+        src: "{{ item.path }}"
+        dest: "{{ item.path | dirname }}"
+        remote_src: true
+      loop: "{{ cube_nested.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    - name: look for a {{ cube.name }} disk image
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns: "*.dmg"
+        recurse: true
+        file_type: file
+      register: cube_dmg
+
+    - name: collect the {{ cube.name }} disk images
+      ansible.builtin.set_fact:
+        cube_dmgs: >-
+          {{ [cube.archive] if cube.archive.endswith('.dmg')
+             else (cube_dmg.files | map(attribute='path') | list) }}
+
+    - name: look for a {{ cube.name }} installer package
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns: "*.pkg"
+        recurse: true
+        file_type: any
+      register: cube_pkg
+
+    - name: look for a {{ cube.name }} installer app
+      ansible.builtin.find:
+        paths: "{{ unpack_dir }}/{{ cube.unpack }}"
+        patterns: "*.app"
+        recurse: true
+        file_type: directory
+      register: cube_app
+
+    - name: fail when the archive holds no installable payload
+      ansible.builtin.fail:
+        msg: >
+          {{ cube.archive | basename }} unpacked to neither a .pkg, .app nor
+          .dmg under {{ unpack_dir }}/{{ cube.unpack }}. Install this tool by
+          hand and re-run bootstrap; see install/README.md.
+      when: cube_pkg.matched == 0 and cube_app.matched == 0 and cube_dmgs | length == 0
+
+    - name: install {{ cube.name }} from its disk image
+      when: cube_dmgs | length > 0
+      block:
+        - name: make a mount point for the {{ cube.name }} disk image
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: "-{{ cube.name }}"
+          register: cube_mnt
+
+        - name: mount the {{ cube.name }} disk image
+          ansible.builtin.shell: >-
+            yes | PAGER=cat hdiutil attach -nobrowse -readonly -noverify 
+            -mountpoint {{ cube_mnt.path | quote }} {{ cube_dmgs[0] | quote }}
+          args:
+            executable: /bin/bash
+
+        - name: look for an installer package in the {{ cube.name }} disk image
+          ansible.builtin.find:
+            paths: "{{ cube_mnt.path }}"
+            patterns: "*.pkg"
+            recurse: true
+            depth: 2
+            file_type: any
+          register: cube_dmg_pkg
+
+        - name: look for an app in the {{ cube.name }} disk image
+          ansible.builtin.find:
+            paths: "{{ cube_mnt.path }}"
+            patterns: "*.app"
+            recurse: true
+            depth: 2
+            file_type: directory
+          register: cube_dmg_app
+
+        - name: fail when the disk image holds neither a .pkg nor a .app
+          ansible.builtin.fail:
+            msg: >
+              {{ cube_dmgs[0] | basename }} contains neither a .pkg nor a .app.
+              Install {{ cube.name }} by hand and re-run bootstrap.
+          when: cube_dmg_pkg.matched == 0 and cube_dmg_app.matched == 0
+
+        - name: install the {{ cube.name }} package from the disk image
+          become: true
+          ansible.builtin.command: "installer -pkg {{ item.path }} -target /"
+          loop: "{{ cube_dmg_pkg.files }}"
+          loop_control:
+            label: "{{ item.path | basename }}"
+
+        - name: copy {{ cube.name }} out of the disk image into /Applications
+          ansible.builtin.shell: |
+            set -euo pipefail
+            app={{ cube_dmg_app.files[0].path | quote }}
+            dest="/Applications/$(basename "$app")"
+            rm -rf "$dest"
+            cp -R "$app" "$dest"
+          args:
+            executable: /bin/bash
+          when: cube_dmg_app.matched > 0
+
+      always:
+        - name: unmount the {{ cube.name }} disk image
+          ansible.builtin.command: "hdiutil detach -quiet {{ cube_mnt.path }}"
+          when: cube_mnt is defined and "path" in cube_mnt
+          failed_when: false
+          changed_when: false
+
+        - name: remove the {{ cube.name }} mount point
+          ansible.builtin.file:
+            path: "{{ cube_mnt.path }}"
+            state: absent
+          when: cube_mnt is defined and "path" in cube_mnt
+
+    - name: install the {{ cube.name }} package(s)
+      become: true
+      ansible.builtin.command: "installer -pkg {{ item.path }} -target /"
+      loop: "{{ cube_pkg.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    - name: run the graphical {{ cube.name }} installer and wait for it
+      ansible.builtin.command: "open -W {{ cube_app.files[0].path }}"
+      when: cube_pkg.matched == 0 and cube_app.matched > 0
+
+    - name: stamp {{ cube.name }} as applied
+      ansible.builtin.file:
+        path: "{{ install_dir }}/.installed-{{ cube.archive | basename }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve

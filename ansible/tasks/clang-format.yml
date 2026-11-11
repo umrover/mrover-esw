@@ -1,0 +1,71 @@
+---
+- name: install clang-format from apt
+  when: ansible_facts.system == "Linux"
+  block:
+    - name: refresh apt cache before probing for clang-format-22
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      changed_when: false
+
+    - name: check whether the distro provides clang-format-22
+      ansible.builtin.command: apt-cache policy clang-format-22
+      register: clang_format_policy
+      changed_when: false
+      check_mode: false
+
+    - name: record whether the llvm apt repo is needed
+      ansible.builtin.set_fact:
+        need_llvm_repo: >-
+          {{ clang_format_policy.stdout | trim | length == 0
+             or 'Candidate: (none)' in clang_format_policy.stdout }}
+
+    - name: add the llvm apt repo
+      when: need_llvm_repo
+      become: true
+      block:
+        - name: ensure the apt keyring directory exists
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: "0755"
+
+        - name: install the llvm apt signing key
+          ansible.builtin.get_url:
+            url: https://apt.llvm.org/llvm-snapshot.gpg.key
+            dest: /etc/apt/keyrings/llvm-snapshot.asc
+            mode: "0644"
+
+        - name: add the llvm repo for this release
+          ansible.builtin.apt_repository:
+            repo: >-
+              deb [signed-by=/etc/apt/keyrings/llvm-snapshot.asc]
+              http://apt.llvm.org/{{ ansible_facts.distribution_release }}/
+              llvm-toolchain-{{ ansible_facts.distribution_release }}-22 main
+            filename: llvm
+            state: present
+
+    - name: install clang-format-22 and shellcheck
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - clang-format-22
+          - shellcheck
+        state: present
+
+    - name: check which clang-format is on PATH
+      ansible.builtin.command: clang-format --version
+      register: clang_format_version
+      changed_when: false
+      check_mode: false
+      failed_when: false
+
+    - name: symlink clang-format to clang-format-22
+      become: true
+      ansible.builtin.file:
+        src: /usr/bin/clang-format-22
+        dest: /usr/bin/clang-format
+        state: link
+      when: "'version 22' not in clang_format_version.stdout | default('')"
