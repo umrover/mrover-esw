@@ -31,7 +31,6 @@ extern TIM_HandleTypeDef htim4;
 namespace mrover {
 
     // params
-    static constexpr uint8_t NUM_ADC_CHANNELS = 1;
     static constexpr size_t NUM_ELAPSED_TIMER_CHANNELS = 2;
     static constexpr size_t ELAPSED_TIMER_CH_1 = 0;
     static constexpr size_t ELAPSED_TIMER_CH_2 = 1;
@@ -72,7 +71,7 @@ namespace mrover {
 
     // peripherals
     std::optional<UART> lpuart;
-    std::optional<ADC<NUM_ADC_CHANNELS>> adc;
+    std::optional<ADC> adc;
     std::optional<FDCAN> fdcan;
 
     // timers
@@ -323,7 +322,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs)
     while (mrover::fdcan->messages_to_process() > 0) {
         if (auto const msg = mrover::can_receiver->receive(); msg && !mrover::rx_queue.put_from_isr(msg)) {
             // increment number dropped if we fail to enqueue a message
-            mrover::num_rx_dropped++;
+            mrover::num_rx_dropped += 1;
         }
     }
 }
