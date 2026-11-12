@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <numeric>
 #include <utility>
 
 namespace mrover {
@@ -23,10 +22,12 @@ namespace mrover {
 
         auto clear() -> void {
             m_circular_buffer.fill(T{});
+            m_running_sum = T{};
+            m_index = 0;
         }
 
         [[nodiscard]] auto get_filtered() const -> T {
-            return std::reduce(m_circular_buffer.begin(), m_circular_buffer.end()) / Size;
+            return m_running_sum / static_cast<T>(Size);
         }
     };
 

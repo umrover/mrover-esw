@@ -1,37 +1,42 @@
-/*
- * LAB Name: STM32 ADC Multi-Channel (Scan) Single-Conversion Mode - DMA
- * Author: Khaled Magdy
- * For More Info Visit: www.DeepBlueMbedded.com
-*/
+#include "main.h"
+
 #include <adc.hpp>
+#include <logger.hpp>
+#include <serial/uart.hpp>
+#include <sys.hpp>
 
 extern ADC_HandleTypeDef hadc1;
+extern UART_HandleTypeDef hlpuart1;
 
 namespace mrover {
-    ADC adc_sensor;
-    uint32_t adc_buf[8];
 
-    void event_loop() {
-        while (true) {}
+    UART lpuart;
+
+    [[noreturn]] auto init() -> void {
+        lpuart = UART{&hlpuart1, UART::Options{}};
+        Logger::init(&lpuart);
+        auto& log = Logger::instance();
+
+        static ADC adc{&hadc1, ADC::options_t{
+                                       .mode = ADC::mode_t::DMA,
+                                       .self_calibrate = true,
+                                       .timeout_ms = 10,
+                               }};
+        if (!adc.init()) {
+            log.error("adc init failed");
+            System::fault();
+        }
+
+        for (;;) {
+            log.info("%u %u %u %u %u %u %u %u", adc.value(0), adc.value(1), adc.value(2), adc.value(3),
+                     adc.value(4), adc.value(5), adc.value(6), adc.value(7));
+            System::delay_ms(500);
+        }
     }
 
-    void init() {
-        adc_sensor = ADC(&hadc1, 8);
-        adc_sensor.start_dma();
-
-        event_loop();
-    }
 } // namespace mrover
 
 extern "C" {
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-    if (hadc->Instance == ADC1) {
-        for (int i = 0; i < 8; i++) {
-            mrover::adc_buf[i] = mrover::adc_sensor.get_raw_channel_value(i);
-        }
-    }
-}
 
 void PostInit() {
     mrover::init();

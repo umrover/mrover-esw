@@ -41,10 +41,12 @@ namespace mrover {
      *
      * @return ADC options for BMC
      */
-    inline auto get_adc_options() -> ADCBase::Options {
-        ADCBase::Options options;
-        options.use_dma = false; // TODO(eric) use dma for this
-        return options;
+    inline auto get_adc_options() -> ADC::options_t {
+        return ADC::options_t{
+                .mode = ADC::mode_t::POLLING, // TODO(eric) use dma for this
+                .self_calibrate = true,
+                .timeout_ms = 10,
+        };
     }
 
     inline auto get_current_sensor_options() -> AD8418A::Options {

@@ -29,7 +29,6 @@ extern TIM_HandleTypeDef htim17;
 
 namespace mrover {
 
-    static constexpr uint8_t NUM_ADC_CHANNELS = 1;
     static constexpr size_t NUM_ELAPSED_TIMER_CHANNELS = 2;
     static constexpr size_t ELAPSED_TIMER_CH_1 = 0;
     static constexpr size_t ELAPSED_TIMER_CH_2 = 1;
@@ -52,7 +51,7 @@ namespace mrover {
 
     // Peripherals
     std::optional<UART> lpuart;
-    std::optional<ADC<NUM_ADC_CHANNELS>> adc;
+    std::optional<ADC> adc;
     std::optional<FDCAN> fdcan;
 
     // Timers
@@ -114,6 +113,7 @@ namespace mrover {
         // initialize peripherals
         lpuart.emplace(LPUART_1, get_uart_options());
         adc.emplace(ADC_1, get_adc_options());
+        if (!adc->init()) System::fault();
         fdcan.emplace(FDCAN_1, get_can_options(&config));
 
         // initialize logger
@@ -139,7 +139,7 @@ namespace mrover {
         // setup motor instance
         motor.emplace(
                 HBridge{MOTOR_PWM_TIM, TIM_CHANNEL_1, Pin{MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin}},
-                AD8418A{&*adc, ADC_CHANNEL_0},
+                AD8418A{&*adc, 0},
                 LimitSwitch{Pin{LIMIT_A_GPIO_Port, LIMIT_A_Pin}},
                 LimitSwitch{Pin{LIMIT_B_GPIO_Port, LIMIT_B_Pin}},
                 QuadratureEncoder{ENCODER_TIM, enc_timer_handle},
