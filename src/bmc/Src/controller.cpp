@@ -71,7 +71,7 @@ namespace mrover {
      * Send a CAN message defined in MRoverCAN.dbc on the bus.
      * @param msg CAN message to send
      */
-    auto send_can_message(MRoverCANMsg_t const& msg) -> void {
+    auto send_can_message(uint32_t const base_id, uint8_t const* data, std::size_t const len) -> void {
         if (!initialized) return;
         static std::optional<uint8_t> can_id = std::nullopt;
         static std::optional<uint8_t> host_can_id = std::nullopt;
@@ -80,7 +80,7 @@ namespace mrover {
         if (!host_can_id.has_value()) host_can_id = config.get<bmc_config_t::host_can_id>();
 
         can_tx->set();
-        can_receiver->send(msg, can_id.value(), host_can_id.value());
+        can_receiver->send_raw(base_id, data, len, can_id.value(), host_can_id.value());
         can_tx->reset();
     }
 

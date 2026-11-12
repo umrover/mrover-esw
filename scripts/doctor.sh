@@ -1,21 +1,13 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-BOLD="\033[1m"
-RED="\033[1;31m"
-GREEN="\033[1;32m"
-BLUE="\033[1;34m"
-YELLOW="\033[1;33m"
-NC="\033[0m"
-
-ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
-SCRIPT_NAME=$(basename "$0")
+source "${0:A:h}/common.sh"
 
 readonly EXPECTED_GCC_VERSION="14.3"
 readonly SMOKE_SRC="src/tests/logger"
 readonly SMOKE_TARGET="logger"
-readonly SUBMODULE_DIR="lib/stm32g4/STM32CubeG4"
+readonly SUBMODULE_DIR="$ESW_ROOT/lib/stm32g4/STM32CubeG4"
 
 if [[ "$(uname)" == "Darwin" ]]; then
     readonly ST_OPT_ROOT="/opt/ST"
@@ -46,8 +38,6 @@ fi
 
 DO_BUILD=0
 VERBOSE_MODE=0
-FAILURES=0
-WARNINGS=0
 
 usage() {
     cat <<EOF
@@ -60,7 +50,7 @@ options:
   -v, --verbose   show full command output for failures
   -h, --help      show this help message
 EOF
-    exit 1
+    exit "${1:-0}"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -68,33 +58,28 @@ while [[ $# -gt 0 ]]; do
         -b|--build)   DO_BUILD=1; shift ;;
         -v|--verbose) VERBOSE_MODE=1; shift ;;
         -h|--help)    usage ;;
-        *)            printf "%b\n" "${RED}✗ unknown option: $1${NC}" >&2; usage ;;
+        *)            unknown_option "$1" ;;
     esac
 done
 
-section() { printf "\n%b\n" "${BOLD}$1${NC}"; }
-pass()    { printf "  %b %s\n" "${GREEN}✓${NC}" "$1"; }
-note()    { printf "  %b %s\n" "${BLUE}·${NC}" "$1"; }
-warn()    { printf "  %b %s\n" "${YELLOW}!${NC}" "$1"; WARNINGS=$((WARNINGS + 1)); }
-fail()    { printf "  %b %s\n" "${RED}✗${NC}" "$1"; FAILURES=$((FAILURES + 1)); }
 
 check_tool() {
     local exe="$1"
     local mode="${2:-version}"
-    local path
+    local exe_path
 
-    if ! path=$(command -v "$exe" 2>/dev/null); then
-        fail "$exe not found in PATH"
+    if ! exe_path=$(command -v "$exe" 2>/dev/null); then
+        fail "\`$exe\` not found in PATH"
         return 0
     fi
 
     if [[ "$mode" == "no-version" ]]; then
-        pass "$(printf '%-24s %s' "$exe" "$path")"
+        pass "$(printf '%-24s %s' "$exe" "$exe_path")"
         return 0
     fi
 
     local version_output version
-    version_output=$("${TIMEOUT_CMD[@]}" "$path" --version 2>&1 || true)
+    version_output=$("${TIMEOUT_CMD[@]}" "$exe_path" --version 2>&1 || true)
 
     version=$(printf '%s' "$version_output" \
         | sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g' \
@@ -102,16 +87,16 @@ check_tool() {
         | grep -oE '[0-9]+(\.[0-9]+)+' | head -n 1 || true)
     [[ -n "$version" ]] || version="?"
 
-    pass "$(printf '%-24s %-12s %s' "$exe" "$version" "$path")"
+    pass "$(printf '%-24s %-12s %s' "$exe" "$version" "$exe_path")"
     return 0
 }
 
 check_file() {
-    local label="$1" path="$2"
-    if [[ -x "$path" ]]; then
-        pass "$(printf '%-24s %-12s %s' "$label" "" "$path")"
+    local label="$1" file_path="$2"
+    if [[ -x "$file_path" ]]; then
+        pass "$(printf '%-24s %-12s %s' "$label" "" "$file_path")"
     else
-        warn "$label not found at $path - run ./scripts/bootstrap.sh"
+        warn "$label not found at $file_path - run \`./scripts/bootstrap.sh\`"
     fi
 }
 
@@ -133,8 +118,8 @@ if [[ "$(uname)" == "Linux" ]]; then
 fi
 
 if [[ "$(uname)" == "Linux" ]]; then
-    CUBEIDE_CANDIDATES=("$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide)
-    CUBEIDE="${CUBEIDE_CANDIDATES[${#CUBEIDE_CANDIDATES[@]}-1]}"  # newest version by name  
+    CUBEIDE_CANDIDATES=("$ST_OPT_ROOT"/stm32cubeide_*/stm32cubeide(N))
+    CUBEIDE="${CUBEIDE_CANDIDATES[-1]:-}"  # newest version by name
 else
     CUBEIDE="$(find /Applications -path '*STM32CubeIDE.app/Contents/MacOS/*' -type f -perm +111 -print -quit 2>/dev/null)"
 fi
@@ -150,13 +135,13 @@ if [[ "$(uname)" == "Linux" ]]; then
     for app in STM32CubeMX STM32CubeProgrammer; do
         entry="$DESKTOP_DIR/$app.desktop"
         if [[ ! -f "$entry" ]]; then
-            warn "$app.desktop missing - re-run: ./scripts/bootstrap.sh"
+            warn "$app.desktop missing - re-run \`./scripts/bootstrap.sh\`"
             continue
         fi
 
         target=$(sed -n 's/^Exec=//p' "$entry" 2>/dev/null | head -n 1 || true)
         if [[ ! -x "$target" ]]; then
-            warn "$app.desktop points at a missing binary: ${target:-<no Exec= line>}"
+            warn "$app.desktop points at a missing binary: ${target:-<no \`Exec=\` line>}"
         else
             pass "$(printf '%-28s %s' "$app.desktop" "$target")"
         fi
@@ -174,7 +159,7 @@ fi
 
 section "editor"
 if [[ ! -x "$VSCODE_BIN" ]]; then
-    note "VS Code not installed at $VSCODE_BIN (optional - nothing in the build needs it)"
+    note "VS Code not installed at $VSCODE_BIN (optional)"
 else
     pass "$(printf '%-24s %-12s %s' "code" "$("$VSCODE_BIN" --version 2>/dev/null | head -n 1)" "$VSCODE_BIN")"
     installed_ext=$("$VSCODE_BIN" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
@@ -183,14 +168,14 @@ else
         if grep -qix "$ext" <<< "$installed_ext"; then
             pass "  extension $ext"
         else
-            warn "  extension $ext missing - re-run: ./scripts/bootstrap.sh --tags vscode"
+            warn "  extension $ext missing - re-run \`./scripts/bootstrap.sh --tags vscode\`"
         fi
     done < <(sed -n '/^ *vscode_extensions:/,/^ *[a-z_]*:[^-]/p' "$ESW_ROOT/ansible/bootstrap.yml" 2>/dev/null \
         | grep -oE '^ *- *[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' | sed -E 's/^ *- *//' | tr '[:upper:]' '[:lower:]')
 fi
 
 section "style tools"
-for tool in clang-format shellcheck; do check_tool "$tool"; done
+for tool in clang-format zsh; do check_tool "$tool"; done
 
 section "arm toolchain provenance"
 if arm_gcc=$(command -v arm-none-eabi-gcc 2>/dev/null); then
@@ -201,15 +186,15 @@ if arm_gcc=$(command -v arm-none-eabi-gcc 2>/dev/null); then
             pass "using CubeCLT's bundled toolchain ($(basename "$clt_root"))"
             ;;
         *)
-            warn "arm-none-eabi-gcc resolves outside CubeCLT: $resolved"
-            warn "  falling back to the standalone toolchain; re-run ./scripts/bootstrap.sh to fix PATH"
+            warn "\`arm-none-eabi-gcc\` resolves outside CubeCLT: $resolved"
+            warn "  falling back to the standalone toolchain; re-run \`./scripts/bootstrap.sh\` to fix PATH"
             ;;
     esac
 
     clt_count=$(find "$ST_OPT_ROOT" -maxdepth 1 -name "$CUBECLT_GLOB" -type d 2>/dev/null | wc -l || true)
     if ((clt_count > 1)); then
         warn "$clt_count CubeCLT versions are installed under $ST_OPT_ROOT"
-        warn "  remove the old package(s) so only one remains: dpkg -l | grep stm32cubeclt"
+        warn "  remove the old package(s) so only one remains: \`dpkg -l | grep stm32cubeclt\`"
         warn "  and note a shell opened before the upgrade still has the old PATH"
     fi
 
@@ -220,12 +205,12 @@ if arm_gcc=$(command -v arm-none-eabi-gcc 2>/dev/null); then
         warn "gcc $gcc_version differs from the $EXPECTED_GCC_VERSION CI pins in Dockerfile.arm-gnu"
     fi
 else
-    fail "arm-none-eabi-gcc not found - install STM32CubeCLT via ./scripts/bootstrap.sh"
+    fail "\`arm-none-eabi-gcc\` not found - install STM32CubeCLT via \`./scripts/bootstrap.sh\`"
 fi
 
 section "PATH profile"
 if [[ ! -f "$PROFILE_SNIPPET" ]]; then
-    warn "$PROFILE_SNIPPET not found - PATH is not managed by ./scripts/bootstrap.sh"
+    warn "$PROFILE_SNIPPET not found - PATH is not managed by \`./scripts/bootstrap.sh\`"
 else
     stale=0
     unsourced=0
@@ -240,11 +225,11 @@ else
     done < <(sed -nE 's/^_mrover_esw_(prepend|append) "([^"]*)".*/\2/p' "$PROFILE_SNIPPET")
 
     if ((stale)); then
-        warn "  CubeCLT was likely upgraded; re-run ./scripts/bootstrap.sh --tags path-profile"
+        warn "  CubeCLT was likely upgraded; re-run \`./scripts/bootstrap.sh --tags path-profile\`"
     elif ((unsourced)); then
         warn "$PROFILE_SNIPPET exists but its directories are not on your PATH"
         warn "  this shell predates the profile - open a new terminal, and if that"
-        warn "  does not help, log out and back in (or: exec \$SHELL -l)"
+        warn "  does not help, log out and back in (or \`exec \$SHELL -l\`)"
     else
         pass "$PROFILE_SNIPPET is present, current, and sourced into this shell"
     fi
@@ -253,26 +238,26 @@ fi
 if [[ -d /etc/profile.d ]]; then
     while IFS= read -r legacy; do
         warn "legacy PATH snippet $legacy also puts ST tools on PATH - delete it"
-    done < <(grep -lE 'STMicroelectronics|stm32cubeclt' /etc/profile.d/*.sh 2>/dev/null \
+    done < <(grep -lE 'STMicroelectronics|stm32cubeclt' /etc/profile.d/*.sh(N) /dev/null 2>/dev/null \
         | grep -vE "^${PROFILE_SNIPPET}$|/cubeclt-bin-path_[^/]*\\.sh$")
 fi
 
 section "repository"
-if [[ -e "$ESW_ROOT/$SUBMODULE_DIR/.git" ]]; then
+if [[ -e "$SUBMODULE_DIR/.git" ]]; then
     pass "submodule $SUBMODULE_DIR is initialized"
 else
-    fail "submodule $SUBMODULE_DIR missing - run: git submodule update --init --recursive"
+    fail "submodule $SUBMODULE_DIR missing - run \`git submodule update --init --recursive\`"
 fi
 
 section "python environment"
 sync_log=$(mktemp)
 trap 'rm -f "$sync_log"' EXIT
 if ! command -v uv > /dev/null 2>&1; then
-    fail "uv not found - cannot verify tools/.venv (see 'build tools' above)"
-elif uv sync --quiet --project "$ESW_ROOT/tools" --locked > "$sync_log" 2>&1; then
+    fail "\`uv\` not found - cannot verify tools/.venv (see 'build tools' above)"
+elif uv sync --quiet --project "$TOOLS_DIR" --locked > "$sync_log" 2>&1; then
     pass "tools/.venv is in sync with tools/uv.lock"
 else
-    fail "uv sync failed - tools/uv.lock may be stale (run: uv lock --project tools)"
+    fail "uv sync failed - tools/uv.lock may be stale (run \`uv lock --project tools\`)"
     sed 's/^/      /' "$sync_log"
 fi
 
@@ -296,7 +281,7 @@ if ((DO_BUILD)); then
             sed 's/^/      /' "$build_log"
         else
             tail -n 20 "$build_log" | sed 's/^/      /'
-            printf "      %b\n" "${YELLOW}(re-run with --verbose for the full log)${NC}"
+            printf "      %b\n" "${YELLOW}(re-run with \`--verbose\` for the full log)${NC}"
         fi
     fi
 fi
@@ -314,5 +299,5 @@ else
 fi
 
 if ((!DO_BUILD)); then
-    printf "%b\n" "run with ${BOLD}--build${NC} to also verify an end-to-end firmware build"
+    printf "%b\n" "run with ${BOLD}\`--build\`${NC} to also verify an end-to-end firmware build"
 fi
