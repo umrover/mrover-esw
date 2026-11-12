@@ -1,9 +1,8 @@
 #pragma once
 
-#include <array>
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-
-#include <sys.hpp>
 
 #ifdef STM32
 #include "main.h"
@@ -13,112 +12,112 @@ namespace mrover {
 
 #ifdef HAL_ADC_MODULE_ENABLED
     /**
-     * ADCBase class to enable HAL callbacks to be unaware of the number of channels.
+     * Wrapper of ADC peripheral, enabling DMA, self-calibration, and interfacing with analog sensors.
      */
-    class ADCBase {
+    class ADC {
     public:
-        struct Options {
-            uint32_t timeout_ms{10};
-            bool use_dma{false};
+        enum class mode_t : uint8_t {
+            POLLING,
+            DMA,
         };
 
-        virtual uint32_t get_channel_value(size_t index) = 0;
-        virtual void handle_conv_complete() = 0;
-        virtual void start() = 0;
-        virtual ADC_HandleTypeDef* handle() const = 0;
-        virtual ~ADCBase() = default;
+        struct options_t {
+            mode_t mode{mode_t::POLLING};
+            bool self_calibrate{true}; // run the offset self-calibration in init()
+            uint32_t timeout_ms{10};   // per-conversion timeout
+        };
 
-        static inline ADCBase* s_instance = nullptr;
-    };
+        static constexpr std::size_t MAX_CHANNELS = 16;
 
-    /**
-     * Analog-to-Digital Converter implementation.
-     * @tparam NumChannels The number of ADC channels in the scan sequence
-     */
-    template<size_t NumChannels>
-    class ADC : public ADCBase {
-    public:
-        ADC() = default;
-        explicit ADC(ADC_HandleTypeDef* hadc, Options const& options = Options())
-            : m_hadc{hadc}, m_options{options} {
-            m_values.fill(0);
-            {
-                System::InterruptGuard guard{};
-                s_instance = this;
+        ADC(ADC_HandleTypeDef* hadc, options_t const& options)
+            : m_hadc{hadc}, m_options{options} {}
+
+        ADC(ADC const&) = delete;
+        auto operator=(ADC const&) -> ADC& = delete;
+        ADC(ADC&&) = delete;
+        auto operator=(ADC&&) -> ADC& = delete;
+
+        /**
+         * Calibrate (if configured) and start ADC in DMA mode (if configured).
+         *
+         * @return false on invalid setup or failed HAL call
+         */
+        auto init() -> bool {
+            m_channels = std::min<size_t>(m_hadc->Init.NbrOfConversion, MAX_CHANNELS);
+
+            if (m_options.mode == mode_t::POLLING && m_channels > 1 && m_hadc->Init.EOCSelection != ADC_EOC_SINGLE_CONV) return false;
+            if (m_options.mode == mode_t::DMA && (m_hadc->DMA_Handle == nullptr || m_hadc->DMA_Handle->Init.MemDataAlignment != DMA_MDATAALIGN_WORD)) return false;
+
+            if (m_options.self_calibrate && HAL_ADCEx_Calibration_Start(m_hadc, ADC_SINGLE_ENDED) != HAL_OK) return false;
+
+            if (m_options.mode == mode_t::DMA)
+                return HAL_ADC_Start_DMA(m_hadc, const_cast<uint32_t*>(m_values), static_cast<uint32_t>(m_channels)) == HAL_OK;
+            return true;
+        }
+
+        /**
+         * Sample ADC.
+         *
+         * Will acquire a new sample if DMA is not configured, or wait until DMA has a new sample.
+         *
+         * @return if a sample has been successfully sampled
+         */
+        auto sample() -> bool {
+            if (m_options.mode == mode_t::DMA) {
+                uint32_t const seen = m_conversions;
+                for (uint32_t const start = HAL_GetTick(); m_conversions == seen;) {
+                    if (HAL_GetTick() - start > m_options.timeout_ms) return false;
+                }
+                return true;
             }
-            start();
-        }
-
-        ADC(const ADC&) = delete;
-        ADC& operator=(const ADC&) = delete;
-        ADC(ADC&&) noexcept = default;
-        ADC& operator=(ADC&&) noexcept = default;
-
-        auto start() -> void override {
-            System::InterruptGuard guard{};
-            if (m_options.use_dma) {
-                HAL_ADC_Start_DMA(m_hadc, m_values.data(), static_cast<uint32_t>(NumChannels));
-            } else {
-                HAL_ADC_Start(m_hadc);
-            }
-        }
-
-        auto stop() const -> void {
-            System::InterruptGuard guard{};
-            if (m_options.use_dma) {
-                HAL_ADC_Stop_DMA(m_hadc);
-            } else {
-                HAL_ADC_Stop(m_hadc);
-            }
-        }
-
-        [[nodiscard]] auto is_data_ready() const -> bool {
-            return m_data_ready;
-        }
-
-        auto clear_data_ready() -> void {
-            System::InterruptGuard guard{};
-            m_data_ready = false;
-        }
-
-        // a short critical section (one conversion), so tasks may share the ADC
-        auto get_channel_value(size_t index) -> uint32_t override {
-            System::InterruptGuard guard{};
-            HAL_ADC_Start(m_hadc);
-            uint32_t value = 0;
-            index--;
-            if (index >= NumChannels) {
-                value = 0;
-            } else if (m_options.use_dma) {
-                value = m_values[index];
-            } else if (HAL_ADC_PollForConversion(m_hadc, m_options.timeout_ms) == HAL_OK) {
-                value = HAL_ADC_GetValue(m_hadc);
+            if (HAL_ADC_Start(m_hadc) != HAL_OK) return false;
+            bool ok = true;
+            for (size_t i = 0; i < m_channels && ok; ++i) {
+                ok = HAL_ADC_PollForConversion(m_hadc, m_options.timeout_ms) == HAL_OK;
+                if (ok) m_values[i] = HAL_ADC_GetValue(m_hadc);
             }
             HAL_ADC_Stop(m_hadc);
-            return value;
+            return ok;
         }
 
-        void handle_conv_complete() override {
-            m_data_ready = true;
+        /**
+         * Get latest sample on specified channel.
+         *
+         * @return sample value
+         */
+        [[nodiscard]] auto value(size_t const i) const -> uint32_t {
+            return i < m_channels ? m_values[i] : 0;
         }
 
-        [[nodiscard]] auto handle() const -> ADC_HandleTypeDef* override {
-            return m_hadc;
+        /**
+         * Sequential calls to sample and value.
+         *
+         * @return most recently sampled value
+         */
+        auto read(size_t const i) -> uint32_t {
+            return sample() ? value(i) : 0;
         }
+
+        /**
+         * Call from HAL_ADC_ConvCpltCallback for this ADC.
+         */
+        auto handle_conversion_complete() -> void {
+            m_conversions = m_conversions + 1;
+        }
+
+        // DMA: completed sequences since init(), wraps
+        [[nodiscard]] auto conversions() const -> uint32_t { return m_conversions; }
+        [[nodiscard]] auto channels() const -> size_t { return m_channels; }
+        [[nodiscard]] auto handle() const -> ADC_HandleTypeDef* { return m_hadc; }
 
     private:
         ADC_HandleTypeDef* m_hadc;
-        Options m_options;
-        std::array<uint32_t, NumChannels> m_values;
-        bool volatile m_data_ready{false};
+        options_t m_options;
+        size_t m_channels{};
+        uint32_t volatile m_values[MAX_CHANNELS]{};
+        uint32_t volatile m_conversions{};
     };
 #else  // HAL_ADC_MODULE_ENABLED
-    class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADCBase"))) ADCBase {
-    public:
-        template<typename... Args>
-        explicit ADCBase(Args&&... args) {}
-    };
-
     class __attribute__((unavailable("enable 'ADC' in STM32CubeMX to use mrover::ADC"))) ADC {
     public:
         template<typename... Args>

@@ -20,24 +20,26 @@ namespace mrover {
         AD8418A() = default;
 
         /**
-         * @param adc Reference to the ADC wrapper (e.g., ADC<3>)
-         * @param channel The index of the channel this sensor is wired to
+         * Constructor
+         *
+         * @param adc ADC object to read sensor
+         * @param position ADC channel position
          */
-        AD8418A(ADCBase* adc, uint8_t const channel)
-            : m_adc{adc}, m_channel{channel} {}
+        AD8418A(ADC* adc, size_t const position)
+            : m_adc{adc}, m_position{position} {}
 
         auto init(Options const& options, bool const enabled = true) -> void {
             m_enabled = enabled;
             m_options = options;
             m_current_filter.add_reading(0.0f);
-            m_base = (static_cast<float>(m_adc->get_channel_value(m_channel)) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;
+            m_base = (static_cast<float>(m_adc->read(m_position)) / static_cast<float>(m_options.adc_resolution)) * m_options.vref;
         }
 
         auto update_sensor() -> void {
             if (!m_enabled || m_adc == nullptr) return;
 
             // Retrieve the raw value from the ADC wrapper (DMA or Polling)
-            uint32_t const raw_val = m_adc->get_channel_value(m_channel);
+            uint32_t const raw_val = m_adc->read(m_position);
             // Logger::instance().info("Raw Value: %u", raw_val);
 
             // Convert to voltage
@@ -74,11 +76,11 @@ namespace mrover {
 
     private:
         static constexpr std::size_t CURRENT_BUFFER_SIZE = 10;
-        ADCBase* m_adc{nullptr};
+        ADC* m_adc{nullptr};
         float m_current{};
         float m_previous{};
         float m_base{};
-        uint8_t m_channel{0};
+        size_t m_position{0};
 
         bool m_enabled{false};
         Options m_options{};
