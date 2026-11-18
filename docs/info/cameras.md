@@ -39,6 +39,7 @@ ssh -X # X11 forwarding (untrusted)
 ssh -Y # X11 forwarding (trusted)
 ```
 
+
 ## Camera commands
 ```sh
 v4l2-ctl --list-devices
@@ -64,6 +65,10 @@ gst-launch-1.0 v4l2src device=/dev/video2 ! jpegdec ! videoconvert ! autovideosi
 
 ```sh
 gst-launch-1.0 v4l2src device=/dev/video2 ! image/jpeg,width=640,height=480,framerate=30/1 ! jpegdec ! videoconvert ! autovideosink ! 
+```
+
+```sh
+pkill gstreamer-1.0 # terminate gstreamer pipeline running in background 
 ```
 
 ```sh
