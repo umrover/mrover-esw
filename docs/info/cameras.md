@@ -32,6 +32,13 @@ sudo apt install v4l-tools
 ## GStreamer
 [installation](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=c)
 
+## ssh flags that are useful
+```sh
+ssh -A # forward keeys
+ssh -X # X11 forwarding (untrusted)
+ssh -Y # X11 forwarding (trusted)
+```
+
 ## Camera commands
 ```sh
 v4l2-ctl --list-devices
@@ -52,8 +59,13 @@ ioctl: VIDIOC_ENUM_FMT
 ```
 ```sh
 # command to create a simple video sink from a jpeg usb cam
-gst-launch-1.0 v4l2src device=/dev/video2 ! jpegedc | videoconvert | autovideosink
+gst-launch-1.0 v4l2src device=/dev/video2 ! jpegdec ! videoconvert ! autovideosink
 ```
+
+```sh
+gst-launch-1.0 v4l2src device=/dev/video2 ! image/jpeg,width=640,height=480,framerate=30/1 ! jpegdec ! videoconvert ! autovideosink ! 
+```
+
 ```sh
 v4l2-ctl -d/dev/video2 --list-ctrls
 #example output
