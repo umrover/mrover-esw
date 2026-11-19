@@ -37,6 +37,7 @@ device that can be used to monitor and log CAN bus traffic to both a database an
 
 ## Scripts
 - ./dockerBuld.sh - creates the canalyzer docker image
+- ./dockerClean.sh - removes the canalyzer images (current and old untagged rebuilds) and their containers (`-n` dry run, `-y` no prompt, `--cache` also prunes build cache)
 - ./start.sh - runs the docker compose has support for handling crtl+c
 
 ## Project Notes
