@@ -60,7 +60,7 @@ fail()    { printf "  %b %s\n" "${RED}✗${NC}" "$1"; FAILURES=$((FAILURES + 1))
 # full-screen live view
 screen_open()  { printf "\033[?1049h\033[?25l"; }
 screen_close() { printf "\033[?25h\033[?1049l"; }
-# draw live screen: screen_draw <width> <line>
+# screen_draw <width> <line>
 screen_draw() {
     local -r width="$1"
     shift
