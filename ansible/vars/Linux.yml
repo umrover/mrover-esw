@@ -11,6 +11,7 @@ base_packages:
   - lsb-release
   - gnupg
   - unzip
+  - can-utils
 
 arm_gnu_host: x86_64
 
