@@ -142,7 +142,9 @@ live_view() {
         lines=()
         [[ "$WATCH" == "false" ]] || lines+=("${(@f)$(ip -details -statistics link show "$NET" | expand)}")
         if [[ "$DUMP" == "true" ]]; then
-            lines+=("${(r:cols::─:):-─}")
+            if [[ "$WATCH" == "true" ]]; then
+                lines+=("${(r:cols::─:):-─}")
+            fi
             ((rows - ${#lines} - 1 < 1)) || lines+=("${(@f)$(tail -n $((rows - ${#lines} - 1)) "$DUMP_LOG" | expand)}")
             big=(${~DUMP_LOG}(NLk+16384))
             ((! ${#big})) || : > "$DUMP_LOG"
