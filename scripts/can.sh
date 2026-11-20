@@ -93,6 +93,7 @@ find_adapters() {
     for dev in /sys/class/net/*(N); do
         [[ "$(readlink -f "$dev/device/driver" 2> /dev/null)" != */gs_usb ]] || ADAPTERS+=("${dev:t}")
     done
+    # TODO(eric): remove old adapter support (eventually)
     OLD_ADAPTERS=()
     for dev in /sys/bus/usb/devices/*(N); do
         [[ "$(cat "$dev/manufacturer" 2> /dev/null)" == "mjbots" ]] || continue
@@ -113,12 +114,11 @@ list_adapters() {
     done
     ((${#ADAPTERS})) || note "none"
     for old in "${OLD_ADAPTERS[@]}"; do
-        warn "serial ${old% *} (${old#* }) runs old firmware: reflash with \`--flash-fw\`"
+        warn "serial ${old% *} (${old#* }) runs old mjbots firmware, reflash"
     done
 }
 
-# live view until ctrl-c
-# bus state on top, the most recent frames below
+# bus state on top, the most recent frames below, exit on ctrl-c
 live_view() {
     local rows cols lines big
     DUMP_LOG="$(mktemp)"
@@ -211,6 +211,7 @@ case "$MODE" in
         [[ "$DUMP" == "false" && "$WATCH" == "false" ]] || live_view
         ;;
 
+    # TODO(eric): is it better to provide a script specifically for mjbots fw?
     flash)
         [[ -f "$FIRMWARE" ]] || die "firmware \`$FIRMWARE\` not found"
         require STM32_Programmer_CLI
