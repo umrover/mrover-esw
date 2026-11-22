@@ -1,0 +1,240 @@
+#pragma once
+
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
+#include <fstream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+#include <fcntl.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "dbc_runtime.hpp"
+#include "influxdb.hpp"
+
+#include <moteus/moteus_protocol.h>
+
+namespace bus_load {
+    struct FrameBits {
+        uint32_t nominal;
+        uint32_t data;
+    };
+
+    /**
+     * @brief Bits a frame occupies on the bus, split by bitrate
+     *
+     * Counts the actual dynamic stuff bits for this frame's ID and payload
+     * (and, for classic CAN, its CRC-15), plus the frame tail and the
+     * 3-bit intermission. For CAN FD with BRS, `data` holds the bits sent at
+     * the data bitrate (ESI through the CRC field); otherwise `data` is 0.
+     *
+     * @param can_frame Frame as received from SocketCAN
+     * @param is_fd True when the frame was read as a CANFD_MTU frame
+     */
+    auto estimate_frame_bits(canfd_frame const& can_frame, bool is_fd) -> FrameBits;
+
+    struct BusLoadConfig {
+        uint32_t nominal_bitrate = 500'000;
+        uint32_t data_bitrate = 2'000'000;
+        std::chrono::milliseconds sample_window{1000};
+
+        BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate);
+    };
+
+    struct BusLoadSample {
+        long long time;
+        double load_pct;
+        uint64_t frames;
+        uint64_t bits;
+    };
+} // namespace bus_load
+
+namespace logger {
+
+    auto make_can_timestamp() -> std::string;
+    auto now_ms() -> long long;
+
+    // GLOBAL
+    inline std::atomic<bool> running;
+    inline std::mutex cout_mutex;
+
+    enum class log_mode {
+        WHITELIST_IDS,
+        BLACKLIST_IDS,
+    };
+
+    class Logger {
+    private:
+        struct DecodedFrame {
+            uint32_t id;
+            uint8_t src_id;
+            uint8_t dest_id;
+            long long time;
+            std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> data;
+        };
+
+        struct MoteusReply {
+            uint8_t motor_id; // source of the reply (bits 14:8 of the CAN ID)
+            uint8_t dest_id;  // usually the host (bits 7:0 of the CAN ID)
+            long long time;
+            mjbots::moteus::GenericQuery::Result result;
+        };
+
+        struct DynamicBuilder : public influxdb_cpp::builder {
+
+            /**
+             * @brief Creates a POST to InfluxDB using decoded CAN data
+             *
+             * @param measurement Name of specific measurement
+             * @param bus_name Name of bus sourcing data
+             * @param src_id Source node ID (bits 15:8 of the CAN ID)
+             * @param dest_id Destination node ID (bits 7:0 of the CAN ID)
+             * @param data Map of signal names and signal values
+             * @param timestamp Time in microseconds econds data was taken
+             */
+            void post(std::string const& measurement,
+                      std::string const& bus_name,
+                      uint8_t src_id,
+                      uint8_t dest_id,
+                      std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
+                      long long timestamp);
+
+            /**
+             * @brief Creates a POST to InfluxDB using bus load sample
+             *
+             * @param bus_name Name of bus sourcing data
+             * @param sample Bus Load Sample taken every second
+             */
+            void post_bus_load(std::string const& bus_name, bus_load::BusLoadSample const& sample);
+
+            /**
+             * @brief Creates a POST to InfluxDB from a parsed moteus reply
+             *
+             * Only registers present in the reply are written, as fields
+             * named after the moteus register (e.g. position, velocity).
+             *
+             * @param bus_name Name of bus sourcing data
+             * @param reply Parsed moteus reply
+             */
+            void post_moteus(std::string const& bus_name, MoteusReply const& reply);
+
+            /**
+             * @brief Commit POST request buffer to InfluxDB
+             *
+             * @param si Server info of the InfluxDB instance
+             *
+             * @return return code of _post_http()
+             */
+            auto commit(influxdb_cpp::server_info const& si) -> int;
+        };
+
+        int id;
+        int bus_socket = -1;
+        std::string can_bus_name;
+        std::string yaml_file_path;
+        std::string ascii_file_path;
+        std::string dbc_root_path;
+        influxdb_cpp::server_info si;
+
+        std::unordered_set<uint32_t> log_ids;
+        std::unordered_set<std::string> dbc_file_paths;
+
+        mrover::dbc_runtime::CanDbcFileParser parser;
+        mrover::dbc_runtime::CanFrameProcessor processor;
+
+        std::deque<DecodedFrame> frame_buffer;
+        std::deque<MoteusReply> moteus_buffer;
+        std::mutex buffer_mutex;
+        std::condition_variable cv;
+
+        void _committer_worker();
+        std::thread committer_thread;
+
+        bus_load::BusLoadConfig bus_load_config;
+
+        std::atomic<uint64_t> nominal_bits{0};
+        std::atomic<uint64_t> data_bits{0};
+        std::atomic<uint64_t> frame_count{0};
+
+        std::deque<bus_load::BusLoadSample> bus_loader_buffer;
+
+        void _bus_load_worker();
+        std::thread bus_load_thread;
+
+
+        DynamicBuilder builder;
+
+        log_mode mode;
+        bool debug = false;
+        bool stop_committer = false; // guarded by buffer_mutex
+        bool log_ascii;
+
+        int read_error_count = 0;            //read error on the can bus
+        int read_error_count_incomplete = 0; //if size is less than frame.
+        int influx_post_error_count = 0;
+
+        void _init_bus();
+        void _log_ascii(
+                unsigned char const* arr,
+                std::string const& name,
+                std::ofstream& outputFile,
+                uint32_t id);
+
+        auto _decode(uint32_t id, canfd_frame const& can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue>;
+        void _stop_bus();
+
+    public:
+        Logger(
+                int id,
+                std::string& bus_name,
+                std::string& yaml_file_path,
+                std::string& ascii_file_path,
+                std::unordered_set<uint32_t>&& log_ids,
+                std::unordered_set<std::string>&& dbc_file_paths,
+                influxdb_cpp::server_info& si,
+                log_mode mode,
+                bool log_ascii,
+                bus_load::BusLoadConfig& bus_conf);
+
+        Logger(Logger&& other) noexcept;
+        void start();
+
+        void print() const;
+        void print_error() const;
+
+        Logger(Logger const&) = delete;
+        auto operator=(Logger const&) -> Logger& = delete;
+    };
+
+    /**
+     * @brief Create Loggers for all busses
+     *
+     * @param yaml_path Path to Logger config yaml
+     * @param dbc_path Path to dbc volume
+     */
+    auto logger_factory(std::string& yaml_path, std::string& dbc_path) -> std::vector<Logger>;
+    static auto trim(std::string const& s) -> std::string;
+
+    /**
+     * @brief Signal interrupt handler
+     */
+    void handle_SIGINT(int);
+    /**
+     * @brief Start the CAN logger bus
+     *
+     * @param loggers The set of loggers to start running
+     */
+    void run_bus(std::vector<Logger>& loggers);
+} // namespace logger

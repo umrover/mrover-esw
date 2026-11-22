@@ -1,0 +1,911 @@
+#include "logger.hpp"
+#include "Yaml.hpp"
+#include "file_parser.hpp"
+#include "influxdb.hpp"
+
+
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <csignal>
+#include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <format>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <linux/can.h>
+#include <mutex>
+#include <ostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
+namespace bus_load {
+    BusLoadConfig::BusLoadConfig(uint32_t nominal_bitrate, uint32_t data_bitrate) : nominal_bitrate(nominal_bitrate),
+                                                                                    data_bitrate(data_bitrate) {}
+
+    namespace {
+        // CRC delimiter, ACK slot, ACK delimiter, EOF (7) and intermission (3).
+        // Never stuffed, always sent at the nominal bitrate.
+        constexpr uint32_t kFrameTailBits = 13;
+
+        // FD stuff count (4) + CRC-17 or CRC-21, each with its fixed stuff bits.
+        constexpr uint32_t kFdCrcFieldBits17 = 27;
+        constexpr uint32_t kFdCrcFieldBits21 = 32;
+
+        /**
+         * Counts bits as they appear on the wire, inserting a complementary
+         * stuff bit after every run of five identical bits. Also runs the
+         * classic CAN CRC-15 over the unstuffed bits, which classic frames
+         * need because their CRC sequence is part of the stuffed region.
+         */
+        class StuffedBitCounter {
+        public:
+            void push_bit(bool const bit) {
+                if (run_ == 5) {
+                    ++bits_;
+                    last_ = !last_;
+                    run_ = 1;
+                }
+                run_ = (run_ != 0 && bit == last_) ? run_ + 1 : 1;
+                last_ = bit;
+                ++bits_;
+
+                bool const crc_next = bit != (((crc15_ >> 14) & 1) != 0);
+                crc15_ = static_cast<uint16_t>((crc15_ << 1) & 0x7FFF);
+                if (crc_next) crc15_ ^= 0x4599;
+            }
+
+            // MSB first, matching CAN transmit order
+            void push(uint32_t const value, int const width) {
+                for (int i = width - 1; i >= 0; --i) push_bit((value >> i) & 1);
+            }
+
+            [[nodiscard]] auto bits() const -> uint32_t { return bits_; }
+            [[nodiscard]] auto crc15() const -> uint16_t { return crc15_; }
+            [[nodiscard]] auto stuff_bit_pending() const -> bool { return run_ == 5; }
+
+        private:
+            uint32_t bits_ = 0;
+            uint16_t crc15_ = 0;
+            int run_ = 0;
+            bool last_ = false;
+        };
+
+        auto fd_len_to_dlc(uint8_t const len) -> uint8_t {
+            if (len <= 8) return len;
+            if (len <= 12) return 9;
+            if (len <= 16) return 10;
+            if (len <= 20) return 11;
+            if (len <= 24) return 12;
+            if (len <= 32) return 13;
+            if (len <= 48) return 14;
+            return 15;
+        }
+
+        // SOF through RTR/RRS. Base and extended formats share this layout in
+        // classic CAN and CAN FD; only the meaning of the final bit differs.
+        void push_header(StuffedBitCounter& s, uint32_t const id, bool const is_extended, bool const rtr_or_rrs) {
+            s.push_bit(false); // SOF
+            if (is_extended) {
+                s.push(id >> 18, 11); // base ID
+                s.push_bit(true);     // SRR
+                s.push_bit(true);     // IDE
+                s.push(id & 0x3FFFF, 18);
+                s.push_bit(rtr_or_rrs);
+            } else {
+                s.push(id, 11);
+                s.push_bit(rtr_or_rrs);
+                s.push_bit(false); // IDE
+            }
+        }
+    } // namespace
+
+    auto estimate_frame_bits(canfd_frame const& can_frame, bool const is_fd) -> FrameBits {
+        bool const is_extended = can_frame.can_id & CAN_EFF_FLAG;
+        uint32_t const id = can_frame.can_id & (is_extended ? CAN_EFF_MASK : CAN_SFF_MASK);
+
+        StuffedBitCounter s;
+
+        if (!is_fd) {
+            bool const is_rtr = can_frame.can_id & CAN_RTR_FLAG;
+            uint8_t const dlc = std::min<uint8_t>(can_frame.len, CAN_MAX_DLEN);
+
+            push_header(s, id, is_extended, is_rtr);
+            if (is_extended) s.push_bit(false); // r1
+            s.push_bit(false);                  // r0
+            s.push(dlc, 4);
+            if (!is_rtr) {
+                for (uint8_t i = 0; i < dlc; ++i) s.push(can_frame.data[i], 8);
+            }
+            uint16_t const crc = s.crc15();
+            s.push(crc, 15);
+            // stuffing covers the whole CRC sequence, so a run ending on its
+            // last bit still gets a stuff bit before the CRC delimiter
+            uint32_t const stuffed = s.bits() + (s.stuff_bit_pending() ? 1 : 0);
+
+            return {stuffed + kFrameTailBits, 0};
+        }
+
+        bool const brs = can_frame.flags & CANFD_BRS;
+        bool const esi = can_frame.flags & CANFD_ESI;
+        uint8_t const len = std::min<uint8_t>(can_frame.len, CANFD_MAX_DLEN);
+
+        push_header(s, id, is_extended, false); // RRS
+        s.push_bit(true);                       // FDF
+        s.push_bit(false);                      // res
+        s.push_bit(brs);
+        uint32_t const arbitration_bits = s.bits();
+
+        // A stuff bit owed after BRS lands in the data phase: push_bit only
+        // emits it once the next bit (ESI) arrives.
+        s.push_bit(esi);
+        s.push(fd_len_to_dlc(len), 4);
+        for (uint8_t i = 0; i < len; ++i) s.push(can_frame.data[i], 8);
+        // A stuff bit owed after the last data bit is not sent: the fixed
+        // stuff bit that opens the stuff count field takes its place.
+        uint32_t const data_bits = s.bits() - arbitration_bits + (len > 16 ? kFdCrcFieldBits21 : kFdCrcFieldBits17);
+
+        uint32_t const nominal_bits = arbitration_bits + kFrameTailBits;
+        if (brs) return {nominal_bits, data_bits};
+        return {nominal_bits + data_bits, 0};
+    }
+} // namespace bus_load
+
+namespace {
+    // moteus ID: |can_prefix(13bits)|reply(1bit)|source(7bits)|destination(8bits)|
+    constexpr uint32_t kMoteusCanPrefix = 0;
+
+    auto raw_can_id(canfd_frame const& f) -> uint32_t {
+        return f.can_id & ((f.can_id & CAN_EFF_FLAG) ? CAN_EFF_MASK : CAN_SFF_MASK);
+    }
+
+    auto is_moteus_frame(canfd_frame const& f) -> bool {
+        if (f.can_id & (CAN_ERR_FLAG | CAN_RTR_FLAG)) return false;
+        return (raw_can_id(f) >> 16) == kMoteusCanPrefix;
+    }
+
+    // it is a reply if first non-NOP subframe is 0x20-0x2F
+    auto is_moteus_reply(canfd_frame const& f) -> bool {
+        for (uint8_t i = 0; i < f.len; ++i) {
+            uint8_t const op = f.data[i];
+            if (op == mjbots::moteus::Multiplex::kNop) continue;
+            return op >= 0x20 && op < 0x30;
+        }
+        return false;
+    }
+
+    auto moteus_register_name(int16_t const reg) -> std::string {
+        switch (reg) {
+            case 0x000:
+                return "mode";
+            case 0x001:
+                return "position"; // rev
+            case 0x002:
+                return "velocity"; // rev/s
+            case 0x003:
+                return "torque"; // Nm
+            case 0x004:
+                return "q_current"; // A
+            case 0x005:
+                return "d_current"; // A
+            case 0x006:
+                return "abs_position"; // rev
+            case 0x007:
+                return "power"; // W
+            case 0x00a:
+                return "motor_temperature"; // C
+            case 0x00b:
+                return "trajectory_complete";
+            case 0x00c:
+                return "home_state";
+            case 0x00d:
+                return "voltage"; // V
+            case 0x00e:
+                return "temperature"; // C (board)
+            case 0x00f:
+                return "fault";
+            default:
+                return std::format("reg_0x{:03x}", reg);
+        }
+    }
+} // namespace
+
+namespace logger {
+
+    void Logger::DynamicBuilder::post_moteus(std::string const& bus_name, MoteusReply const& reply) {
+
+        std::vector<std::pair<std::string, double>> fields;
+        for (auto const& item: reply.result.values) {
+            if (item.register_number < 0) break;
+            if (!std::isfinite(item.value)) continue;
+            fields.emplace_back(moteus_register_name(item.register_number), item.value);
+        }
+        if (fields.empty()) return;
+
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
+        }
+
+        _m("moteus_state");
+        _t("bus_name", bus_name);
+        _t("motor_id", std::to_string(reply.motor_id));
+        _t("dest_id", std::to_string(reply.dest_id));
+
+        char delim = ' ';
+        for (auto const& [name, value]: fields) {
+            _f_f(delim, name, value, 8);
+            delim = ',';
+        }
+
+        _ts(reply.time);
+    }
+
+    void Logger::DynamicBuilder::post(
+            std::string const& measurement,
+            std::string const& bus_name,
+            uint8_t const src_id,
+            uint8_t const dest_id,
+            std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> const& data,
+            long long const timestamp) {
+
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
+        }
+
+        _m(measurement);
+        _t("bus_name", bus_name);
+        _t("src_id", std::to_string(src_id));
+        _t("dest_id", std::to_string(dest_id));
+
+        bool is_first_field = true;
+
+        for (auto const& [name, value]: data) {
+            char delim = is_first_field ? ' ' : ',';
+            is_first_field = false;
+
+            if (value.is_floating_point()) {
+                _f_f(delim, name, value.as_double(), 8);
+            } else if (value.is_integral()) {
+                _f_i(delim, name, value.as_signed_integer());
+            } else if (value.is_string()) {
+                _f_s(delim, name, value.as_string());
+            } else {
+                throw std::runtime_error(std::format("CAN value with name: {}, is not floating, integral, or string type", name));
+            }
+        }
+
+        _ts(timestamp);
+    }
+
+
+    void Logger::DynamicBuilder::post_bus_load(
+            std::string const& bus_name,
+            bus_load::BusLoadSample const& sample) {
+
+        if (lines_.tellp() > 0) {
+            lines_ << '\n';
+        }
+
+        _m("bus_load");
+        _t("bus_name", bus_name);
+        _f_f(' ', "load_percentage", sample.load_pct, 3);
+        _f_i(',', "frame_count", static_cast<long long>(sample.frames));
+        _f_i(',', "bits", static_cast<long long>(sample.bits));
+        _ts(sample.time);
+    }
+
+    auto Logger::DynamicBuilder::commit(influxdb_cpp::server_info const& si) -> int {
+        if (lines_.tellp() == 0) return 0;
+
+        std::string resp;
+        int ret = _post_http(si, &resp);
+
+        lines_.str("");
+        lines_.clear();
+
+        return ret;
+    }
+
+    auto make_can_timestamp() -> std::string {
+        using namespace std::chrono;
+
+        auto now = system_clock::now();
+        auto us = duration_cast<microseconds>(now.time_since_epoch()).count();
+
+        long long sec = us / 1'000'000;
+        long long micros = us % 1'000'000;
+        char buf[32];
+
+        std::snprintf(buf, sizeof(buf), "(%lld.%06lld)", sec, micros);
+        return {buf};
+    }
+
+    auto now_ms() -> long long {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::system_clock::now().time_since_epoch())
+                .count();
+    }
+
+    void Logger::_committer_worker() {
+
+        std::vector<DecodedFrame> frames;
+        std::vector<bus_load::BusLoadSample> samples;
+        std::vector<MoteusReply> moteus_replies;
+
+        bool stopping = false;
+        while (!stopping) {
+            {
+                std::unique_lock<std::mutex> lock(buffer_mutex);
+                cv.wait(lock, [this] { return stop_committer || !frame_buffer.empty() || !moteus_buffer.empty() || !bus_loader_buffer.empty(); });
+
+                // start() only sets stop_committer after every producer has
+                // exited, so this pass drains everything that will ever arrive
+                stopping = stop_committer;
+
+                frames.assign(std::make_move_iterator(frame_buffer.begin()), std::make_move_iterator(frame_buffer.end()));
+                frame_buffer.clear();
+
+                moteus_replies.assign(moteus_buffer.begin(), moteus_buffer.end());
+                moteus_buffer.clear();
+
+                samples.assign(bus_loader_buffer.begin(), bus_loader_buffer.end());
+                bus_loader_buffer.clear();
+            }
+
+            for (auto const& can_frame: frames) {
+                auto const desc = parser.message(can_frame.id);
+                if (desc == nullptr) continue; // fix later, probably should record how many are skipped
+                builder.post(desc->name(), can_bus_name, can_frame.src_id, can_frame.dest_id, can_frame.data, can_frame.time);
+            }
+
+            for (auto const& reply: moteus_replies) builder.post_moteus(can_bus_name, reply);
+
+            for (auto const& sample: samples) builder.post_bus_load(can_bus_name, sample);
+
+            int const status = builder.commit(si);
+            if (status != 0) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << std::format("builder commit failed with error: {}\n on bus {}\n", status, can_bus_name);
+                ++influx_post_error_count;
+            }
+        }
+    }
+
+    void Logger::_bus_load_worker() {
+        auto last = std::chrono::steady_clock::now();
+        auto next = last + bus_load_config.sample_window;
+
+        while (running.load()) {
+            std::this_thread::sleep_until(next);
+
+            auto const now = std::chrono::steady_clock::now();
+            next += bus_load_config.sample_window;
+            if (next <= now) next = now + bus_load_config.sample_window;
+
+            double const elapsed = std::chrono::duration<double>(now - last).count();
+            last = now;
+
+            uint64_t const nominal_bit_count = nominal_bits.exchange(0, std::memory_order_relaxed);
+            uint64_t const data_bit_count = data_bits.exchange(0, std::memory_order_relaxed);
+            uint64_t const frames = frame_count.exchange(0, std::memory_order_relaxed);
+
+            double const busy_seconds = static_cast<double>(nominal_bit_count) / bus_load_config.nominal_bitrate + static_cast<double>(data_bit_count) / bus_load_config.data_bitrate;
+            double const load = 100.0 * busy_seconds / elapsed;
+
+            {
+                std::lock_guard<std::mutex> lock(buffer_mutex);
+                bus_loader_buffer.push_back({now_ms(), load, frames, nominal_bit_count + data_bit_count});
+            }
+
+            cv.notify_one();
+
+            if (debug) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << std::format("{}: bus load {:.1f}%, {} frames\n", can_bus_name, load, frames);
+            }
+        }
+    }
+
+    void Logger::_init_bus() {
+
+        //parse files
+
+        for (auto const& dbc_file_path: dbc_file_paths) {
+            if (!parser.parse(dbc_file_path)) {
+                throw std::runtime_error(std::format("failed to parse file: {} with error: {}, lines parsed: {}", dbc_file_path, mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error()), parser.lines_parsed()));
+            }
+        }
+
+        //add log messasges into the processor
+        if (mode == log_mode::WHITELIST_IDS) {
+            for (uint32_t const log_id: log_ids) {
+                auto const message = parser.message(log_id);
+                if (!message) throw std::runtime_error(std::format("{}: whitelisted id 0x{:08X} is not in the loaded dbc files (use the id as written in the dbc, e.g. 0x80130000)", can_bus_name, log_id));
+                processor.add_message_description(*message);
+            }
+        } else if (mode == log_mode::BLACKLIST_IDS) {
+            for (uint32_t const log_id: log_ids) {
+                if (parser.message(log_id)) continue;
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << std::format("{}: blacklisted id 0x{:08X} is not in the loaded dbc files, ignoring it (use the id as written in the dbc, e.g. 0x80130000)\n", can_bus_name, log_id);
+            }
+            for (auto const& message: parser.messages()) {
+                if (log_ids.find(message.id()) != log_ids.end()) continue;
+                processor.add_message_description(message);
+            }
+        }
+
+        //create socket
+        bus_socket = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+        if (bus_socket < 0) throw std::runtime_error(std::format("failed to create socket, error: {}", std::strerror(errno)));
+
+        int flags = fcntl(bus_socket, F_GETFL, 0);
+        if (flags == -1) {
+            throw std::runtime_error(std::format("failed to fcntl on socket, error: {}", std::strerror(errno)));
+        }
+        if (fcntl(bus_socket, F_SETFL, flags | O_NONBLOCK) == -1) throw std::runtime_error(std::format("failed to fcntl noblock on socket, error: {}", std::strerror(errno)));
+
+        struct ifreq ifr{};
+        struct sockaddr_can addr{};
+
+        std::strncpy(ifr.ifr_name, can_bus_name.c_str(), IFNAMSIZ - 1);
+        ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+
+        if (ioctl(bus_socket, SIOCGIFINDEX, &ifr) < 0) {
+            throw std::runtime_error("ioctl broke: " + can_bus_name);
+        }
+
+        std::memset(&addr, 0, sizeof(addr));
+        addr.can_family = AF_CAN;
+        addr.can_ifindex = ifr.ifr_ifindex;
+
+        if (bind(bus_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
+            throw std::runtime_error("bind broke: " + can_bus_name);
+        }
+
+        int enable_canfd = 1;
+        if (setsockopt(bus_socket, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd)) != 0) {
+            throw std::runtime_error("socket broke: " + can_bus_name);
+            //blow up
+        }
+    }
+
+    void Logger::_log_ascii(unsigned char const* arr, std::string const& name, std::ofstream& outputFile, uint32_t id) {
+        if (!log_ascii || !outputFile.is_open()) return;
+
+        outputFile << make_can_timestamp() << can_bus_name << " ";
+
+        outputFile << id << "#";
+
+        // print two digit unsigned
+        for (size_t i = 0; i < CANFD_MAX_DLEN; i++) {
+            outputFile << std::hex
+                       << std::uppercase
+                       << std::setw(2)
+                       << std::setfill('0')
+                       << static_cast<int>(arr[i] & 0xFF);
+        }
+
+        outputFile << std::dec << "\n";
+    }
+
+    auto Logger::_decode(uint32_t const id, canfd_frame const& can_frame) -> std::unordered_map<std::string, mrover::dbc_runtime::CanSignalValue> {
+        return processor.decode(id, std::string_view(reinterpret_cast<char const*>(can_frame.data), can_frame.len));
+    }
+
+    Logger::Logger(int id,
+                   std::string& bus_name,
+                   std::string& yaml_file_path,
+                   std::string& ascii_file_path,
+                   std::unordered_set<uint32_t>&& log_ids,
+                   std::unordered_set<std::string>&& dbc_file_paths,
+                   influxdb_cpp::server_info& si,
+                   log_mode mode,
+                   bool log_ascii,
+                   bus_load::BusLoadConfig& bus_config)
+
+        : id(id),
+          can_bus_name(bus_name),
+          yaml_file_path(yaml_file_path),
+          ascii_file_path(ascii_file_path),
+          log_ascii(log_ascii),
+          si(si),
+          log_ids(log_ids),
+          dbc_file_paths(std::move(dbc_file_paths)),
+          mode(mode),
+          bus_load_config(bus_config) {}
+
+    Logger::Logger(logger::Logger&& other) noexcept
+        : id(other.id),
+          bus_socket(other.bus_socket),
+          can_bus_name(std::move(other.can_bus_name)),
+          yaml_file_path(std::move(other.yaml_file_path)),
+          ascii_file_path(std::move(other.ascii_file_path)),
+          log_ascii(other.log_ascii),
+          si(std::move(other.si)),
+          log_ids(std::move(other.log_ids)),
+          dbc_file_paths(std::move(other.dbc_file_paths)),
+          mode(other.mode),
+          debug(other.debug),
+          bus_load_config(other.bus_load_config) {}
+
+
+    void Logger::start() {
+        try {
+            _init_bus();
+            std::flush(std::cout);
+
+            if (log_ascii) {
+                std::filesystem::path dir = std::filesystem::path(ascii_file_path).parent_path();
+                if (!dir.empty() && !std::filesystem::exists(dir)) {
+                    std::filesystem::create_directories(dir);
+                    {
+                        std::lock_guard<std::mutex> lock(cout_mutex);
+                        std::cout << "Created directory: " << dir << "\n";
+                    }
+                }
+            }
+
+        } catch (std::exception const& e) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cerr << "Logger thread failed: " << e.what() << "\n";
+            return;
+        } catch (...) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cerr << "Logger thread failed with unknown exception\n";
+            return;
+        }
+
+        // TODO: create a default ascii_log_file_path with log_ascii + can_bus_name, maybe optional arg
+        // Open log file only when ascii logging is on (ofstream will create it if it doesn't exist)
+
+        std::ofstream file;
+        if (log_ascii) {
+            file.open(ascii_file_path, std::ios::app); // use app to append
+            if (!file.is_open()) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << "Logger cannot open file" << ascii_file_path << "\n";
+                return;
+            }
+        }
+
+        if (debug) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Logger started for " << can_bus_name << "\n";
+        }
+
+        committer_thread = std::thread(&Logger::_committer_worker, this);
+        bus_load_thread = std::thread(&Logger::_bus_load_worker, this);
+
+        struct canfd_frame cfd{};
+
+
+        while (running.load()) { //catch an interupt instead?
+
+            //read a vcan message from bus (can_id)
+            //insert into buffer
+            //call to decode
+            //push to influx and logger (asci)
+            //done
+
+            ssize_t bytes_read = read(bus_socket, &cfd, CANFD_MTU); //CANFD_MTU is macro for sizeof(canfd_frame)
+
+            if (bytes_read < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    continue;
+                    ;
+                } else {
+                    ++read_error_count;
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cerr << "Read error on " << can_bus_name << ": " << std::strerror(errno) << "\n";
+                    continue;
+                }
+            }
+            if (bytes_read < (ssize_t) CAN_MTU) {
+                ++read_error_count_incomplete;
+                continue;
+            }
+
+            bool const is_fd = (bytes_read == static_cast<ssize_t>(CANFD_MTU));
+            if (!(cfd.can_id & CAN_ERR_FLAG)) {
+                auto const frame_bits = bus_load::estimate_frame_bits(cfd, is_fd);
+                nominal_bits.fetch_add(frame_bits.nominal, std::memory_order_relaxed);
+                data_bits.fetch_add(frame_bits.data, std::memory_order_relaxed);
+                frame_count.fetch_add(1, std::memory_order_relaxed);
+            }
+
+            if (is_moteus_frame(cfd)) {
+                uint32_t const raw_id = raw_can_id(cfd);
+                logger::Logger::_log_ascii(cfd.data, can_bus_name, file, raw_id);
+
+                if (!is_moteus_reply(cfd)) continue; // fix later, we only log responses TODO: log commands
+
+                MoteusReply reply{
+                        .motor_id = static_cast<uint8_t>((raw_id >> 8) & 0x7F),
+                        .dest_id = static_cast<uint8_t>(raw_id & 0xFF),
+                        .time = now_ms(),
+                        .result = mjbots::moteus::GenericQuery::Parse(cfd.data, cfd.len)};
+
+                {
+                    std::lock_guard<std::mutex> lock(buffer_mutex);
+                    moteus_buffer.push_back(reply);
+                }
+                cv.notify_one();
+                continue;
+            }
+
+            uint32_t id = (cfd.can_id & CAN_EFF_MASK & 0xFFFF0000) | 0x80000000; //hacky fix
+
+            switch (mode) {
+                case log_mode::WHITELIST_IDS: {
+                    if (log_ids.find(id) == log_ids.end()) continue;
+                    break;
+                }
+                case log_mode::BLACKLIST_IDS: {
+                    if (log_ids.find(id) != log_ids.end()) continue;
+                    break;
+                }
+            }
+
+            logger::Logger::_log_ascii(cfd.data, can_bus_name, file, id);
+
+            DecodedFrame decoded_message = {
+                    .id = id,
+                    .src_id = static_cast<uint8_t>((cfd.can_id >> 8) & 0xFF),
+                    .dest_id = static_cast<uint8_t>(cfd.can_id & 0xFF),
+                    .time = now_ms(),
+                    .data = _decode(id, cfd)};
+
+            {
+                std::lock_guard<std::mutex> lock(buffer_mutex);
+                frame_buffer.push_back(decoded_message);
+            }
+            cv.notify_one();
+
+        } //endwhile
+
+        // the bus load thread posts one last partial-window sample on its way
+        // out, so it must finish before the committer is told to drain and stop
+        if (bus_load_thread.joinable()) bus_load_thread.join();
+        {
+            std::lock_guard<std::mutex> lock(buffer_mutex);
+            stop_committer = true;
+        }
+        cv.notify_one();
+
+        if (committer_thread.joinable()) committer_thread.join();
+    }
+
+    void Logger::print() const {
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Auth:\n"
+                      << "\t - Host: " << si.host_ << "\n"
+                      << "\t - Port: " << si.port_ << "\n"
+                      << "\t - Db_name: " << si.db_ << "\n"
+                      << "\t - User: " << si.usr_ << "\n"
+                      << "\t - Password: " << si.pwd_ << "\n";
+
+            std::cout << "\n"
+                      << "Info:\n"
+                      << "\t - Name: " << can_bus_name << "\n"
+                      << "\t - Id: " << id << "\n"
+                      << "\t - log_mode: " << static_cast<int>(mode) << "\n"
+                      << "\t - yaml_file_path: " << yaml_file_path << "\n"
+                      << "\t - log_specify: ";
+            auto it = log_ids.begin();
+            while (it != log_ids.end()) {
+                std::cout << *it << ", ";
+                it++;
+            }
+            std::cout << "\n";
+        }
+    }
+
+    void Logger::print_error() const {
+        if (debug) {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Logger: " << id << " | read_error_count: " << read_error_count << " | incomplete reads: " << read_error_count_incomplete << " | influx post errors: " << influx_post_error_count << "\n";
+        }
+    }
+
+    // End logger class members
+
+    namespace {
+        /**
+         * @brief Parse one log_specify entry as a DBC message id
+         *
+         * The id is written as it appears in the DBC file, in decimal
+         * (2148728832) or hex (0x80130000). DBC ids for extended frames have
+         * bit 31 set, so they don't fit in an int.
+         *
+         * @param token Trimmed, non-empty log_specify entry
+         * @param bus_name Bus the entry belongs to, for error messages
+         */
+        auto parse_log_id(std::string const& token, std::string const& bus_name) -> uint32_t {
+            auto const fail = [&](std::string_view reason) {
+                return std::runtime_error(std::format("{}: log_specify entry '{}' {}", bus_name, token, reason));
+            };
+
+            if (token.front() == '-') throw fail("is negative");
+
+            size_t parsed = 0;
+            unsigned long long value = 0;
+            try {
+                value = std::stoull(token, &parsed, 0);
+            } catch (std::invalid_argument const&) {
+                throw fail("is not a number");
+            } catch (std::out_of_range const&) {
+                throw fail("is larger than 32 bits");
+            }
+            if (parsed != token.size()) throw fail("is not a number");
+            if (value > std::numeric_limits<uint32_t>::max()) throw fail("is larger than 32 bits");
+
+            return static_cast<uint32_t>(value);
+        }
+    } // namespace
+
+    auto logger_factory(std::string& yaml_path, std::string& dbc_path) -> std::vector<Logger> {
+        std::vector<Logger> loggers;
+
+        int size = 0;
+
+        Yaml::Node root;
+        try {
+            Yaml::Parse(root, yaml_path.c_str());
+        } catch (Yaml::Exception const& e) {
+            throw std::runtime_error(std::format("yaml parsing broke with error: {}\n", e.what()));
+        }
+
+        size = root["logger_bus_size"].As<int>();
+        if (size > 4) throw std::runtime_error(std::format("recieved logger bus size of {}, which is larger than 4", size));
+
+        auto config_name = root["name"].As<std::string>();
+        std::cout << std::format("Using config: {}\n", config_name);
+        std::cout << std::format("Logger Bus Count: {}\n", size);
+
+        char const* env_host = std::getenv("INFLUXDB_HOST");
+        if (!env_host) throw std::runtime_error("influxdb environment variable unset: host");
+        std::string host(env_host);
+
+        char const* env_port = std::getenv("INFLUXDB_PORT");
+        if (!env_port) throw std::runtime_error("influxdb environment variable unset: port");
+        int port = std::stoi(env_port);
+
+        char const* env_db = std::getenv("INFLUXDB_DB");
+        if (!env_db) throw std::runtime_error("influxdb environment variable unset: db");
+        std::string db_name(env_db);
+
+        char const* env_user = std::getenv("INFLUXDB_USER");
+        if (!env_user) throw std::runtime_error("influxdb environment variable unset: user");
+        std::string user(env_user);
+
+        char const* env_pass = std::getenv("INFLUXDB_PASSWORD");
+        if (!env_pass) throw std::runtime_error("influxdb environment variable unset: password");
+        std::string password(env_pass);
+
+        influxdb_cpp::server_info auth(host, port, db_name, user, password);
+
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "host: " << host << ", port: " << port << ", db_name: " << db_name << ", user " << user << ", password: " << password << std::endl;
+        }
+
+        Yaml::Node loggers_node = root["loggers"];
+        loggers.reserve(size);
+
+        for (int i = 0; i < size; ++i) {
+
+            auto name = loggers_node[i]["name"].As<std::string>();
+            auto log_mode_str = loggers_node[i]["log_mode"].As<std::string>();
+            auto ascii_file_path = loggers_node[i]["file_path"].As<std::string>();
+
+            log_mode mode;
+            if (log_mode_str == "whitelist") {
+                mode = log_mode::WHITELIST_IDS;
+            } else if (log_mode_str == "blacklist") {
+                mode = log_mode::BLACKLIST_IDS;
+            } else {
+                throw std::runtime_error(std::format("expected 'whitelist' or 'blacklist' but recieved {}", log_mode_str));
+            }
+
+            auto log_spec_str = loggers_node[i]["log_specify"].As<std::string>();
+            std::unordered_set<uint32_t> log_ids;
+
+            std::stringstream log_specify_stream(log_spec_str);
+            std::string token;
+            while (std::getline(log_specify_stream, token, ',')) {
+                auto clean = trim(token);
+                if (clean.empty()) continue;
+                log_ids.insert(parse_log_id(clean, name));
+            }
+
+            auto dbc_file_paths_str = loggers_node[i]["dbc_paths"].As<std::string>();
+            std::unordered_set<std::string> dbc_file_paths;
+
+            std::stringstream dbc_stream(dbc_file_paths_str);
+
+            while (std::getline(dbc_stream, token, ',')) {
+                token = trim(token);
+                std::string full_path = dbc_path + token;
+                if (!std::filesystem::exists(full_path)) {
+                    throw std::runtime_error(std::format("couldn't find path: {} in filesystem", full_path));
+                }
+
+                if (full_path.empty()) continue;
+                //insert returns a pair <it, bool>
+                if (!dbc_file_paths.insert(full_path).second) {
+                    throw std::runtime_error(std::format("found duplicate file path in {} with value {}", i, full_path));
+                }
+            }
+
+            if (dbc_file_paths.empty()) {
+                throw std::runtime_error(std::format("found no dbc file paths"));
+            }
+
+            bool log_ascii = loggers_node[i]["log_ascii"].As<bool>();
+
+            auto nominal_bitrate = loggers_node[i]["bus_config"]["nominal_bitrate"].As<uint32_t>();
+            auto data_bitrate = loggers_node[i]["bus_config"]["data_bitrate"].As<uint32_t>();
+
+            if (nominal_bitrate == 0 || data_bitrate == 0) throw std::runtime_error(std::format("{}: bus_config bitrates missing or zero", name));
+
+            bus_load::BusLoadConfig bus_config(nominal_bitrate, data_bitrate);
+
+            loggers.emplace_back(i, name, yaml_path, ascii_file_path, std::move(log_ids), std::move(dbc_file_paths), auth, mode, log_ascii, bus_config);
+            {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << "name: " << name << ", log_mode: " << static_cast<int>(mode) << ", file_path: " << "" << std::endl;
+            }
+        } //endfor
+
+        return loggers;
+    }
+
+    void handle_SIGINT(int) {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "\ncaught sigint\n";
+        running.store(false);
+    }
+
+    void run_bus(std::vector<Logger>& loggers) {
+        std::signal(SIGINT, handle_SIGINT);
+
+        std::vector<std::thread> threads;
+
+        threads.reserve(static_cast<int>(loggers.size()));
+        for (auto& logger: loggers) {
+            threads.emplace_back(&Logger::start, &logger);
+        }
+
+        for (auto& thread: threads) {
+            if (thread.joinable()) thread.join();
+        }
+
+        for (auto& logger: loggers) {
+            logger.print_error();
+        }
+    }
+
+    static auto trim(std::string const& s) -> std::string {
+        // find the first char that is not space, iterator
+        auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char c) {
+            return std::isspace(c);
+        });
+
+        // find the last char that is not space from end, iterator
+        auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char c) {
+                       return std::isspace(c);
+                   }).base();
+
+        if (start >= end) return "";
+        return {start, end};
+    }
+
+} // namespace logger

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <bitset>
 #include <cstdint>
+#include <cstring>
 #include <expected>
 #include <string>
 #include <string_view>

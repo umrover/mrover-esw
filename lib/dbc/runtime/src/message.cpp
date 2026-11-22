@@ -51,6 +51,10 @@ namespace mrover::dbc_runtime {
     void CanMessageDescription::set_comment(std::string&& comment) { m_comment = std::move(comment); }
     void CanMessageDescription::set_comment(std::string_view comment) { m_comment = comment; }
 
+    [[nodiscard]] auto CanMessageDescription::is_ignored() const -> bool {
+        return m_name == "VECTOR__INDEPENDENT_SIG_MSG";
+    }
+
     [[nodiscard]] auto CanMessageDescription::is_valid() const -> bool {
         if (m_name.empty() ||
             m_signals.empty() ||
