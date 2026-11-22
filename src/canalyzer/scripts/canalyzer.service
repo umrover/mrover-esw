@@ -1,17 +1,27 @@
+# Template: install it with scripts/pi_register_service.sh, which fills in
+# the repo path and the CAN interfaces to wait for.
 [Unit]
-Description=MRover Docker Compose Stack
-After=docker.service
+Description=MRover CANalyzer stack (CAN bring-up, influxdb, grafana, can logger)
 Requires=docker.service
+After=docker.service
+# Wait for the CAN interfaces to exist before configuring them. Wants (not
+# Requires): an interface that never shows up delays boot by the device
+# timeout (90s by default), then the stack starts anyway.
+Wants=@CAN_DEVICES@
+After=@CAN_DEVICES@
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-
-ExecStart=/home/mrover/github/mrover-esw/src/canalyzer/scripts/start.sh
-ExecStop=/home/mrover/github/mrover-esw/src/canalyzerscripts/stop.sh
-
-TimeoutStartSec=0
-TimeoutStopSec=30
+WorkingDirectory=@CANALYZER_DIR@
+# Bring the CAN interfaces up at 1M/5M before the logger binds. "-" keeps the
+# unit going if an interface is missing or already up.
+ExecStartPre=-@CANALYZER_DIR@/scripts/restart_can.sh
+# "docker compose up -d" returns once the containers are up
+ExecStart=@CANALYZER_DIR@/scripts/pi_start.sh
+ExecStop=@CANALYZER_DIR@/scripts/pi_stop.sh
+TimeoutStartSec=300
+TimeoutStopSec=60
 
 [Install]
 WantedBy=multi-user.target

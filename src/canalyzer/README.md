@@ -39,6 +39,7 @@ device that can be used to monitor and log CAN bus traffic to both a database an
 - ./dockerBuld.sh - creates the canalyzer docker image
 - ./dockerClean.sh - removes the canalyzer images (current and old untagged rebuilds) and their containers (`-n` dry run, `-y` no prompt, `--cache` also prunes build cache)
 - ./start.sh - runs the docker compose has support for handling crtl+c
+- ./pi_register_service.sh - (on the pi) installs and enables canalyzer.service so the stack starts on boot once the CAN interfaces exist. Waits for the buses in canalyzer_config.yaml by default, or pass them (`./pi_register_service.sh can0 can1`). `--print` to preview the unit, `--no-start` to only enable, `--remove` to uninstall. Rerun after editing canalyzer.service or the config's buses
 
 ## Project Notes
 ```
@@ -50,6 +51,7 @@ hostname -I # finds the ip of pi
 - setup CAN interface using start_can.sh on PI
 - run ./start.sh (run ./dockerBuld.sh if you haven't built)
 - crtl+c to end, let script end gracefully
+- or, to start on boot: run ./pi_register_service.sh once on the pi (logs: `journalctl -u canalyzer.service`)
 
 ## TODO
 - fix dbc runtime library (owen comments on github issue)

@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <linux/can.h>
 #include <mutex>
 #include <ostream>
@@ -422,12 +423,17 @@ namespace logger {
 
         //add log messasges into the processor
         if (mode == log_mode::WHITELIST_IDS) {
-            for (unsigned int const log_id: log_ids) {
+            for (uint32_t const log_id: log_ids) {
                 auto const message = parser.message(log_id);
-                if (!message) throw std::runtime_error(std::format("parser failed to fetch message with id: {}, error: {}", std::to_string(log_id), mrover::dbc_runtime::CanDbcFileParser::to_string(parser.error())));
+                if (!message) throw std::runtime_error(std::format("{}: whitelisted id 0x{:08X} is not in the loaded dbc files (use the id as written in the dbc, e.g. 0x80130000)", can_bus_name, log_id));
                 processor.add_message_description(*message);
             }
         } else if (mode == log_mode::BLACKLIST_IDS) {
+            for (uint32_t const log_id: log_ids) {
+                if (parser.message(log_id)) continue;
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << std::format("{}: blacklisted id 0x{:08X} is not in the loaded dbc files, ignoring it (use the id as written in the dbc, e.g. 0x80130000)\n", can_bus_name, log_id);
+            }
             for (auto const& message: parser.messages()) {
                 if (log_ids.find(message.id()) != log_ids.end()) continue;
                 processor.add_message_description(message);
@@ -470,7 +476,7 @@ namespace logger {
     }
 
     void Logger::_log_ascii(unsigned char const* arr, std::string const& name, std::ofstream& outputFile, uint32_t id) {
-        if (!outputFile.is_open()) return;
+        if (!log_ascii || !outputFile.is_open()) return;
 
         outputFile << make_can_timestamp() << can_bus_name << " ";
 
@@ -534,12 +540,14 @@ namespace logger {
             _init_bus();
             std::flush(std::cout);
 
-            std::filesystem::path dir = std::filesystem::path(ascii_file_path).parent_path();
-            if (!dir.empty() && !std::filesystem::exists(dir)) {
-                std::filesystem::create_directories(dir);
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "Created directory: " << dir << "\n";
+            if (log_ascii) {
+                std::filesystem::path dir = std::filesystem::path(ascii_file_path).parent_path();
+                if (!dir.empty() && !std::filesystem::exists(dir)) {
+                    std::filesystem::create_directories(dir);
+                    {
+                        std::lock_guard<std::mutex> lock(cout_mutex);
+                        std::cout << "Created directory: " << dir << "\n";
+                    }
                 }
             }
 
@@ -554,13 +562,16 @@ namespace logger {
         }
 
         // TODO: create a default ascii_log_file_path with log_ascii + can_bus_name, maybe optional arg
-        // Open log file (ofstream will create it if it doesn't exist)
+        // Open log file only when ascii logging is on (ofstream will create it if it doesn't exist)
 
-        std::ofstream file(ascii_file_path, std::ios::app); // use app to append
-        if (!file.is_open()) {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cerr << "Logger cannot open file" << ascii_file_path << "\n";
-            return;
+        std::ofstream file;
+        if (log_ascii) {
+            file.open(ascii_file_path, std::ios::app); // use app to append
+            if (!file.is_open()) {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cerr << "Logger cannot open file" << ascii_file_path << "\n";
+                return;
+            }
         }
 
         if (debug) {
@@ -706,6 +717,40 @@ namespace logger {
 
     // End logger class members
 
+    namespace {
+        /**
+         * @brief Parse one log_specify entry as a DBC message id
+         *
+         * The id is written as it appears in the DBC file, in decimal
+         * (2148728832) or hex (0x80130000). DBC ids for extended frames have
+         * bit 31 set, so they don't fit in an int.
+         *
+         * @param token Trimmed, non-empty log_specify entry
+         * @param bus_name Bus the entry belongs to, for error messages
+         */
+        auto parse_log_id(std::string const& token, std::string const& bus_name) -> uint32_t {
+            auto const fail = [&](std::string_view reason) {
+                return std::runtime_error(std::format("{}: log_specify entry '{}' {}", bus_name, token, reason));
+            };
+
+            if (token.front() == '-') throw fail("is negative");
+
+            size_t parsed = 0;
+            unsigned long long value = 0;
+            try {
+                value = std::stoull(token, &parsed, 0);
+            } catch (std::invalid_argument const&) {
+                throw fail("is not a number");
+            } catch (std::out_of_range const&) {
+                throw fail("is larger than 32 bits");
+            }
+            if (parsed != token.size()) throw fail("is not a number");
+            if (value > std::numeric_limits<uint32_t>::max()) throw fail("is larger than 32 bits");
+
+            return static_cast<uint32_t>(value);
+        }
+    } // namespace
+
     auto logger_factory(std::string& yaml_path, std::string& dbc_path) -> std::vector<Logger> {
         std::vector<Logger> loggers;
 
@@ -776,15 +821,9 @@ namespace logger {
             std::stringstream log_specify_stream(log_spec_str);
             std::string token;
             while (std::getline(log_specify_stream, token, ',')) {
-                try {
-                    auto clean = trim(token);
-                    if (clean.empty()) continue;
-                    log_ids.insert(std::stoi(clean, nullptr, 0));
-                } catch (std::invalid_argument const& e) {
-                    throw std::runtime_error(std::format("non-intger arg to stoi in log_specify: {}", e.what()));
-                } catch (...) {
-                    throw std::runtime_error(std::format("log_specify stoi broke parsing token: {}", token));
-                }
+                auto clean = trim(token);
+                if (clean.empty()) continue;
+                log_ids.insert(parse_log_id(clean, name));
             }
 
             auto dbc_file_paths_str = loggers_node[i]["dbc_paths"].As<std::string>();
