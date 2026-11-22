@@ -2,78 +2,81 @@
 
 ***DEVELOPMENT FOR THIS PROJECT TAKES PLACE ON THE `canalyzer` BRANCH***
 
-CANalyzer will be a custom CAN bus traffic logging device. The end-goal is to have a fully configurable
-device that can be used to monitor and log CAN bus traffic to both a database and log files for easy viewing and replayability. 
+CANalyzer is a custom CAN bus traffic logging device. The end goal is a fully configurable
+device that monitors and logs CAN bus traffic to both a database and log files for easy viewing and replay.
 
 ## Materials
 
 - [Raspberry Pi 5](https://www.raspberrypi.com/products/raspberry-pi-5/)
-- [Waveshare CAN FD pihat](https://www.waveshare.com/2-ch-can-fd-hat.htm)
+- [Waveshare CAN FD Pi HAT](https://www.waveshare.com/2-ch-can-fd-hat.htm)
 
 ## Project Goals
 
-- **Real-time Monitoring:** Use SocketCAN to read CAN traffic in real-time, decode received CAN messages using provided .dbc files, and upload the desired signals and corresponding values to an InfluxDB database.
-- **Logging:** Enable CAN traffic logging to .asc or .blf files for replayability.
-- **Easy startup:** Use Docker and possibly Bash scripting to startup the logger, database, and any other desired features when the device is turned on.
-- **Web GUI for displaying InfluxDB CAN data:** Use Grafana or a custom web GUI to query InfluxDB and display data from desired timeframes on custom dashboards.
+- **Real-Time Monitoring:** Use SocketCAN to read CAN traffic in real time, decode received CAN messages using the provided .dbc files, and upload the desired signals and their values to an InfluxDB database.
+- **Logging:** Log CAN traffic to .asc or .blf files for replay.
+- **Easy Startup:** Use Docker and Bash scripts to start the logger, database, and any other desired features when the device is turned on.
+- **Web GUI for Displaying InfluxDB CAN Data:** Use Grafana or a custom web GUI to query InfluxDB and display data from desired time frames on custom dashboards.
 
 ## Helpful Resources
 
-- [SocketCAN](https://docs.kernel.org/networking/can.html): Socket CAN provides a CAN interface for Linux devices. For the CANalyzer project we will be using SocketCAN to interface with CAN using a Raspberry Pi 5 and a [Waveshare CAN FD pihat](https://www.waveshare.com/2-ch-can-fd-hat.htm), the pihat product page also has a getting started tutorial.
-- [Docker](https://docs.docker.com/get-started/): Docker allows for the creation of containers that can be isolated from other containers. This makes it easy to run instances of an image such as InfluxDB while being able to manage volume mounts, network configuration, and separate its dependencies from another container such as Grafana.
-- [Docker Compose](https://docs.docker.com/compose/): Docker compose can be used to provide a yaml configuration of multiple Docker containers. This makes it much easier to create and manage containers over time.
-- [InfluxDB](https://docs.influxdata.com/influxdb/v1/introduction/install/docker/): InfluxDB is a time-series database that is efficient, simple to interface with, and supports an official Docker image.
-- [Grafana](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/): Grafana is a web GUI that makes it easy to query datasources and display desired time series data on custom JSON dashboards. Grafana has an official Docker image and officially supports InfluxDB, making it easy to setup and interface with InfluxDB databases using Docker.
+- [SocketCAN](https://docs.kernel.org/networking/can.html): SocketCAN provides a CAN interface for Linux devices. The CANalyzer project uses SocketCAN to interface with CAN through a Raspberry Pi 5 and a [Waveshare CAN FD Pi HAT](https://www.waveshare.com/2-ch-can-fd-hat.htm). The Pi HAT product page also has a getting started tutorial.
+- [Docker](https://docs.docker.com/get-started/): Docker runs applications in containers that are isolated from each other. This makes it easy to run an image such as InfluxDB while managing its volume mounts and network configuration, and keeps its dependencies separate from other containers such as Grafana.
+- [Docker Compose](https://docs.docker.com/compose/): Docker Compose defines multiple Docker containers in a single YAML configuration file. This makes the containers much easier to create and manage over time.
+- [InfluxDB](https://docs.influxdata.com/influxdb/v1/introduction/install/docker/): InfluxDB is a time-series database that is efficient, simple to interface with, and has an official Docker image.
+- [Grafana](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/): Grafana is a web GUI that makes it easy to query data sources and display time-series data on custom JSON dashboards. Grafana has an official Docker image and officially supports InfluxDB, making it easy to set up alongside InfluxDB using Docker.
 
 ## Project Notes
 
-- Mount influx and grafana volumes to /influxdb_data and /grafana_data on pi.
-- Have an influx database for every dbc.
-- Write message names as defined in dbcs to database.
-- When the canalyzer container starts, parse yaml file and find all desired CAN IDs to be logged, then when a desired CAN ID is received use functions generated by dbc-parsing project to decode the message and upload the signal name and value.
-- Total 3 containers: logger container, influxdb, and grafana
-- To start the logger, run a bash script to ensure directory and database permissions are correct, then bring up docker containers using docker compose file.
-
+- Mount the InfluxDB and Grafana volumes to /influxdb_data and /grafana_data on the Pi.
+- Have an InfluxDB database for every DBC.
+- Write message names to the database as they are defined in the DBCs.
+- When the canalyzer container starts, parse the YAML config to find all CAN IDs to be logged. When one of those CAN IDs is received, decode the message using the functions generated by the dbc-parsing project and upload the signal names and values.
+- Three containers total: the logger, InfluxDB, and Grafana.
+- To start the logger, run a Bash script that ensures directory and database permissions are correct, then bring up the Docker containers using the Docker Compose file.
 
 ## Scripts
-- ./dockerBuld.sh - creates the canalyzer docker image
-- ./dockerClean.sh - removes the canalyzer images (current and old untagged rebuilds) and their containers (`-n` dry run, `-y` no prompt, `--cache` also prunes build cache)
-- ./start.sh - runs the docker compose has support for handling crtl+c
-- ./pi_register_service.sh - (on the pi) installs and enables canalyzer.service so the stack starts on boot once the CAN interfaces exist. Waits for the buses in canalyzer_config.yaml by default, or pass them (`./pi_register_service.sh can0 can1`). `--print` to preview the unit, `--no-start` to only enable, `--remove` to uninstall. Rerun after editing canalyzer.service or the config's buses
 
-## Project Notes
-```
-ssh -L 3000:localhost:3000 mrover@<mrover_ip> # port forwards port 3000 (grafana)
-hostname -I # finds the ip of pi
-```
+All scripts live in `scripts/`. Commands in this README are run from `src/canalyzer` unless noted otherwise.
+
+- `scripts/dockerBuld.sh` - builds the canalyzer Docker image (`can_logger_image`)
+- `scripts/dockerClean.sh` - removes the canalyzer images (current and old untagged rebuilds) and their containers (`-n` dry run, `-y` skip the prompt, `--cache` also prunes all unused Docker build cache)
+- `scripts/start.sh` - starts the stack with Docker Compose and shuts it down cleanly on Ctrl+C
+- `scripts/restart_can.sh` - (on the Pi, as root) brings up can0-can3 as CAN FD at 1 Mbit/s nominal / 5 Mbit/s data
+- `scripts/createVCAN.sh` - creates and brings up the virtual CAN interfaces vcan0-vcan3
+- `scripts/pi_start.sh` / `scripts/pi_stop.sh` - start the stack in the background / stop it (used by canalyzer.service)
+- `scripts/pi_register_service.sh` - (on the Pi) installs and enables canalyzer.service so the stack starts on boot once the CAN interfaces exist (see [Registering the systemd Service](#registering-the-systemd-service))
 
 ## Startup
-- setup CAN interface using start_can.sh on PI
-- run ./start.sh (run ./dockerBuld.sh if you haven't built)
-- crtl+c to end, let script end gracefully
-- or, to start on boot: run ./pi_register_service.sh once on the pi (logs: `journalctl -u canalyzer.service`)
+
+- Set up the CAN interfaces on the Pi with `sudo ./scripts/restart_can.sh`
+- Run `./scripts/start.sh` (run `./scripts/dockerBuld.sh` first if you haven't built the image)
+- Press Ctrl+C to stop, and let the script shut down gracefully
+- Or, to start on boot: run `./scripts/pi_register_service.sh` once on the Pi (see [Registering the systemd Service](#registering-the-systemd-service))
+
+## Accessing Grafana
+Grafana runs on port 3000 on the Pi. Forward the port over SSH, then open http://localhost:3000 on your laptop.
+```
+hostname -I                                 # (on the Pi) find the IP of the Pi
+ssh -L 3000:localhost:3000 mrover@<pi_ip>   # (on your laptop) forward port 3000 (Grafana)
+```
 
 ## TODO
-- fix dbc runtime library (owen comments on github issue)
-- fix docker so canalyzer_config.yaml can be editted so docker image does not have to be rebuilt
-- add ascii dump implementation, use docker volumes
-- implement systemd for automated startup
-- improve configuration options, also adding a more remote setup so host machine doesn't have to do stuff on pi terminal
-- have a record of can bus utilization
-- test cases for CI
-- clean up code and add detailed documentation
-- add a small display on the pi
-- auto generate dashboards for grafana
+- Fix the DBC runtime library (see Owen's comments on the GitHub issue)
+- Fix Docker so canalyzer_config.yaml can be edited without rebuilding the Docker image
+- Add an ASCII dump implementation using Docker volumes
+- Improve configuration options, and add a remote setup so the host machine doesn't have to run commands in a terminal on the Pi
+- Keep a record of CAN bus utilization
+- Add test cases for CI
+- Clean up the code and add detailed documentation
+- Add a small display to the Pi
+- Auto-generate Grafana dashboards
 
-### PI Info
-
-### Note that PI over ethernet seems to drop a lot, try to ssh via ethernet and then pi connect over shared network
-
-## How to Connect to PI using ssh
+## Connecting to the Pi over SSH
+**Note:** the Pi's Ethernet connection tends to drop a lot. Try to SSH in over Ethernet first, then connect the Pi to a shared network (see [Setting Up Raspberry Pi Wi-Fi](#setting-up-raspberry-pi-wi-fi)).
 ```
-avahi-resolve mrover.local // find the ip of mrover.local
-ip -br link 		   // find ethernet iface
-ssh mrover@<mrover.local ip>%<ethernet iface>
+avahi-resolve -n mrover.local          # find the IP of mrover.local
+ip -br link                            # find your Ethernet interface
+ssh mrover@<pi_ip>%<ethernet_iface>
 ```
 ### Example
 ```
@@ -90,76 +93,82 @@ docker0          DOWN           6e:ae:dd:13:63:2d <NO-CARRIER,BROADCAST,MULTICAS
 ssh mrover@fe80::2ecf:67ff:feae:ee5a%enp108s0
 ```
 
-## Setting up raspberry pi wifi
+## Setting Up Raspberry Pi Wi-Fi
 ```
-nmcli device status    // see if wifi is visible
-nmcli device wifi list // see available wifi networks
-sudo nmcli device connect <wifi_name> password <wifi_password>
+nmcli device status       # check that the Wi-Fi device is visible
+nmcli device wifi list    # list available Wi-Fi networks
+sudo nmcli device wifi connect <wifi_name> password <wifi_password>
 ```
 
 ### Example
 ```
 nmcli device status
 nmcli device wifi list
-sudo nmcli device connect "TOD_Guest"
+sudo nmcli device wifi connect "TOD_Guest"
 ```
 
-## Getting Canplayer to work
-Connect fdcanusb and pi hat to laptop
+## Replaying CAN Logs with canplayer
+canplayer replays a candump log onto a CAN interface. `<log_iface>` is the interface name recorded in the log (e.g. `vcan0=can0` sends the frames logged on can0 out on vcan0).
+
+### Virtual CAN Only
 ```
-./createVCAN.sh // sets up the vcan devices
-canplayer -I candump.log -i <vcan_devname>=<can_dumpname> // start dumping candump.log onto vcan device
+./scripts/createVCAN.sh                           # set up the vcan interfaces
+canplayer -I candump.log <vcan_iface>=<log_iface> # replay candump.log onto a vcan interface
 ```
 
-### Looking at influxdb
-From ssh to rpi
+### Over a Real Bus Using an fdcanusb
+Connect the fdcanusb to your laptop and its CAN port to the Pi HAT.
 ```
-docker exec -it influxdb influx -user admin -password password
+./scripts/createVCAN.sh                           # set up the vcan interfaces
+sudo ../../scripts/fdcanusb.sh --net vcan0        # bridge vcan0 to the fdcanusb (script is in the repo root's scripts/)
+canplayer -I candump.log vcan0=<log_iface>        # replay candump.log onto the real bus through vcan0
+```
+
+## Querying InfluxDB
+From an SSH session on the Pi:
+```
+docker exec -it influxdb influx -username admin -password password
 USE logger_db;
 SHOW measurements;
-SELECT * FROM SCIData limit 10;
+SELECT * FROM SCIData LIMIT 10;
 ```
 
-### systemd
-useful info
-https://blog.usedbytes.com/2019/11/run-at-startup-without-rc.local/
-
-### setting up pi from raw
- - install git
- - install docker
- - install can-utils
+## Setting Up the Pi from Scratch
+- Install Git
+- Install [Docker](https://docs.docker.com/engine/install/debian/)
+- Install can-utils
 ```
-sudo apt-get install can-utils // socketCAN
+sudo apt-get install can-utils # SocketCAN command-line tools (candump, canplayer, cansend, ...)
 ```
 
-### setting up pi from raw (waveshare init)
-wiki here: https://www.waveshare.com/wiki/2-CH_CAN_FD_HAT
+## Setting Up the Waveshare CAN FD Pi HAT
+Wiki: https://www.waveshare.com/wiki/2-CH_CAN_FD_HAT
 
-- step 1
+- Step 1: enable SPI
 ```
 sudo raspi-config
-Choose Interfacing Options -> SPI -> Yes to enable the SPI interface.
+# Interface Options -> SPI -> Yes to enable the SPI interface
 ```
-- step 2
+- Step 2: reboot
 ```
 sudo reboot
 ```
-- step 3
+- Step 3: install the Python libraries
 ```
 sudo apt-get update
 sudo apt-get install python3-pip
 sudo apt-get install python3-pil
 sudo apt-get install python3-numpy
-sudo pip3 install RPi.GPIO # this doesnt work because relies on venv
-sudo pip3 install spidev 
+sudo pip3 install RPi.GPIO # these pip installs fail: pip won't install packages system-wide outside a venv
+sudo pip3 install spidev
 sudo pip3 install python-can
 
-# alternate solution is to download systemwide packages (easy fix for downloading RPi.GPIO, spidev, python-can)
+# alternate solution is to install them as system-wide packages (easy fix for installing RPi.GPIO, spidev, python-can)
 sudo pip3 install --break-system-packages RPi.GPIO spidev python-can
 ```
-- step 4
+- Step 4: add the CAN overlays
 ```
-sudo nano /boot/config.txt
+sudo nano /boot/firmware/config.txt # /boot/config.txt on OS releases before Bookworm
 # add at the end of config.txt
 dtparam=spi=on
 dtoverlay=spi1-3cs
@@ -168,19 +177,45 @@ dtoverlay=mcp251xfd,spi0-1,interrupt=13
 dtoverlay=mcp251xfd,spi1-0,interrupt=24
 dtoverlay=mcp251xfd,spi1-1,interrupt=23
 ```
-- step 5
+- Step 5: reboot and check
 ```
-#reboot and check
 sudo reboot
 dmesg | grep spi
 ```
 
-### how to test using fdcanusb
+## Registering the systemd Service
+`scripts/pi_register_service.sh` installs `scripts/canalyzer.service` as a systemd service so the whole stack starts on boot. Run it on the Pi; it re-runs itself with sudo when it needs to.
+
+On boot, the service:
+- Waits for the CAN interfaces to exist (by default, the first `logger_bus_size` buses under `loggers:` in canalyzer_config.yaml). An interface that never shows up delays startup by up to 90s, then the stack starts anyway.
+- Brings the CAN interfaces up with `restart_can.sh`. If this fails (e.g. an interface is missing or already up), the service keeps going.
+- Starts the containers in the background with `pi_start.sh` (`docker compose up -d`).
+
+Stopping the service runs `pi_stop.sh` (`docker compose down`).
+
+Before registering:
+- Install Docker (the script checks for docker.service)
+- Build the image with `./scripts/dockerBuld.sh`
+- Keep the repo at a path with only letters, numbers, and `_ . / -` (the path goes into the unit file unquoted)
+
 ```
-# bring up vcan interfaces
-./src/canalyzer/scripts/createVCAN.sh
-# start running fdcanusb
-./scripts/fdcanusb.sh --net vcan0
-# canplayer a log
-canplayer -I can.dump vcan0=<can_used_in_dump>
+./scripts/pi_register_service.sh             # install, enable, and start; waits for the buses in canalyzer_config.yaml
+./scripts/pi_register_service.sh can0 can1   # wait for only these interfaces instead
+./scripts/pi_register_service.sh --print     # preview the generated unit without installing anything (no sudo needed)
+./scripts/pi_register_service.sh --no-start  # enable for the next boot without starting it now
+./scripts/pi_register_service.sh --remove    # stop, disable, and uninstall the service
 ```
+
+Rerun the script after editing `scripts/canalyzer.service` or the buses in canalyzer_config.yaml. The installed unit at /etc/systemd/system/canalyzer.service is generated from the template, so edit the template instead of the installed file. If the script warns that an interface isn't present, rerun it with only the interfaces the Pi has (e.g. `./scripts/pi_register_service.sh can0 can1`).
+
+### Managing the Service
+```
+systemctl status canalyzer.service           # shows "active (exited)" once the containers are up
+sudo systemctl stop canalyzer.service        # runs pi_stop.sh (docker compose down)
+sudo systemctl start canalyzer.service       # runs restart_can.sh and pi_start.sh
+sudo systemctl restart canalyzer.service
+journalctl -u canalyzer.service -b           # service logs since boot
+docker logs -f can_logger_instance           # logger output
+```
+
+Useful background on running things at startup with systemd: https://blog.usedbytes.com/2019/11/run-at-startup-without-rc.local/
