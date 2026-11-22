@@ -4,6 +4,21 @@
 #include "main.h"
 #endif // STM32
 
+#ifdef MROVER_USE_RTOS
+#include <FreeRTOS.h>
+#include <task.h>
+
+#include <cmsis_os2.h>
+#endif // MROVER_USE_RTOS
+
+#include <cstdint>
+
+// must enable CCM SRAM in project, and initialize on application start
+#define CCMSRAM [[gnu::section(".ccmsram"), gnu::noinline]]
+
+// CCM SRAM load/run addresses, defined in lib/stm32g4/ccmsram.ld.in (MX_USE_CCMSRAM)
+extern "C" uint32_t _siccmsram, _sccmsram, _eccmsram;
+
 namespace mrover {
 
     class System {
@@ -20,7 +35,8 @@ namespace mrover {
             MALLOC_FAILED,
             HW_INIT_FAILED,
             ASSERT_FAILED,
-            HARD_FAULT
+            HARD_FAULT,
+            STACK_OVERFLOW
         };
 
         static auto get() -> System& {
@@ -39,6 +55,18 @@ namespace mrover {
             CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
             DWT->CYCCNT = 0;
             DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+        }
+
+        /**
+         * Copy CCM SRAM `CCMSRAM`-tagged functions from flash
+         *
+         * Invoke at beginning of application, project must define MX_USE_CCMSRAM
+         */
+        static auto init_ccmsram() -> void {
+            uint32_t const* src = &_siccmsram;
+            for (uint32_t* dst = &_sccmsram; dst < &_eccmsram;) *dst++ = *src++;
+            dsb();
+            isb();
         }
 
         static auto reset() -> void {
@@ -66,6 +94,11 @@ namespace mrover {
         }
 
         static auto get_ticks() -> uint32_t {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                return osKernelGetTickCount();
+            }
+#endif // MROVER_USE_RTOS
             return HAL_GetTick();
         }
 
@@ -73,7 +106,29 @@ namespace mrover {
             return DWT->CYCCNT / (SystemCoreClock / 1000000U);
         }
 
+        /**
+         * Count the CPU cycles `fn` takes with the DWT cycle counter
+         *
+         * Must be enabled in `init()`
+         *
+         * @return elapsed cycles
+         */
+        template<typename F>
+        static auto profile(F&& fn) -> uint32_t {
+            uint32_t const start = DWT->CYCCNT;
+            asm volatile("" : : : "memory");
+            fn();
+            asm volatile("" : : : "memory");
+            return DWT->CYCCNT - start;
+        }
+
         static auto delay_ms(uint32_t const ms) -> void {
+#ifdef MROVER_USE_RTOS
+            if (osKernelGetState() == osKernelRunning) {
+                osDelay(ms);
+                return;
+            }
+#endif // MROVER_USE_RTOS
             HAL_Delay(ms);
         }
 
@@ -85,10 +140,35 @@ namespace mrover {
             __enable_irq();
         }
 
+        /**
+         * Nestable critical section.
+         */
         class InterruptGuard {
+#ifdef MROVER_USE_RTOS
+            bool const m_kernel = xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
+#endif // MROVER_USE_RTOS
+            uint32_t const m_primask = __get_PRIMASK();
+
         public:
-            InterruptGuard() { disable_interrupts(); }
-            ~InterruptGuard() { enable_interrupts(); }
+            InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskENTER_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                disable_interrupts();
+            }
+
+            ~InterruptGuard() {
+#ifdef MROVER_USE_RTOS
+                if (m_kernel) {
+                    taskEXIT_CRITICAL();
+                    return;
+                }
+#endif // MROVER_USE_RTOS
+                __set_PRIMASK(m_primask);
+            }
 
             InterruptGuard(InterruptGuard const&) = delete;
             auto operator=(InterruptGuard const&) -> InterruptGuard& = delete;

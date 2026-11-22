@@ -7,7 +7,7 @@ motor_en: true
 motor_inv: false
 quad_en: true
 quad_phase: false
-stall_en: true
+stall_en: false
 lim_a_present: true
 lim_b_present: true
 

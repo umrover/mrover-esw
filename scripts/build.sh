@@ -1,64 +1,49 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 set -euo pipefail
 
-RED="\e[1;31m"
-GREEN="\e[1;32m"
-BLUE="\e[1;34m"
-YELLOW="\e[1;33m"
-NC="\e[0m"
+source "${0:A:h}/common.sh"
 
-ESW_ROOT="$(dirname "$(dirname "$(realpath "$0")")")"
-TOOLS_DIR="$ESW_ROOT/tools"
-VENV_PATH="$TOOLS_DIR/venv"
+VENV_PATH="$TOOLS_DIR/.venv"
 SRC=""
 PRESET="Debug"
 TARGET_NAME=""
 DO_FLASH=false
 DO_CLEAN=false
+DO_MAP=false
 
-PORT="${PORT:-swd}"
-FREQ="${FREQ:-8000}"
-RESET="${RESET:-HWrst}"
-SCRIPT_NAME=$(basename "$0")
-CLANGD_SCRIPT="$TOOLS_DIR/scripts/clangd.py"
+STLINK_PORT="${STLINK_PORT:-swd}"
+STLINK_FREQ="${STLINK_FREQ:-8000}"
+STLINK_RESET="${STLINK_RESET:-HWrst}"
 
 usage() {
     cat <<EOF
 Usage: $SCRIPT_NAME --src <src> [options]
+
+Build a firmware project with the ESW toolchain.
 
 options:
   -s, --src <path>      relative path to source directory (required)
   -p, --preset <name>   cmake preset (default: Debug)
   -t, --target <name>   cmake target name (default: folder name)
   -f, --flash           flash the device after build
+  -m, --map             print a flash size breakdown after build
   -c, --clean           clean build directory
   -h, --help            show this help message
 EOF
-    exit 1
+    exit "${1:-0}"
 }
 
 run_step() {
     local desc="$1"
     shift
-    printf "%b\n" "${BLUE}step: ${desc}${NC}"
+    info "step: ${desc}"
     if "$@"; then
-        printf "%b\n" "${GREEN}✓ success: ${desc}${NC}"
+        ok "success: ${desc}"
     else
         printf "%b\n" "${RED}✗ failed: ${desc}${NC}"
         exit 1
     fi
-}
-
-check_deps() {
-    local deps=("cmake" "ninja")
-    [[ "$DO_FLASH" == "true" ]] && deps+=("STM32_Programmer_CLI")
-    for cmd in "${deps[@]}"; do
-        if ! command -v "$cmd" &> /dev/null; then
-            printf "%b\n" "${RED}✗ error: command '$cmd' not found in PATH${NC}"
-            exit 1
-        fi
-    done
 }
 
 clean() {
@@ -73,34 +58,38 @@ clean() {
 # parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -s|--src)       SRC="$(realpath "$2")"; shift 2 ;;
-        -p|--preset)    PRESET="$2"; shift 2 ;;
-        -t|--target)    TARGET_NAME="$2"; shift 2 ;;
+        -s|--src)       need_value "$1" $#; SRC="${2:A}"; shift 2 ;;
+        -p|--preset)    need_value "$1" $#; PRESET="$2"; shift 2 ;;
+        -t|--target)    need_value "$1" $#; TARGET_NAME="$2"; shift 2 ;;
         -f|--flash)     DO_FLASH=true; shift ;;
+        -m|--map)       DO_MAP=true; shift ;;
         -c|--clean)     DO_CLEAN=true; shift ;;
         -h|--help)      usage ;;
-        *)              printf "%b\n" "${RED}✗ unknown option: $1${NC}"; usage ;;
+        *)              unknown_option "$1" ;;
     esac
 done
 
 if [[ -z "$SRC" ]]; then
-    printf "%b\n" "${RED}✗ error: -s/--src required${NC}"
-    usage
+    usage_error "\`-s/--src\` required"
 fi
 
 SRC_DIR="$SRC"
-if [ ! -d "$SRC_DIR" ]; then
-    printf "%b\n" "${RED}✗ failed: directory $SRC_DIR does not exist${NC}"
-    exit 1
-fi
+[[ -d "$SRC_DIR" ]] || die "directory $SRC_DIR does not exist"
 
 if [[ -z "$TARGET_NAME" ]]; then
-    TARGET_NAME=$(basename "$SRC")
+    TARGET_NAME="${SRC:t}"
 fi
 
-check_deps
+require cmake ninja uv
+if [[ "$DO_FLASH" == "true" ]]; then
+    require STM32_Programmer_CLI
+fi
 
-printf "%b\n" "${BLUE}====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======${NC}"
+SUBMODULE_DIR="$ESW_ROOT/lib/stm32g4/STM32CubeG4"
+[[ -e "$SUBMODULE_DIR/.git" ]] \
+    || die "submodule not found at $SUBMODULE_DIR (run \`git submodule update --init --recursive\`)"
+
+info "====== project: ${YELLOW}$TARGET_NAME${BLUE} | preset: ${YELLOW}$PRESET${BLUE} ======"
 
 pushd "$SRC_DIR" > /dev/null
 BUILD_DIR="build/$PRESET"
@@ -111,24 +100,30 @@ if [[ "$DO_CLEAN" == "true" ]]; then
     exit 0
 fi
 
-# configure cmake if preset target does not exist
-if [ ! -f "$BUILD_DIR/build.ninja" ]; then
-    mkdir -p "$BUILD_DIR"
-    run_step "configure cmake" cmake --preset "$PRESET"
-fi
+# configure cmake
+mkdir -p "$BUILD_DIR"
+run_step "configure cmake" cmake --preset "$PRESET"
 
 # execute build
 run_step "build target" cmake --build --target "$TARGET_NAME" --preset "$PRESET"
 
+# print the flash size breakdown
+if [[ "$DO_MAP" == "true" ]]; then
+    LD_SCRIPT=$(find "$SRC_DIR" -maxdepth 1 -name '*.ld' | head -n 1)
+    run_step "flash breakdown" esw_uv python "$TOOLS_DIR/scripts/flash_usage.py" \
+        --elf "$BUILD_DIR/${TARGET_NAME}.elf" \
+        --ld "$LD_SCRIPT" \
+        --inc "$SRC_DIR/Inc" \
+        --map "$BUILD_DIR/${TARGET_NAME}.map" \
+        --report
+fi
+
 # flash if parameter set
 if [[ "$DO_FLASH" == "true" ]]; then
     ELF="$BUILD_DIR/${TARGET_NAME}.elf"
-    if [[ ! -f "$ELF" ]]; then
-        printf "%b\n" "${RED}✗ flash failed: Could not find elf file at $ELF${NC}"
-        exit 1
-    fi
+    [[ -f "$ELF" ]] || die "flash failed: could not find elf file at $ELF"
 
-    FLASH_CMD=(STM32_Programmer_CLI --connect port="$PORT" freq="$FREQ" reset="$RESET")
+    FLASH_CMD=(STM32_Programmer_CLI --connect port="$STLINK_PORT" freq="$STLINK_FREQ" reset="$STLINK_RESET")
     FLASH_CMD+=(--write "$ELF")
     FLASH_CMD+=(--verify)
     FLASH_CMD+=(--start)
@@ -137,25 +132,5 @@ if [[ "$DO_FLASH" == "true" ]]; then
 fi
 
 popd > /dev/null
-
-# ensure .clangd file exists
-if [[ ! -f "$SRC_DIR/.clangd" ]]; then
-    # create venv if it does not exist
-    if [[ ! -f "${VENV_PATH}/pyvenv.cfg" ]]; then
-        mkdir -p "$BUILD_DIR"
-        if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
-            cmake -S "${TOOLS_DIR}" -B "${BUILD_DIR}"
-        fi
-        cmake --build "${BUILD_DIR}" --target python_env_ready
-        rm -rf "$BUILD_DIR"
-    fi
-
-    # activate venv
-    # shellcheck source=/dev/null
-    source "$VENV_PATH/bin/activate"
-
-    # create the clangd
-    run_step "create .clangd" "$VENV_PATH/bin/python" "$CLANGD_SCRIPT" --src "$SRC_DIR" --ctx "$ESW_ROOT/lib/stm32g4"
-fi
 
 printf "%b\n" "${GREEN}====== success ======${NC}"

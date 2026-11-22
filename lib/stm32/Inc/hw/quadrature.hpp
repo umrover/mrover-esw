@@ -48,7 +48,7 @@ namespace mrover {
         QuadratureEncoder() = default;
         QuadratureEncoder(TIM_HandleTypeDef* tick_timer, ITimerChannel* elapsed_timer) : m_tick_timer{tick_timer},
                                                                                          m_elapsed_timer{elapsed_timer} {
-            check(HAL_TIM_Encoder_Start_IT(m_tick_timer, TIM_CHANNEL_ALL) == HAL_OK, Error_Handler);
+            check(HAL_TIM_Encoder_Start(m_tick_timer, TIM_CHANNEL_ALL) == HAL_OK, Error_Handler);
         }
 
         auto init(float const multiplier, float const cpr) -> void {

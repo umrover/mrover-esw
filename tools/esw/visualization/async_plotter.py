@@ -1,6 +1,6 @@
 import queue
 import signal
-from multiprocessing import Queue, Event, Process
+from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventType
 from time import sleep, time
 
@@ -85,7 +85,7 @@ class AsyncPlotter:
                         times = times[-max_size:]
                         series_data = [s[-max_size:] for s in series_data]
 
-                    for line, s in zip(lines, series_data):
+                    for line, s in zip(lines, series_data, strict=True):
                         line.set_data(times, s)
 
                     ax.relim()

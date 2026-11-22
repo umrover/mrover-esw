@@ -13,10 +13,11 @@ namespace mrover {
 
     auto init() -> void {
         servo.start_servo();
+        HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
         HAL_FDCAN_Start(&hfdcan1);
     }
 
-    auto recv(FDCAN_HandleTypeDef *hcan) -> void {
+    auto recv(FDCAN_HandleTypeDef* hcan) -> void {
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
         if (HAL_FDCAN_GetRxMessage(hcan, FDCAN_RX_FIFO0, &rx_header, rx_buf) != HAL_OK) {
             Error_Handler();
@@ -26,17 +27,16 @@ namespace mrover {
     }
 
 
-} // namespace servo
+} // namespace mrover
 
 
 extern "C" {
 
-    void Init() {
-        mrover::init();
-    }
+void Init() {
+    mrover::init();
+}
 
-    void HAL_CAN_RxFifo0MsgPendingCallback(FDCAN_HandleTypeDef *hcan) {
-        mrover::recv(hcan);
-    }
-
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef* hfdcan, uint32_t RxFifo0ITs) {
+    mrover::recv(hfdcan);
+}
 }

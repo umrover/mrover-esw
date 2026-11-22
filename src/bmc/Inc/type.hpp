@@ -30,7 +30,7 @@ namespace mrover {
      */
     inline auto get_uart_options() -> UART::Options {
         UART::Options options;
-        options.use_dma = true;
+        options.use_tx_interrupt = true;
         return options;
     }
 

@@ -1,13 +1,177 @@
 # Build Tools
 
 This document covers the build tooling and other utilities developed to aid the
-development process.
+development process. It is a usage reference for the wrapper scripts in `scripts/`.
+
+For how the build itself works (the CMake layout, toolchain files, presets and the generated
+libraries) see the [Build System](../reference/build/index.md) reference.
 
 ## Scripts
 
 All of the scripts found in `scripts/` serve as wrappers of either python tools
 or vendor utilities (e.g. MJBots, STMicroelectronics), and should be used as
 simple interfaces to these tools.
+
+### `bootstrap.sh`
+
+The bootstrap script sets up a fresh Ubuntu/Debian machine for ESW development: system
+packages, the ARM GNU toolchain, `uv`, STM32CubeMX/CubeProgrammer/CubeCLT (and optionally
+CubeIDE), git submodules, PATH setup, desktop launcher entries, VS Code and its extensions, and
+the Python venv, all via an ansible playbook
+(`ansible/bootstrap.yml`). It installs ansible itself if it isn't already present. Run it once on
+a new machine as follows.
+
+```bash
+./scripts/bootstrap.sh
+```
+
+STM32CubeMX, STM32CubeProgrammer and STM32CubeCLT require a login-gated manual download from ST's
+website, so the script will pause partway through and ask you to download all three installers
+into the gitignored `install/` directory before continuing; see
+[STM32Cube\*](../getting-started/stm32cube/index.md) for details.
+
+CubeCLT ships `STM32_Programmer_CLI`, which is what the build scripts and CI use, but not the
+programmer GUI. The full STM32CubeProgrammer is installed separately for interactive flashing,
+option-byte editing and reading memory back off a board. It is deliberately **not** added to
+`PATH`, since its `bin/` contains a second `STM32_Programmer_CLI` that would shadow CubeCLT's. It
+is launched from its desktop entry instead.
+
+Because CubeMX and CubeProgrammer ship graphical installers with no silent-install flag, two
+installer windows open during the run for you to click through. Each installer is recorded against
+a stamp file in `install/`, keyed to the installer's own filename, so re-running `bootstrap.sh`
+does not pop those windows again, while dropping a **newer** installer into `install/` does
+re-run it. That is how you upgrade: download the new archives, re-run `./scripts/bootstrap.sh`.
+
+The IzPack installers write their own `.desktop` files, but they run under `sudo`, so those land
+in root's home and never reach your launcher. `ansible/tasks/desktop-entries.yml` writes managed
+entries for STM32CubeMX, STM32CubeProgrammer and STM32CubeIDE into `~/.local/share/applications`
+instead.
+
+STM32CubeIDE is the one optional piece: if its archive isn't in `install/`, the playbook says so
+and moves on. It is used purely as a graphical debugger against an ELF `build.sh` produced, never
+to build (see
+[Debugging with STM32CubeIDE](../getting-started/stm32cube/index.md#debugging-with-stm32cubeide)).
+
+The ARM cross-compiler comes from STM32CubeCLT, which bundles the same `14.3.rel1` release ESW
+builds with. The standalone ARM GNU toolchain is also installed, but only as a fallback: the
+`PATH` written to `/etc/profile.d/mrover-esw.sh` puts CubeCLT's copy first and appends the
+standalone one, so CubeCLT wins whenever it is present.
+
+Toolchain versions are pinned in three places that must move together when CubeCLT is upgraded:
+`arm_gnu_link`/`arm_gnu_name` in `ansible/bootstrap.yml`, `ARM_GNU_LINK` in `Dockerfile.arm-gnu`,
+and `EXPECTED_GCC_VERSION` in `scripts/doctor.sh`. Dependabot cannot see any of them, as it does not
+read apt package versions, ST's login-gated downloads, or a toolchain URL pinned in an `ENV`.
+`doctor.sh` is the backstop: it warns when the compiler actually in use drifts from what CI
+builds with.
+
+`uv` is the exception, and is pinned in exactly one place:
+
+```dockerfile
+FROM ghcr.io/astral-sh/uv:0.12.8 AS uv
+```
+
+Everything reads that one line. CI and the release workflow run inside the image and get the
+binary it copies out; `.github/workflows/site.yml` greps the tag and hands it to `setup-uv`;
+`ansible/tasks/uv.yml` greps it too and uses `uv self update <version>`, which converges from
+either direction, so a developer's `uv` matches CI's exactly. It has to be a named `FROM` stage
+rather than an inline `COPY --from=ghcr.io/astral-sh/uv:...` because Dependabot's Docker ecosystem
+parses `FROM` lines only, and that is what makes this pin update itself.
+
+Keeping it identical everywhere matters because `uv` writes `tools/uv.lock`, and the lockfile
+revision moves with the tool. `required-version` in `tools/pyproject.toml` is a matching floor, so
+an older `uv` fails loudly instead of silently rewriting the lock at a revision CI cannot read.
+
+Once bootstrap finishes, open a new terminal and run [`doctor.sh`](#doctorsh) to confirm the
+install is good.
+
+#### Editor
+
+VS Code is installed alongside the toolchain, with the extensions this repo's workflow needs.
+The list lives in the playbook, as the `vscode_extensions` variable in `ansible/bootstrap.yml`:
+
+| Extension | Why |
+| --- | --- |
+| `stmicroelectronics.stm32-vscode-extension` | ST's own tooling |
+| `llvm-vs-code-extensions.vscode-clangd` | `build.sh` generates a `.clangd` per project |
+| `marus25.cortex-debug` | drives CubeCLT's `ST-LINK_gdbserver`, the non-CubeIDE debug path |
+
+It is kept there rather than in `.vscode/extensions.json` because `.vscode/` is gitignored, so
+that file is never committed and cannot be a shared source of truth. `scripts/doctor.sh` parses
+the same variable when it checks your install, so the two cannot drift apart. Add an extension by
+appending one entry per line to that list.
+
+!!! note
+    Avoid `ms-vscode.cpptools`. It and clangd both provide IntelliSense, and running the two
+    together produces duplicated and conflicting diagnostics. The playbook does not install it,
+    but it also cannot stop you: the `unwantedRecommendations` hint that used to discourage it
+    only works from `.vscode/extensions.json`.
+
+Only missing extensions are installed, since VS Code keeps them up to date itself. VS Code proper is
+updated by `apt`/`brew` like any other package, which is why the playbook writes an **enabled**
+`/etc/apt/sources.list.d/vscode.sources`: the `code` package ships that file disabled in some
+installs, which silently orphans the editor at whatever version was first installed.
+
+Skip the editor entirely with `--skip-tags vscode` if you use CLion or something else; nothing in
+the build depends on it.
+
+### `doctor.sh`
+
+Checks that a development environment is set up correctly, and is the fastest way to find out why
+something isn't working. It resolves every tool ESW needs (`cmake`, `ninja`, `git`, `uv`, the
+`arm-none-eabi-*` cross-compilers, `STM32_Programmer_CLI`, `ST-LINK_gdbserver`, `STM32CubeMX`,
+`STM32CubeProgrammer`, `clang-format`, `shellcheck`) and reports the version and location of
+each, rather than stopping at the first thing it can't find.
+
+```bash
+./scripts/doctor.sh [--build] [--verbose]
+```
+
+Beyond tool presence it checks that:
+
+- `arm-none-eabi-gcc` resolves inside STM32CubeCLT rather than the fallback toolchain, and that its
+  version matches the one CI builds with. A fallback that has quietly taken over means CubeCLT's
+  `PATH` entry has gone stale, usually after a CubeCLT upgrade.
+- Every directory named in `/etc/profile.d/mrover-esw.sh` still exists, **and** is actually on the
+  `PATH` of the shell you ran `doctor.sh` from. The second half catches the common case of a shell
+  that predates the profile. See the note in
+  [STM32Cube\*](../getting-started/stm32cube/index.md#downloading-and-installing-the-cube-tools-linux)
+  for why zsh makes that easy to hit.
+- No leftover hand-written `/etc/profile.d` snippet from the old manual setup is competing with it
+  for `PATH` precedence. (ST's own `cubeclt-bin-path_*.sh`, installed by the CubeCLT package, is
+  expected and ignored.)
+- VS Code is installed and every extension in the playbook's `vscode_extensions` list is present.
+- The launcher entries exist and still point at binaries that are there. An upgrade that
+  relocates an install shows up here. STM32CubeIDE is reported when installed and reported as
+  skipped when not, without counting as a warning.
+- The `lib/stm32g4/STM32CubeG4` submodule is initialized.
+- `tools/.venv` is in sync with `tools/uv.lock`.
+
+Missing tools are errors and exit non-zero; a fallback compiler, a stale `PATH` profile, a missing
+programmer GUI and broken launcher entries are warnings, since none of them stops a build on its
+own. The desktop-entry and `profile.d` checks are Linux-only and are skipped elsewhere.
+
+- `--build`
+
+Additionally runs an end-to-end build of `src/tests/logger` and confirms an `.elf` links. This is
+the real proof that CubeCLT is installed correctly, as it exercises the cross-compiler, the CMake
+toolchain file, and the DBC/Python codegen in one shot. On failure the tail of the build log is
+printed.
+
+- `--verbose`
+
+Prints the full build log instead of the last 20 lines.
+
+### `venv.sh`
+
+Syncs the `tools/.venv` Python virtual environment from `tools/uv.lock` by running
+`uv sync --project tools`. This is purely a convenience: every script that needs Python runs
+through `uv run`, which creates and syncs the environment on demand, so nothing breaks if you
+forget it. Run it to pre-warm the environment, or standalone instead of the full `bootstrap.sh`
+if the rest of the toolchain is already installed.
+
+```bash
+./scripts/venv.sh
+```
 
 ### `new.sh`
 
@@ -111,8 +275,8 @@ STM32CubeProgrammer CLI to connect to an ST-LINK and flash the executable via SW
 ./scripts/build.sh --src <path-to-project> [--preset <preset>] --flash
 ```
 
-Finally, the build script will ensure the existance of a `<src>/.clangd` file for
-development environment compatability. This needs to be generated per-project as
+Finally, the build script will ensure the existence of a `<src>/.clangd` file for
+development environment compatibility. This needs to be generated per-project as
 it contains some project-specific and system-specific parameters.
 
 ### `style.sh`
@@ -172,29 +336,28 @@ on the bus will be directed to standard output.
     MJBots no longer supports the `fdcanusb_daemon` (this script currently pulls the source
     for this from an archive). This script should be updated to not depend on this binary.
 
+### `monitor.sh`
+
+Wraps `tools/scripts/monitor.py`, which displays serial log data sent from the MCU over the
+ST-LINKv3's VCP-TX/VCP-RX pins. Accepts `--baud` and `--log-level`, passed straight through.
+
+```bash
+./scripts/monitor.sh [--baud <rate>] [--log-level <level>]
+```
+
 ## Python Tools
 
-The ESW python tools (located in `tools/`) are designed to enable rapid development, testing, 
-and validation of the embedded hardware and software stack. Currently, the following submodules of 
-the main `esw` python module are stable. Other submodules (e.g. `esw.bmc`) are product-specific,
-and not documented here.
+The ESW python tools in `tools/` handle code generation for the firmware build, CAN
+communication, project scaffolding and serial monitoring. They are managed by `uv`, so there is no
+setup step: every script runs through `uv run --project tools`.
 
-1\. `esw.stlink`
+For the full reference (every module, every script and its flags) see
+[Python Tools](../reference/python/index.md).
 
-This module contains scripts to handle serial data from the VCP-TX and VCP-RX pins on the ST-LINKv3.
-This enables serial data to be sent and received from the MCU via UART. The `tools/scripts/monitor.py`
-script (aliased with the `monitor` just recipe) will use this stack to display data sent from the MCU
-with the logger, provided to the firmware via the `util` CMake package.
-
-2\. `esw.cubemx`
-
-This module contains scripts to handle the creation and management of STM32 CMake projects.
-The `tools/scripts/generate_project.py` script is uesd by the `scripts/new.sh` script, as is
-the `tools/scripts/update_cmake_cfg.py` script, which re-creates all CMake files for a project.
-
-3\. `esw.can`
-
-This module contains the functionality to use both the DBC files as well as the FDCANUSB to send
-and receive can messages. Many scripts in `tools/scripts` rely on this functionality to send and
-receive CAN messages to the MCUs. The `tools/scripts/can_header_gen.py` script is used by the
-`lib/dbc/CMakeLists.txt` file to generate DBC header files for the `dbc` library.
+| Module | Purpose |
+| --- | --- |
+| [`esw.can`](../reference/python/can.md) | CAN bus access, DBC parsing, CAN header generation |
+| [`esw.config`](../reference/python/config.md) | board register definitions and value packing |
+| [`esw.cubemx`](../reference/python/cubemx.md) | CubeMX project generation and CMake rendering |
+| [`esw.stlink`](../reference/python/stlink.md) | ST-LINKv3 serial log monitoring |
+| [`esw.visualization`](../reference/python/visualization.md) | live plotting for bench testing |

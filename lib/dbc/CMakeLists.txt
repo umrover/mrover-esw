@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
+project(dbc_generation LANGUAGES CXX)
+
+# NOTE(eric): this exists to force the target to exist for CI
+if(NOT TARGET python_env_ready)
+    add_custom_target(python_env_ready)
+endif()
+
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 set(DBC_SOURCE_DIR "${PROJECT_ROOT}/dbc")
 set(DBC_GEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
@@ -10,6 +17,8 @@ set(DBC_SCRIPT "${TOOLS_DIR}/scripts/can_header_gen.py")
 if(NOT EXISTS ${DBC_SCRIPT})
     message(FATAL_ERROR "could not find script ${DBC_SCRIPT}")
 endif()
+
+set(DBC_TEMPLATE "${CMAKE_CURRENT_SOURCE_DIR}/templates/dbc_header.hpp.j2")
 
 file(MAKE_DIRECTORY ${DBC_GEN_DIR})
 
@@ -23,7 +32,7 @@ foreach(DBC_FILE ${DBC_FILES})
     add_custom_command(
         OUTPUT ${HEADER_FILE}
         COMMAND ${VENV_PYTHON} ${DBC_SCRIPT} --dest ${DBC_GEN_DIR} --ctx ${CMAKE_CURRENT_SOURCE_DIR} ${DBC_FILE}
-        DEPENDS ${DBC_FILE} ${DBC_SCRIPT} python_env_ready
+        DEPENDS ${DBC_FILE} ${DBC_SCRIPT} ${DBC_TEMPLATE} python_env_ready
         WORKING_DIRECTORY ${TOOLS_DIR}
         COMMENT "generating header for ${FILE_NAME}.dbc"
         VERBATIM

@@ -13,7 +13,13 @@
 namespace mrover {
 
     class LimitHandler {
-        typedef void (*tx_exec_t)(MRoverCANMsg_t const& msg);
+        typedef void (*tx_exec_t)(uint32_t base_id, uint8_t const* data, std::size_t len);
+
+        template<typename can_msg_t>
+            requires is_can_message<can_msg_t>
+        auto send(can_msg_t const& message) const -> void {
+            m_message_tx_f(can_msg_t::BASE_ID, message.msg_arr, sizeof(message.msg_arr));
+        }
 
         std::optional<LimitSwitch> m_limit_a;
         std::optional<LimitSwitch> m_limit_b;
@@ -49,7 +55,7 @@ namespace mrover {
 
         auto handle(ESWProbe const& msg) const -> void {
             // acknowledge probe
-            m_message_tx_f(ESWAck{msg.data});
+            send(ESWAck{msg.data});
         }
 
         auto handle(ESWConfigCmd const& msg) -> void {
@@ -62,7 +68,7 @@ namespace mrover {
             } else {
                 // send data back as an acknowledgement of the request
                 if (uint32_t val{}; m_config_ptr->get_raw(msg.address, val)) {
-                    m_message_tx_f(ESWAck{val});
+                    send(ESWAck{val});
                 }
             }
         }
@@ -97,7 +103,7 @@ namespace mrover {
             m_limit_b->update_limit_switch();
             m_limit_a_hit = m_limit_a->pressed();
             m_limit_b_hit = m_limit_b->pressed();
-            m_message_tx_f(LIMState{
+            send(LIMState{
                     m_limit_a_hit, // limit_a_set
                     m_limit_b_hit  // limit_b_set
             });

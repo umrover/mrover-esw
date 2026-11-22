@@ -20,7 +20,7 @@ def get_installation():
     except subprocess.CalledProcessError:
         err = "STM32CubeMX not found in PATH"
         esw_logger.error(err)
-        raise RuntimeError(err)
+        raise RuntimeError(err) from None
 
     path_str = result.stdout.strip()
     if not path_str:

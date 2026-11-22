@@ -14,9 +14,9 @@ ESW is split into two groups: Controls and Telemetry. The main difference is sim
 matter of their projects.
 
 Controls handles the control systems on the rover, dealing mainly with brushless and brushed DC
-motors. We currently use moteus-r4.11 and moteus-n1 brushless controllers from mjbots, however we
+motors. We currently use moteus-r4 and moteus-n1 brushless controllers from mjbots, however we
 aim to replace these entirely with our own custom brushless controller. Our brushed controllers are
 already fully custom and developed by us.
 
-Telemetry handles the data and sensing systems on the rover, dealing mainly with the science system.
-<!---TODO: ADD MORE INFO-->
+Telemetry handles the data and sensing systems on the rover, dealing mainly with the science system,
+camera streaming, and communication infrastructure.

@@ -1,0 +1,22 @@
+---
+- name: check whether the arm gnu toolchain is already installed
+  ansible.builtin.stat:
+    path: "{{ arm_gnu_path }}/{{ arm_gnu_name }}/bin/arm-none-eabi-gcc"
+  register: arm_gnu_installed
+
+- name: install the standalone arm gnu toolchain
+  when: not arm_gnu_installed.stat.exists
+  block:
+    - name: download arm gnu toolchain
+      ansible.builtin.get_url:
+        url: "{{ arm_gnu_link }}"
+        dest: "/tmp/{{ arm_gnu_name }}.tar.xz"
+        mode: "0644"
+      register: arm_gnu_download
+
+    - name: extract arm gnu toolchain
+      become: true
+      ansible.builtin.unarchive:
+        src: "{{ arm_gnu_download.dest }}"
+        dest: "{{ arm_gnu_path }}"
+        remote_src: true

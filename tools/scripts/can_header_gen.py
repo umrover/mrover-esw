@@ -3,7 +3,6 @@ from pathlib import Path
 
 from esw.can.dbc.hpp_generator import generate_can_header
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse dbc files to generate self-contained C++ headers.")
     parser.add_argument("files", nargs="+", help="List of dbc files")
